@@ -7,16 +7,21 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "cf-typegen": "wrangler types",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply gymbuddy --local",
+    "db:migrate:remote": "wrangler d1 migrations apply gymbuddy --remote",
     "typecheck": "wrangler types && tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
     "@gymbuddy/shared": "workspace:*",
+    "drizzle-orm": "^0.45.2",
     "hono": "^4.13.7"
   },
   "license": "MIT",
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.22.0",
+    "drizzle-kit": "^0.31.10",
     "vitest": "^4.1.11",
     "wrangler": "^4.129.0"
   }

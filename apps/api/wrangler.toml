@@ -15,3 +15,5 @@ enabled = true
 binding = "DB"
 database_name = "gymbuddy"
 database_id = "local-development"
+# drizzle-kit escribe aquí; wrangler y el pool de tests leen de este mismo sitio.
+migrations_dir = "drizzle"

@@ -5,6 +5,10 @@ coverage/
 pnpm-lock.yaml
 worker-configuration.d.ts
 
+# Migraciones y snapshots de drizzle-kit: los reescribe la herramienta en cada
+# generación y volverían a salir sin formatear.
+apps/api/drizzle/
+
 # La documentación es prosa escrita a mano (ADRs, README): prettier reflota las tablas
 # y rompe el formato pensado. Se revisa leyéndola, no con un formateador.
 *.md
