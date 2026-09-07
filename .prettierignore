@@ -3,3 +3,8 @@ dist/
 coverage/
 .wrangler/
 pnpm-lock.yaml
+worker-configuration.d.ts
+
+# La documentación es prosa escrita a mano (ADRs, README): prettier reflota las tablas
+# y rompe el formato pensado. Se revisa leyéndola, no con un formateador.
+*.md
