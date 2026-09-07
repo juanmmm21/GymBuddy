@@ -1,3 +1,9 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+
+# workerd descarga su binario en el postinstall y esbuild el suyo: sin estos scripts
+# ni wrangler dev ni el pool de tests del Worker llegan a arrancar.
+allowBuilds:
+  esbuild: true
+  workerd: true

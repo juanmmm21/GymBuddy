@@ -10,6 +10,9 @@ pnpm-debug.log*
 yarn-error.log*
 
 # ---------- Cloudflare ----------
+# Tipos de los bindings generados por `wrangler types` desde wrangler.toml: son
+# derivados y enormes, se regeneran con `pnpm --filter @gymbuddy/api typecheck`.
+worker-configuration.d.ts
 # Estado local de wrangler: incluye la D1 de desarrollo con datos de
 # entrenamiento reales. Nunca se versiona.
 .wrangler/

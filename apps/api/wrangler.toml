@@ -1,0 +1,17 @@
+name = "gymbuddy-api"
+main = "src/index.ts"
+# La fecha va al día que soporta el workerd del pool de tests: por delante de él,
+# los tests ni siquiera arrancan el runtime.
+compatibility_date = "2026-08-22"
+
+# Los logs del Worker son el único sitio donde se ve un fallo en el edge.
+[observability]
+enabled = true
+
+# Base de datos única para la PWA y el bot: cero estado divergente.
+# En local wrangler crea la D1 bajo .wrangler/ y no mira database_id; el identificador
+# real se rellena al crear la base de producción con `wrangler d1 create` (fase 14).
+[[d1_databases]]
+binding = "DB"
+database_name = "gymbuddy"
+database_id = "local-development"
