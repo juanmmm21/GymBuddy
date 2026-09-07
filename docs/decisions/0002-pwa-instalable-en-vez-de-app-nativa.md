@@ -39,5 +39,6 @@ sintiera una app de verdad, no una conversación.
     una serie tiene que funcionar igual.
 *   No hay acceso a HealthKit ni a las capacidades nativas de iOS. Hoy no se necesitan.
 *   Requiere hosting, a diferencia de una app puramente local. Se asume conscientemente porque el bot
-    ya lo exigía.
+    ya lo exigía; dónde alojarlo se resolvió en la decisión
+    [`0004`](0004-cloudflare-y-backend-typescript.md).
 *   El sistema de diseño se construye desde cero en CSS/TS en vez de heredar los componentes de Apple.
