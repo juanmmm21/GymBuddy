@@ -1,48 +1,26 @@
-# ---------- Python (backend) ----------
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-.mypy_cache/
-.ruff_cache/
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Entornos virtuales
-.venv/
-venv/
-env/
-
-# Empaquetado
-*.egg-info/
-
-# ---------- Node (frontend) ----------
+# ---------- Node / TypeScript ----------
 node_modules/
 dist/
 build/
 .vite/
-out/
 coverage/
+*.tsbuildinfo
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 pnpm-debug.log*
+yarn-error.log*
 
-# ---------- Datos locales y secretos ----------
-# La base SQLite de desarrollo vive en data/ y nunca se versiona:
-# contiene el historial de entrenamiento real del usuario.
-/data/
-/logs/
-*.db
-*.sqlite3
+# ---------- Cloudflare ----------
+# Estado local de wrangler: incluye la D1 de desarrollo con datos de
+# entrenamiento reales. Nunca se versiona.
+.wrangler/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+
+# ---------- Secretos ----------
 .env
 .env.*
 !.env.example
-
-# Snapshot del catálogo de ejercicios: se regenera desde jsDelivr con
-# `python -m gymbuddy.catalog sync`, no se versiona (pesa y caduca por tag).
-/backend/var/catalog/
 
 # ---------- Editor / SO ----------
 .vscode/
