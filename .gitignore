@@ -1,0 +1,59 @@
+# ---------- Python (backend) ----------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# Empaquetado
+*.egg-info/
+
+# ---------- Node (frontend) ----------
+node_modules/
+dist/
+build/
+.vite/
+out/
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---------- Datos locales y secretos ----------
+# La base SQLite de desarrollo vive en data/ y nunca se versiona:
+# contiene el historial de entrenamiento real del usuario.
+/data/
+/logs/
+*.db
+*.sqlite3
+.env
+.env.*
+!.env.example
+
+# Snapshot del catálogo de ejercicios: se regenera desde jsDelivr con
+# `python -m gymbuddy.catalog sync`, no se versiona (pesa y caduca por tag).
+/backend/var/catalog/
+
+# ---------- Editor / SO ----------
+.vscode/
+.idea/
+.DS_Store
+
+# ---------- Contexto para agentes de IA (nunca en el repo público) ----------
+# GymBuddy es un repo público y único: el andamiaje de trabajo con agentes y el
+# roadmap se quedan en local. Un repo público no debe leerse como obra a medias.
+AGENTS.md
+CLAUDE.md
+PROGRESS.md
+START_HERE.md
+.claude/
