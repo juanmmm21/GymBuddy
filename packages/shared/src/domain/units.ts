@@ -1,0 +1,88 @@
+/**
+ * Conversiones entre la representación de almacenamiento (enteros exactos) y la del
+ * contrato de la API. El peso se guarda en gramos y el RPE en décimas: la coma flotante
+ * no entra en ningún punto, porque un 82.5 que se convierte en 82.49999 es un bug visible.
+ */
+
+const GRAMS_PER_KILOGRAM = 1000;
+/** La API expone kilogramos con dos decimales, es decir, con resolución de 10 gramos. */
+const GRAMS_PER_API_UNIT = 10;
+const MAX_WEIGHT_GRAMS = 9_999_999;
+
+const KILOGRAMS_PATTERN = /^(?<whole>\d{1,4})(?:\.(?<fraction>\d{1,3}))?$/;
+
+/** Formato en el que viaja un peso por la API: kilogramos con exactamente dos decimales. */
+export const API_WEIGHT_PATTERN = /^\d{1,4}\.\d{2}$/;
+
+const TENTHS_PER_RPE_POINT = 10;
+const RPE_TENTHS_STEP = 5;
+const MIN_RPE_TENTHS = 10;
+const MAX_RPE_TENTHS = 100;
+
+/**
+ * Redondea a la resolución que la API sabe representar (10 g), al alza en el empate.
+ * Se aplica solo a valores derivados de una fórmula: lo que registra el usuario ya es exacto.
+ */
+export function roundGramsToApiPrecision(grams: number): number {
+  assertStorableGrams(grams);
+  const remainder = grams % GRAMS_PER_API_UNIT;
+  return remainder * 2 >= GRAMS_PER_API_UNIT
+    ? grams - remainder + GRAMS_PER_API_UNIT
+    : grams - remainder;
+}
+
+export function formatGramsAsKilograms(grams: number): string {
+  const rounded = roundGramsToApiPrecision(grams);
+  const gramsPart = rounded % GRAMS_PER_KILOGRAM;
+  // El numerador es múltiplo exacto de 1000, así que la división no pierde precisión.
+  const kilograms = (rounded - gramsPart) / GRAMS_PER_KILOGRAM;
+  const hundredths = gramsPart / GRAMS_PER_API_UNIT;
+
+  return `${String(kilograms)}.${String(hundredths).padStart(2, '0')}`;
+}
+
+/**
+ * Convierte el peso del contrato a gramos operando sobre la cadena: pasar por
+ * `Number('82.5') * 1000` daría 82499.99999999999 en algún valor y el error se propagaría.
+ */
+export function parseKilogramsToGrams(kilograms: string): number {
+  const groups = KILOGRAMS_PATTERN.exec(kilograms)?.groups;
+  if (groups?.whole === undefined) {
+    throw new RangeError(`Peso fuera del formato del contrato: "${kilograms}"`);
+  }
+
+  const grams =
+    Number(groups.whole) * GRAMS_PER_KILOGRAM + Number((groups.fraction ?? '').padEnd(3, '0'));
+  assertStorableGrams(grams);
+
+  return grams;
+}
+
+export function rpeToTenths(rpe: number): number {
+  const tenths = Math.round(rpe * TENTHS_PER_RPE_POINT);
+  if (
+    tenths < MIN_RPE_TENTHS ||
+    tenths > MAX_RPE_TENTHS ||
+    tenths % RPE_TENTHS_STEP !== 0 ||
+    Math.abs(rpe * TENTHS_PER_RPE_POINT - tenths) > Number.EPSILON * TENTHS_PER_RPE_POINT
+  ) {
+    throw new RangeError(`RPE fuera de rango o sin paso de media unidad: ${String(rpe)}`);
+  }
+
+  return tenths;
+}
+
+export function tenthsToRpe(tenths: number): number {
+  if (!Number.isInteger(tenths) || tenths < MIN_RPE_TENTHS || tenths > MAX_RPE_TENTHS) {
+    throw new RangeError(`RPE almacenado fuera de rango: ${String(tenths)}`);
+  }
+
+  // Solo se guardan múltiplos de 5 décimas, cuya mitad exacta sí es representable en binario.
+  return tenths / TENTHS_PER_RPE_POINT;
+}
+
+function assertStorableGrams(grams: number): void {
+  if (!Number.isInteger(grams) || grams < 0 || grams > MAX_WEIGHT_GRAMS) {
+    throw new RangeError(`Peso en gramos no almacenable: ${String(grams)}`);
+  }
+}
