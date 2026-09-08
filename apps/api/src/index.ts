@@ -12,6 +12,7 @@ import { exercisesRoute } from './routes/v1/exercises';
 import { healthRoute } from './routes/v1/health';
 import { historyRoute } from './routes/v1/history';
 import { sessionsRoute } from './routes/v1/sessions';
+import { statsRoute } from './routes/v1/stats';
 
 // Se exporta con nombre además de por defecto: los tests necesitan inyectar un `env` a
 // medida (por ejemplo, sin el secreto de administración) y `app.request` lo permite.
@@ -25,6 +26,7 @@ app.route('/api/v1', authRoute);
 app.route('/api/v1', exercisesRoute);
 app.route('/api/v1', sessionsRoute);
 app.route('/api/v1', historyRoute);
+app.route('/api/v1', statsRoute);
 app.route('/api/v1', adminRoute);
 // Fuera de /api/v1: no es contrato nuestro, es el canal por el que Telegram nos habla.
 app.route('/', telegramRoute);

@@ -13,7 +13,7 @@ import {
   type UpdateTrackedExerciseRequest,
   type WorkingWeight,
 } from '@gymbuddy/shared';
-import { and, eq, getTableColumns, isNull } from 'drizzle-orm';
+import { and, eq, getTableColumns, inArray, isNull } from 'drizzle-orm';
 import type { Database } from '../db/client';
 import { listTopSetsPerSession } from '../db/queries';
 import { catalogExercise, trackedExercise, type TrackedExerciseRow } from '../db/schema';
@@ -179,6 +179,58 @@ export async function updateTrackedExercise(
   if (exercise === null) throw exerciseNotFound(exerciseId);
 
   return exercise;
+}
+
+/** Lo que las estadísticas necesitan saber de un ejercicio sin traerse su ficha entera. */
+export interface TrackedExerciseFacts {
+  readonly bodyPart: BodyPart | null;
+  readonly archived: boolean;
+}
+
+/**
+ * La parte del cuerpo de varios ejercicios de golpe, resuelta ya contra el catálogo. Es lo
+ * que decide el incremento sugerido al detectar estancamiento, y va en una sola consulta
+ * porque la señal puede afectar a varios ejercicios a la vez.
+ */
+export async function listTrackedExerciseFacts(
+  db: Database,
+  userId: string,
+  exerciseIds: readonly string[],
+): Promise<Map<string, TrackedExerciseFacts>> {
+  if (exerciseIds.length === 0) return new Map();
+
+  const rows = await db
+    .select({
+      id: trackedExercise.id,
+      catalogBodyPart: catalogExercise.bodyPart,
+      customBodyPart: trackedExercise.customBodyPart,
+      archivedAt: trackedExercise.archivedAt,
+    })
+    .from(trackedExercise)
+    .leftJoin(catalogExercise, eq(trackedExercise.catalogId, catalogExercise.catalogId))
+    .where(and(eq(trackedExercise.userId, userId), inArray(trackedExercise.id, [...exerciseIds])));
+
+  return new Map(
+    rows.map((row) => [
+      row.id,
+      {
+        bodyPart: parseNullableBodyPart(row.catalogBodyPart ?? row.customBodyPart),
+        archived: row.archivedAt !== null,
+      },
+    ]),
+  );
+}
+
+/** Igual, para un solo ejercicio, exigiendo que exista y sea de este usuario. */
+export async function requireTrackedExerciseFacts(
+  db: Database,
+  userId: string,
+  exerciseId: string,
+): Promise<TrackedExerciseFacts> {
+  const facts = (await listTrackedExerciseFacts(db, userId, [exerciseId])).get(exerciseId);
+  if (facts === undefined) throw exerciseNotFound(exerciseId);
+
+  return facts;
 }
 
 /** El ejercicio existe y es de este usuario. Lo usan las series antes de registrar nada. */
