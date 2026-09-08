@@ -1,0 +1,59 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-md);
+}
+
+.active {
+  display: flex;
+  align-items: center;
+  gap: var(--gb-space-md);
+}
+
+.activeText {
+  color: var(--gb-color-text-secondary);
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--gb-space-md);
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-xs);
+}
+
+.metricLabel {
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-label-size);
+  font-weight: var(--gb-type-label-weight);
+  letter-spacing: var(--gb-type-label-tracking);
+  text-transform: uppercase;
+}
+
+.metricValue {
+  font-size: var(--gb-type-body-strong-size);
+  font-weight: var(--gb-type-body-strong-weight);
+  line-height: var(--gb-type-body-strong-line);
+}
+
+.sectionLabel {
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-label-size);
+  font-weight: var(--gb-type-label-weight);
+  letter-spacing: var(--gb-type-label-tracking);
+  text-transform: uppercase;
+  margin-bottom: var(--gb-space-xs);
+}
+
+.recordValue {
+  display: flex;
+  align-items: center;
+  gap: var(--gb-space-sm);
+  font-size: var(--gb-type-title-size);
+  font-weight: var(--gb-type-title-weight);
+  line-height: var(--gb-type-title-line);
+}

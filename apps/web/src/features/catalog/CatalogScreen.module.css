@@ -1,0 +1,19 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-sm);
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gb-space-md);
+  min-height: var(--gb-size-touch-target);
+}
+
+.name {
+  font-weight: var(--gb-type-body-strong-weight);
+}
