@@ -1,6 +1,7 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import prettier from 'eslint-config-prettier';
+import reactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
 
 export default tseslint.config(
@@ -40,6 +41,12 @@ export default tseslint.config(
       // Un rejected sin await en un Worker se pierde en silencio y la petición responde 200.
       '@typescript-eslint/no-floating-promises': 'error',
     },
+  },
+  {
+    // La PWA corre en el navegador y sus hooks siguen las reglas de React.
+    files: ['apps/web/**/*.{ts,tsx}'],
+    extends: [reactHooks.configs.flat.recommended],
+    languageOptions: { globals: { ...globals.es2022, ...globals.browser } },
   },
   {
     // El propio fichero de configuración no pertenece a ningún tsconfig del workspace:
