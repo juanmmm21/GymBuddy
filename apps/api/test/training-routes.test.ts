@@ -1,7 +1,7 @@
 import {
   activeSessionResponseSchema,
   apiErrorSchema,
-  setEntrySchema,
+  logSetResponseSchema,
   trackedExerciseSchema,
   workoutSessionDetailSchema,
 } from '@gymbuddy/shared';
@@ -80,7 +80,7 @@ describe('api de entrenamiento', () => {
     // El nombre y el GIF salen del catálogo en el idioma del perfil, no se copian al alta.
     expect(exercise.name).toBe('Press de banca con barra');
     expect(exercise.bodyPart).toBe('chest');
-    expect(exercise.lastSet).toBeNull();
+    expect(exercise.workingWeight).toBeNull();
 
     const sessionId = uuid();
     const opened = await call({
@@ -110,7 +110,7 @@ describe('api de entrenamiento', () => {
       });
 
       expect(logged.status).toBe(201);
-      const set = setEntrySchema.parse(await logged.json());
+      const { set } = logSetResponseSchema.parse(await logged.json());
       // El orden lo pone el servidor: la PWA no sabe cuántas series lleva el bot metidas.
       expect(set.orderIndex).toBe(index);
       expect(set.weight).toBe(weight);
@@ -135,11 +135,12 @@ describe('api de entrenamiento', () => {
     const afterClosing = await call({ method: 'GET', path: '/sessions/active', token });
     expect(activeSessionResponseSchema.parse(await afterClosing.json()).session).toBeNull();
 
-    // La ficha ya precarga el peso de la última serie efectiva; el calentamiento no cuenta.
+    // La ficha ya precarga el peso habitual; el calentamiento no cuenta.
     const listed = await call({ method: 'GET', path: '/exercises', token });
     const [tracked] = trackedExerciseSchema.array().parse(await listed.json());
-    expect(tracked?.lastSet?.weight).toBe('82.50');
-    expect(tracked?.lastSet?.reps).toBe(8);
+    expect(tracked?.workingWeight?.weight).toBe('82.50');
+    expect(tracked?.workingWeight?.reps).toBe(8);
+    expect(tracked?.workingWeight?.sessionCount).toBe(1);
   });
 
   it('registrar dos veces la misma serie no la duplica', async () => {
@@ -170,7 +171,7 @@ describe('api de entrenamiento', () => {
     expect(first.status).toBe(201);
     // 200 y no 201: el reenvío de la cola offline no crea nada nuevo.
     expect(second.status).toBe(200);
-    expect(setEntrySchema.parse(await second.json()).id).toBe(setId);
+    expect(logSetResponseSchema.parse(await second.json()).set.id).toBe(setId);
 
     const detail = await call({ method: 'GET', path: `/sessions/${sessionId}`, token });
     expect(workoutSessionDetailSchema.parse(await detail.json()).sets).toHaveLength(1);
@@ -312,7 +313,7 @@ describe('api de entrenamiento', () => {
     expect(body.archivedAt).not.toBeNull();
     expect(body.notes).toBe('Lo dejo por el hombro');
     // Su serie sigue ahí: archivar es una baja blanda, no un borrado.
-    expect(body.lastSet?.weight).toBe('80.00');
+    expect(body.workingWeight?.weight).toBe('80.00');
 
     const listed = await call({ method: 'GET', path: '/exercises', token });
     expect(trackedExerciseSchema.array().parse(await listed.json())).toHaveLength(0);

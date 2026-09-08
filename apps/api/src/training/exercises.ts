@@ -1,18 +1,22 @@
 import {
+  WORKING_WEIGHT_SESSIONS,
   bodyPartSchema,
   formatGramsAsKilograms,
   muscleSchema,
+  summarizeWorkingWeight,
   type BodyPart,
   type CreateTrackedExerciseRequest,
-  type LastSet,
   type Locale,
   type Muscle,
+  type SessionTopSet,
   type TrackedExercise,
   type UpdateTrackedExerciseRequest,
+  type WorkingWeight,
 } from '@gymbuddy/shared';
-import { and, eq, getTableColumns, isNull, max } from 'drizzle-orm';
+import { and, eq, getTableColumns, isNull } from 'drizzle-orm';
 import type { Database } from '../db/client';
-import { catalogExercise, setEntry, trackedExercise, type TrackedExerciseRow } from '../db/schema';
+import { listTopSetsPerSession } from '../db/queries';
+import { catalogExercise, trackedExercise, type TrackedExerciseRow } from '../db/schema';
 import { ApiException } from '../http/errors';
 
 /** Los campos del catálogo que hacen falta para pintar la ficha de un ejercicio seguido. */
@@ -37,9 +41,9 @@ export interface ListTrackedExercisesOptions {
 }
 
 /**
- * "Mis ejercicios": los que el usuario hace de verdad, con el peso de la última serie
- * efectiva para precargarlo. El peso habitual (la mediana de las últimas sesiones) es
- * lógica de dominio y llega en la fase 6; esto es el dato en bruto que ya está guardado.
+ * "Mis ejercicios": los que el usuario hace de verdad, cada uno con su peso habitual —la
+ * mediana de la serie más pesada de las últimas cinco sesiones—, que es lo que precarga la
+ * pantalla y lo que responde a "¿cuánto suelo levantar aquí?".
  */
 export async function listTrackedExercises(
   db: Database,
@@ -50,17 +54,19 @@ export async function listTrackedExercises(
     ? eq(trackedExercise.userId, userId)
     : and(eq(trackedExercise.userId, userId), isNull(trackedExercise.archivedAt));
 
-  const [rows, lastSets] = await Promise.all([
+  const [rows, workingWeights] = await Promise.all([
     db
       .select({ exercise: getTableColumns(trackedExercise), catalog: catalogColumns })
       .from(trackedExercise)
       .leftJoin(catalogExercise, eq(trackedExercise.catalogId, catalogExercise.catalogId))
       .where(filter)
       .orderBy(trackedExercise.createdAt),
-    findLastSetsByExercise(db, userId),
+    findWorkingWeightsByExercise(db, userId),
   ]);
 
-  return rows.map((row) => toTrackedExercise(row, options.locale, lastSets.get(row.exercise.id)));
+  return rows.map((row) =>
+    toTrackedExercise(row, options.locale, workingWeights.get(row.exercise.id)),
+  );
 }
 
 export async function findTrackedExercise(
@@ -72,9 +78,9 @@ export async function findTrackedExercise(
   const row = await findTrackedExerciseJoin(db, userId, exerciseId);
   if (row === null) return null;
 
-  const lastSets = await findLastSetsByExercise(db, userId, exerciseId);
+  const workingWeights = await findWorkingWeightsByExercise(db, userId, exerciseId);
 
-  return toTrackedExercise(row, locale, lastSets.get(exerciseId));
+  return toTrackedExercise(row, locale, workingWeights.get(exerciseId));
 }
 
 /**
@@ -136,9 +142,12 @@ export async function createTrackedExercise(
     });
   }
 
-  const lastSets = await findLastSetsByExercise(db, userId, row.id);
+  const workingWeights = await findWorkingWeightsByExercise(db, userId, row.id);
 
-  return { exercise: toTrackedExercise(existing, locale, lastSets.get(row.id)), created: false };
+  return {
+    exercise: toTrackedExercise(existing, locale, workingWeights.get(row.id)),
+    created: false,
+  };
 }
 
 /** Cambia las notas y archiva o recupera. La baja es blanda: borrar se llevaría el historial. */
@@ -192,68 +201,48 @@ export function exerciseNotFound(exerciseId: string): ApiException {
 }
 
 /**
- * La última serie efectiva de cada ejercicio del usuario, en dos pasos dentro de la misma
- * consulta: primero el momento más reciente por ejercicio, luego la fila que lo tiene. El
- * calentamiento queda fuera porque no es lo que se quiere precargar la próxima vez.
+ * El peso habitual de cada ejercicio del usuario. La consulta trae la serie más pesada de
+ * las cinco últimas sesiones de cada ejercicio —cinco filas por ejercicio, no su historial
+ * entero— y la mediana la calcula el dominio, que es quien define qué es "lo habitual".
  */
-async function findLastSetsByExercise(
+async function findWorkingWeightsByExercise(
   db: Database,
   userId: string,
   exerciseId?: string,
-): Promise<Map<string, LastSet>> {
-  const scope = and(
-    eq(trackedExercise.userId, userId),
-    eq(setEntry.isWarmup, false),
-    exerciseId === undefined ? undefined : eq(setEntry.trackedExerciseId, exerciseId),
-  );
+): Promise<Map<string, WorkingWeight>> {
+  const rows = await listTopSetsPerSession(db, userId, WORKING_WEIGHT_SESSIONS, exerciseId);
 
-  const latest = db
-    .select({
-      trackedExerciseId: setEntry.trackedExerciseId,
-      lastCompletedAt: max(setEntry.completedAt).as('last_completed_at'),
-    })
-    .from(setEntry)
-    .innerJoin(trackedExercise, eq(trackedExercise.id, setEntry.trackedExerciseId))
-    .where(scope)
-    .groupBy(setEntry.trackedExerciseId)
-    .as('latest');
-
-  const rows = await db
-    .select({
-      trackedExerciseId: setEntry.trackedExerciseId,
-      orderIndex: setEntry.orderIndex,
-      weightGrams: setEntry.weightGrams,
-      reps: setEntry.reps,
-      completedAt: setEntry.completedAt,
-    })
-    .from(setEntry)
-    .innerJoin(
-      latest,
-      and(
-        eq(setEntry.trackedExerciseId, latest.trackedExerciseId),
-        eq(setEntry.completedAt, latest.lastCompletedAt),
-      ),
-    )
-    .where(eq(setEntry.isWarmup, false));
-
-  const lastSets = new Map<string, LastSet>();
-  const orderByExercise = new Map<string, number>();
-
+  const topSetsByExercise = new Map<string, SessionTopSet[]>();
   for (const row of rows) {
-    // Dos series pueden compartir el instante exacto (el bot registra en lotes): manda la
-    // que se anotó después dentro de la sesión.
-    const previous = orderByExercise.get(row.trackedExerciseId);
-    if (previous !== undefined && previous >= row.orderIndex) continue;
-
-    orderByExercise.set(row.trackedExerciseId, row.orderIndex);
-    lastSets.set(row.trackedExerciseId, {
-      weight: formatGramsAsKilograms(row.weightGrams),
+    const entry: SessionTopSet = {
+      sessionId: row.sessionId,
+      startedAt: row.startedAt,
+      weightGrams: row.weightGrams,
       reps: row.reps,
-      completedAt: row.completedAt,
+    };
+
+    const existing = topSetsByExercise.get(row.trackedExerciseId);
+    if (existing === undefined) {
+      topSetsByExercise.set(row.trackedExerciseId, [entry]);
+    } else {
+      existing.push(entry);
+    }
+  }
+
+  const workingWeights = new Map<string, WorkingWeight>();
+  for (const [trackedExerciseId, topSets] of topSetsByExercise) {
+    const summary = summarizeWorkingWeight(topSets, WORKING_WEIGHT_SESSIONS);
+    if (summary === null) continue;
+
+    workingWeights.set(trackedExerciseId, {
+      weight: formatGramsAsKilograms(summary.weightGrams),
+      reps: summary.reps,
+      lastPerformedAt: summary.lastPerformedAt,
+      sessionCount: summary.sessionCount,
     });
   }
 
-  return lastSets;
+  return workingWeights;
 }
 
 async function findTrackedExerciseJoin(
@@ -325,7 +314,7 @@ function describesSameExercise(stored: TrackedExerciseRow, incoming: TrackedExer
 function toTrackedExercise(
   row: TrackedExerciseJoin,
   locale: Locale,
-  lastSet: LastSet | undefined,
+  workingWeight: WorkingWeight | undefined,
 ): TrackedExercise {
   const { exercise, catalog } = row;
   const fromCatalog = exercise.catalogId !== null && catalog !== null;
@@ -343,7 +332,7 @@ function toTrackedExercise(
     bodyPart: parseNullableBodyPart(fromCatalog ? catalog.bodyPart : exercise.customBodyPart),
     gifUrl: fromCatalog ? catalog.gifUrl : null,
     notes: exercise.notes,
-    lastSet: lastSet ?? null,
+    workingWeight: workingWeight ?? null,
     createdAt: exercise.createdAt,
     archivedAt: exercise.archivedAt,
   };
