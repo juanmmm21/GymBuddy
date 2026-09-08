@@ -1,0 +1,23 @@
+.surface {
+  background: var(--gb-color-surface);
+  border: var(--gb-size-border-width) solid var(--gb-color-border);
+  border-radius: var(--gb-radius-md);
+  list-style: none;
+}
+
+.raised {
+  background: var(--gb-color-surface-raised);
+  box-shadow: var(--gb-shadow-raised);
+}
+
+.paddingNone {
+  padding: 0;
+}
+
+.paddingMd {
+  padding: var(--gb-space-lg);
+}
+
+.paddingLg {
+  padding: var(--gb-space-xl);
+}

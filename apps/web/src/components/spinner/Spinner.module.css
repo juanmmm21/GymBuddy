@@ -1,0 +1,26 @@
+.spinner {
+  display: inline-block;
+  border-radius: var(--gb-radius-pill);
+  border-style: solid;
+  border-color: var(--gb-color-border-strong);
+  border-top-color: var(--gb-color-accent);
+  animation: spin var(--gb-duration-slow) linear infinite;
+}
+
+.sizeSm {
+  width: var(--gb-space-lg);
+  height: var(--gb-space-lg);
+  border-width: var(--gb-space-xxs);
+}
+
+.sizeMd {
+  width: var(--gb-space-xl);
+  height: var(--gb-space-xl);
+  border-width: var(--gb-space-xxs);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
