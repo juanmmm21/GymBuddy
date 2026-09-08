@@ -5,6 +5,7 @@ import {
   tenthsToRpe,
   type EndSessionRequest,
   type LogSetRequest,
+  type PersonalRecord,
   type SetEntry,
   type StartSessionRequest,
   type WorkoutSession,
@@ -16,6 +17,7 @@ import { listSetsForSession } from '../db/queries';
 import { setEntry, workoutSession, type SetEntryRow, type WorkoutSessionRow } from '../db/schema';
 import { ApiException } from '../http/errors';
 import { assertTrackedExerciseBelongsToUser } from './exercises';
+import { applyPersonalRecords } from './records';
 
 /**
  * Abre la sesión. El identificador lo trae el cliente, así que reenviar la apertura
@@ -91,6 +93,10 @@ export async function findSessionDetail(
  * Registra una serie en una sesión abierta. El `orderIndex` lo calcula la propia sentencia
  * de inserción: pedirlo antes en una consulta aparte dejaría a dos series simultáneas
  * —la PWA y el bot a la vez— compartiendo posición.
+ *
+ * Los récords se evalúan al final, sobre la fila que quedó guardada. También en el
+ * reenvío: si el primer intento insertó la serie y se cayó antes de escribir la marca,
+ * repetir la petición la arregla, y si ya estaba escrita no se duplica.
  */
 export async function logSet(
   db: Database,
@@ -98,7 +104,7 @@ export async function logSet(
   sessionId: string,
   request: LogSetRequest,
   now: Date,
-): Promise<{ set: SetEntry; created: boolean }> {
+): Promise<{ set: SetEntry; records: PersonalRecord[]; created: boolean }> {
   const session = await findSessionRow(db, userId, sessionId);
   if (session === null) throw sessionNotFound(sessionId);
   if (session.endedAt !== null) {
@@ -129,7 +135,13 @@ export async function logSet(
     .returning();
 
   const [insertedRow] = inserted;
-  if (insertedRow !== undefined) return { set: toSetEntry(insertedRow), created: true };
+  if (insertedRow !== undefined) {
+    return {
+      set: toSetEntry(insertedRow),
+      records: await applyPersonalRecords(db, userId, insertedRow),
+      created: true,
+    };
+  }
 
   const existing = await findSetRow(db, userId, request.id);
   if (existing === null) {
@@ -144,7 +156,11 @@ export async function logSet(
     });
   }
 
-  return { set: toSetEntry(existing), created: false };
+  return {
+    set: toSetEntry(existing),
+    records: await applyPersonalRecords(db, userId, existing),
+    created: false,
+  };
 }
 
 /** Cierra la sesión. Cerrar una que ya lo estaba devuelve la misma: la cola offline reenvía. */

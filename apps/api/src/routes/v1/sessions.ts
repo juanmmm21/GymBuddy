@@ -3,6 +3,7 @@ import {
   logSetRequestSchema,
   startSessionRequestSchema,
   type ActiveSessionResponse,
+  type LogSetResponse,
 } from '@gymbuddy/shared';
 import { Hono } from 'hono';
 import { createDatabase } from '../../db/client';
@@ -58,15 +59,16 @@ export const sessionsRoute = new Hono<AuthenticatedEnv>()
   .post('/sessions/:id/sets', async (c) => {
     const request = await parseJsonBody(c, logSetRequestSchema);
 
-    const { set, created } = await logSet(
+    const { set, records, created } = await logSet(
       createDatabase(c.env.DB),
       c.get('user').id,
       c.req.param('id'),
       request,
       new Date(),
     );
+    const body: LogSetResponse = { set, records };
 
-    return c.json(set, created ? 201 : 200);
+    return c.json(body, created ? 201 : 200);
   })
 
   .post('/sessions/:id/end', async (c) => {

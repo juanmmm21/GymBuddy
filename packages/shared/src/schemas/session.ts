@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { personalRecordSchema } from './record';
 import {
   entrySourceSchema,
   isoDatetimeSchema,
@@ -69,6 +70,16 @@ export const endSessionRequestSchema = z.object({
 });
 
 /**
+ * Lo que responde el registro de una serie. Los récords que acaba de romper viajan con
+ * ella para que la celebración salga en el momento, y no al abrir otra pantalla; en un
+ * reenvío de la cola offline la lista llega vacía, porque la marca ya estaba puesta.
+ */
+export const logSetResponseSchema = z.object({
+  set: setEntrySchema,
+  records: z.array(personalRecordSchema),
+});
+
+/**
  * La sesión en curso, o `null` si no hay ninguna. Va envuelta y no como 404 porque "hoy
  * no has empezado a entrenar" es el estado normal de la pantalla, no un error.
  */
@@ -92,4 +103,5 @@ export type WorkoutSessionPage = z.infer<typeof workoutSessionPageSchema>;
 export type ActiveSessionResponse = z.infer<typeof activeSessionResponseSchema>;
 export type StartSessionRequest = z.infer<typeof startSessionRequestSchema>;
 export type LogSetRequest = z.infer<typeof logSetRequestSchema>;
+export type LogSetResponse = z.infer<typeof logSetResponseSchema>;
 export type EndSessionRequest = z.infer<typeof endSessionRequestSchema>;
