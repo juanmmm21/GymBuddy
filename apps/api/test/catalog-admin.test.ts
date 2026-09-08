@@ -5,6 +5,7 @@ import { app } from '../src/index';
 import { createDatabase, type Database } from '../src/db/client';
 import { catalogExercise, catalogSyncState } from '../src/db/schema';
 import { createCatalogFetch } from './catalog-fixtures';
+import { envWithSecrets } from './worker-env';
 
 const SYNC_URL = 'https://gymbuddy.test/api/v1/admin/catalog/sync';
 const STATUS_URL = 'https://gymbuddy.test/api/v1/admin/catalog/status';
@@ -15,8 +16,7 @@ const withToken = (token: string): RequestInit => ({
   headers: { 'x-gymbuddy-admin-token': token },
 });
 
-/** El `env` del Worker con el secreto puesto, como lo dejaría `wrangler secret put`. */
-const adminEnv = (): Env => ({ DB: env.DB, ADMIN_TOKEN });
+const adminEnv = (): Env => envWithSecrets({ ADMIN_TOKEN });
 
 describe('rutas de administración del catálogo', () => {
   let db: Database;
@@ -32,7 +32,11 @@ describe('rutas de administración del catálogo', () => {
   });
 
   it('no existe si el secreto no está configurado: un olvido no puede abrir el agujero', async () => {
-    const response = await app.request(SYNC_URL, withToken(ADMIN_TOKEN), { DB: env.DB });
+    const response = await app.request(
+      SYNC_URL,
+      withToken(ADMIN_TOKEN),
+      envWithSecrets({ ADMIN_TOKEN: '' }),
+    );
 
     expect(response.status).toBe(404);
     expect(apiErrorSchema.parse(await response.json()).error.code).toBe('not_found');
