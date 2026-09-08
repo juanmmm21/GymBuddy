@@ -239,7 +239,7 @@ describe('api de entrenamiento', () => {
   });
 
   it('cerrar dos veces la misma sesión no mueve la hora de cierre', async () => {
-    const { sessionId } = await openSessionWith(token);
+    const { sessionId } = await openSessionWith(token, '2026-09-08T18:00:00.000Z');
 
     const first = await call({
       method: 'POST',
@@ -387,9 +387,14 @@ describe('api de entrenamiento', () => {
     expect(await errorCode(response)).toBe('validation_failed');
   });
 
-  /** Un ejercicio propio y una sesión abierta: el punto de partida de casi todos los casos. */
+  /**
+   * Un ejercicio propio y una sesión abierta: el punto de partida de casi todos los casos.
+   * Los tests que cierran con una hora fija deben abrir también con una fija: si la sesión
+   * arranca "ahora", el test caduca en cuanto el reloj real pasa de la hora de cierre.
+   */
   async function openSessionWith(
     sessionToken: string,
+    startedAt?: string,
   ): Promise<{ exerciseId: string; sessionId: string }> {
     const exerciseId = uuid();
     const sessionId = uuid();
@@ -404,7 +409,7 @@ describe('api de entrenamiento', () => {
       method: 'POST',
       path: '/sessions',
       token: sessionToken,
-      body: { id: sessionId, source: 'web' },
+      body: { id: sessionId, source: 'web', startedAt },
     });
 
     return { exerciseId, sessionId };
