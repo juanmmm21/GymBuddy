@@ -8,11 +8,20 @@ const GRAMS_PER_KILOGRAM = 1000;
 /** La API expone kilogramos con dos decimales, es decir, con resolución de 10 gramos. */
 const GRAMS_PER_API_UNIT = 10;
 const MAX_WEIGHT_GRAMS = 9_999_999;
+/**
+ * El volumen es peso × repeticiones, así que crece tres órdenes de magnitud sobre un peso
+ * suelto y no cabe en el rango de este. Tiene su propio tope y su propio formato en vez de
+ * ensanchar el del peso: un peso de cinco cifras en kilogramos es un dato equivocado.
+ */
+const MAX_VOLUME_GRAMS = 9_999_999_999;
 
 const KILOGRAMS_PATTERN = /^(?<whole>\d{1,4})(?:\.(?<fraction>\d{1,3}))?$/;
 
 /** Formato en el que viaja un peso por la API: kilogramos con exactamente dos decimales. */
 export const API_WEIGHT_PATTERN = /^\d{1,4}\.\d{2}$/;
+
+/** Formato de una magnitud acumulada (volumen): los mismos dos decimales, más cifras enteras. */
+export const API_VOLUME_PATTERN = /^\d{1,7}\.\d{2}$/;
 
 const TENTHS_PER_RPE_POINT = 10;
 const RPE_TENTHS_STEP = 5;
@@ -24,21 +33,19 @@ const MAX_RPE_TENTHS = 100;
  * Se aplica solo a valores derivados de una fórmula: lo que registra el usuario ya es exacto.
  */
 export function roundGramsToApiPrecision(grams: number): number {
-  assertStorableGrams(grams);
-  const remainder = grams % GRAMS_PER_API_UNIT;
-  return remainder * 2 >= GRAMS_PER_API_UNIT
-    ? grams - remainder + GRAMS_PER_API_UNIT
-    : grams - remainder;
+  assertStorableGrams(grams, MAX_WEIGHT_GRAMS);
+  return roundToApiUnit(grams);
 }
 
 export function formatGramsAsKilograms(grams: number): string {
-  const rounded = roundGramsToApiPrecision(grams);
-  const gramsPart = rounded % GRAMS_PER_KILOGRAM;
-  // El numerador es múltiplo exacto de 1000, así que la división no pierde precisión.
-  const kilograms = (rounded - gramsPart) / GRAMS_PER_KILOGRAM;
-  const hundredths = gramsPart / GRAMS_PER_API_UNIT;
+  assertStorableGrams(grams, MAX_WEIGHT_GRAMS);
+  return formatGrams(grams);
+}
 
-  return `${String(kilograms)}.${String(hundredths).padStart(2, '0')}`;
+/** Igual, para una magnitud acumulada que no cabe en el rango de un peso de barra. */
+export function formatGramsAsVolumeKilograms(grams: number): string {
+  assertStorableGrams(grams, MAX_VOLUME_GRAMS);
+  return formatGrams(grams);
 }
 
 /**
@@ -53,7 +60,7 @@ export function parseKilogramsToGrams(kilograms: string): number {
 
   const grams =
     Number(groups.whole) * GRAMS_PER_KILOGRAM + Number((groups.fraction ?? '').padEnd(3, '0'));
-  assertStorableGrams(grams);
+  assertStorableGrams(grams, MAX_WEIGHT_GRAMS);
 
   return grams;
 }
@@ -81,8 +88,25 @@ export function tenthsToRpe(tenths: number): number {
   return tenths / TENTHS_PER_RPE_POINT;
 }
 
-function assertStorableGrams(grams: number): void {
-  if (!Number.isInteger(grams) || grams < 0 || grams > MAX_WEIGHT_GRAMS) {
-    throw new RangeError(`Peso en gramos no almacenable: ${String(grams)}`);
+function roundToApiUnit(grams: number): number {
+  const remainder = grams % GRAMS_PER_API_UNIT;
+  return remainder * 2 >= GRAMS_PER_API_UNIT
+    ? grams - remainder + GRAMS_PER_API_UNIT
+    : grams - remainder;
+}
+
+function formatGrams(grams: number): string {
+  const rounded = roundToApiUnit(grams);
+  const gramsPart = rounded % GRAMS_PER_KILOGRAM;
+  // El numerador es múltiplo exacto de 1000, así que la división no pierde precisión.
+  const kilograms = (rounded - gramsPart) / GRAMS_PER_KILOGRAM;
+  const hundredths = gramsPart / GRAMS_PER_API_UNIT;
+
+  return `${String(kilograms)}.${String(hundredths).padStart(2, '0')}`;
+}
+
+function assertStorableGrams(grams: number, maxGrams: number): void {
+  if (!Number.isInteger(grams) || grams < 0 || grams > maxGrams) {
+    throw new RangeError(`Cantidad en gramos no almacenable: ${String(grams)}`);
   }
 }
