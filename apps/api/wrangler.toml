@@ -17,3 +17,9 @@ database_name = "gymbuddy"
 database_id = "local-development"
 # drizzle-kit escribe aquí; wrangler y el pool de tests leen de este mismo sitio.
 migrations_dir = "drizzle"
+
+# La sincronización del catálogo avanza un músculo por disparo: diecinueve disparos
+# pueblan el snapshot entero. Cada cinco minutos es de sobra para un catálogo anclado a un
+# tag inmutable, y deja el gasto en 288 invocaciones al día de las 100.000 del plan gratuito.
+[triggers]
+crons = ["*/5 * * * *"]
