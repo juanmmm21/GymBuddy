@@ -1,21 +1,35 @@
-import type { Locale } from '@gymbuddy/shared';
-import { useQuery, type UseQueryResult } from '@tanstack/react-query';
+import type { BodyPart, Locale, Muscle } from '@gymbuddy/shared';
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useQuery,
+  type InfiniteData,
+  type UseInfiniteQueryResult,
+  type UseQueryResult,
+} from '@tanstack/react-query';
 import type {
   ActiveSessionResponse,
   BodyPartSummary,
+  CatalogExercise,
+  CatalogExercisePage,
+  CatalogExerciseSummary,
   TrackedExercise,
   TrainingSignals,
   User,
   WorkoutSessionPage,
 } from '@gymbuddy/shared';
+import { nextPageOffset } from '../lib/paging';
 import { ApiRequestError } from './client';
 import {
   fetchActiveSession,
+  fetchCatalogExercise,
   fetchCurrentUser,
   fetchTrainingSignals,
   listBodyParts,
+  listCatalogExercises,
   listSessionHistory,
   listTrackedExercises,
+  searchCatalog,
   type ListTrackedExercisesOptions,
   type SessionHistoryOptions,
 } from './endpoints';
@@ -43,8 +57,20 @@ export const queryKeys = {
   catalog: {
     all: ['catalog'] as const,
     bodyParts: (lang: Locale | undefined) => ['catalog', 'bodyparts', lang ?? 'default'] as const,
+    exercises: (bodyPart: BodyPart, lang: Locale | undefined) =>
+      ['catalog', 'bodypart', bodyPart, lang ?? 'default'] as const,
+    search: (q: string, lang: Locale | undefined) =>
+      ['catalog', 'search', q, lang ?? 'default'] as const,
+    exercise: (muscle: Muscle, slug: string, lang: Locale | undefined) =>
+      ['catalog', 'exercise', muscle, slug, lang ?? 'default'] as const,
   },
 };
+
+/** Lo que cabe de un tirón en el móvil; coincide con el tamaño por defecto del Worker. */
+export const CATALOG_PAGE_SIZE = 50;
+
+/** Con una sola letra la búsqueda devuelve medio catálogo: no merece una petición. */
+export const MIN_SEARCH_LENGTH = 2;
 
 /** Un 4xx del contrato no se arregla repitiendo la petición; un corte de red, a veces sí. */
 export function shouldRetryRequest(failureCount: number, error: Error): boolean {
@@ -106,6 +132,58 @@ export function useBodyParts(lang?: Locale): UseQueryResult<BodyPartSummary[]> {
   return useQuery({
     queryKey: queryKeys.catalog.bodyParts(lang),
     queryFn: () => listBodyParts(client, lang),
+    retry: shouldRetryRequest,
+  });
+}
+
+/**
+ * Los ejercicios de una parte del cuerpo, por páginas que se van acumulando: `legs` tiene
+ * casi trescientos y la pantalla los pide de cincuenta en cincuenta según se baja.
+ */
+export function useCatalogExercises(
+  bodyPart: BodyPart,
+  lang?: Locale,
+): UseInfiniteQueryResult<InfiniteData<CatalogExercisePage>> {
+  const client = useApiClient();
+  return useInfiniteQuery({
+    queryKey: queryKeys.catalog.exercises(bodyPart, lang),
+    queryFn: ({ pageParam }) =>
+      listCatalogExercises(client, bodyPart, { lang, limit: CATALOG_PAGE_SIZE, offset: pageParam }),
+    initialPageParam: 0,
+    getNextPageParam: nextPageOffset,
+    retry: shouldRetryRequest,
+  });
+}
+
+/**
+ * Búsqueda en el catálogo. Por debajo del mínimo la consulta queda desactivada (y en
+ * estado pendiente): la pantalla no la pinta hasta que haya algo que buscar. Mientras se
+ * teclea se conservan los resultados anteriores para que la lista no parpadee.
+ */
+export function useCatalogSearch(
+  q: string,
+  lang?: Locale,
+): UseQueryResult<CatalogExerciseSummary[]> {
+  const client = useApiClient();
+  const term = q.trim();
+  return useQuery({
+    queryKey: queryKeys.catalog.search(term, lang),
+    queryFn: () => searchCatalog(client, term, { lang }),
+    enabled: term.length >= MIN_SEARCH_LENGTH,
+    placeholderData: keepPreviousData,
+    retry: shouldRetryRequest,
+  });
+}
+
+export function useCatalogExercise(
+  muscle: Muscle,
+  slug: string,
+  lang?: Locale,
+): UseQueryResult<CatalogExercise> {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: queryKeys.catalog.exercise(muscle, slug, lang),
+    queryFn: () => fetchCatalogExercise(client, muscle, slug, lang),
     retry: shouldRetryRequest,
   });
 }
