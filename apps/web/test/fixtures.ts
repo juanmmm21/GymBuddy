@@ -3,6 +3,8 @@ import type {
   CatalogExercise,
   CatalogExercisePage,
   CatalogExerciseSummary,
+  ExerciseHistory,
+  ExerciseStats,
   Session,
   TrackedExercise,
   TrainingSignals,
@@ -152,4 +154,109 @@ export const sessionPage: WorkoutSessionPage = {
   total: 1,
   limit: 20,
   offset: 0,
+};
+
+/** Una sentadilla seguida del catálogo, para que haya dos grupos en "mis ejercicios". */
+export const squat: TrackedExercise = {
+  id: '9d3e2f50-4a6b-4c71-8bcd-2e3f4a5b6c7d',
+  name: 'Sentadilla con barra',
+  origin: 'catalog',
+  catalogId: 'quads/barbell-full-squat',
+  muscle: 'quads',
+  bodyPart: 'legs',
+  gifUrl: 'https://cdn.jsdelivr.net/gh/x/y@v1.1.0/quads/barbell-full-squat.gif',
+  notes: 'Barra baja, mirada al frente.',
+  workingWeight: {
+    weight: '100.00',
+    reps: 5,
+    lastPerformedAt: '2026-09-04T18:00:00.000Z',
+    sessionCount: 1,
+  },
+  createdAt: '2026-08-03T10:00:00.000Z',
+  archivedAt: null,
+};
+
+/** Cómo va el press de banca: peso habitual, dos marcas y estancado. */
+export const benchPressStats: ExerciseStats = {
+  trackedExerciseId: benchPress.id,
+  workingWeight: benchPress.workingWeight,
+  records: [
+    {
+      id: '9c3a2d5e-4f6a-4b71-8cbd-2e3f4a5b6c7d',
+      trackedExerciseId: benchPress.id,
+      kind: 'max_weight',
+      value: '85.00',
+      setEntryId: 'ad4b3e6f-5a7b-4c82-9dce-3f4a5b6c7d8e',
+      achievedAt: '2026-09-06T18:20:00.000Z',
+    },
+    {
+      id: 'ae4b3e6f-5a7b-4c82-9dce-3f4a5b6c7d8f',
+      trackedExerciseId: benchPress.id,
+      kind: 'estimated_1rm',
+      value: '104.50',
+      setEntryId: 'bf5c4f70-6b8c-4d93-aedf-4a5b6c7d8e90',
+      achievedAt: '2026-08-30T18:20:00.000Z',
+    },
+  ],
+  points: [],
+  stalled: {
+    trackedExerciseId: benchPress.id,
+    weight: '82.50',
+    sessions: 3,
+    suggestedIncrement: '2.50',
+  },
+};
+
+/** Las dos últimas veces que se hizo press de banca, con calentamiento y RPE. */
+export const benchPressHistory: ExerciseHistory = {
+  trackedExerciseId: benchPress.id,
+  sessions: [
+    {
+      sessionId: 'be5c4f7a-6b8c-4d93-aedf-4a5b6c7d8e9f',
+      startedAt: '2026-09-06T18:00:00.000Z',
+      endedAt: '2026-09-06T19:05:00.000Z',
+      sets: [
+        {
+          id: 'c06d5081-7c9d-4ea4-bfe0-5b6c7d8e9fa1',
+          trackedExerciseId: benchPress.id,
+          orderIndex: 0,
+          weight: '60.00',
+          reps: 10,
+          rpe: null,
+          isWarmup: true,
+          completedAt: '2026-09-06T18:05:00.000Z',
+          source: 'web',
+        },
+        {
+          id: 'ad4b3e6f-5a7b-4c82-9dce-3f4a5b6c7d8e',
+          trackedExerciseId: benchPress.id,
+          orderIndex: 1,
+          weight: '85.00',
+          reps: 6,
+          rpe: 8.5,
+          isWarmup: false,
+          completedAt: '2026-09-06T18:20:00.000Z',
+          source: 'web',
+        },
+      ],
+    },
+    {
+      sessionId: 'cf6e6192-8dae-4fb5-a0f1-6c7d8e9fa1b2',
+      startedAt: '2026-09-03T18:00:00.000Z',
+      endedAt: '2026-09-03T19:00:00.000Z',
+      sets: [
+        {
+          id: 'd07f72a3-9ebf-40c6-b102-7d8e9fa1b2c3',
+          trackedExerciseId: benchPress.id,
+          orderIndex: 0,
+          weight: '82.50',
+          reps: 8,
+          rpe: null,
+          isWarmup: false,
+          completedAt: '2026-09-03T18:20:00.000Z',
+          source: 'bot',
+        },
+      ],
+    },
+  ],
 };

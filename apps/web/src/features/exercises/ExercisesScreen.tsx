@@ -1,4 +1,5 @@
-import type { TrackedExercise } from '@gymbuddy/shared';
+import type { Locale, TrackedExercise } from '@gymbuddy/shared';
+import { useId } from 'react';
 import { Link } from 'react-router';
 import { useTrackedExercises } from '../../api/queries';
 import { useSession } from '../../auth/SessionProvider';
@@ -6,10 +7,14 @@ import { ScreenHeader } from '../../app/ScreenHeader';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
 import { Badge, Notice, Surface } from '../../components/index';
 import { formatWeightLabel } from '../../lib/format';
-import { BODY_PART_LABELS } from '../catalog/labels';
+import { MUSCLE_LABELS } from '../catalog/labels';
+import { CATALOG_PATH } from '../catalog/paths';
+import { groupExercisesByBodyPart, type ExerciseGroup } from './grouping';
+import { ORIGIN_LABELS } from './labels';
+import { trackedExercisePath } from './paths';
 import styles from './ExercisesScreen.module.css';
 
-/** Los ejercicios que sigues, cada uno con su peso habitual. */
+/** Los ejercicios que sigues, por parte del cuerpo y cada uno con su peso habitual. */
 export function ExercisesScreen() {
   const { session } = useSession();
   const locale = session?.user.locale ?? 'es';
@@ -26,16 +31,16 @@ export function ExercisesScreen() {
           items.length === 0 ? (
             <Notice
               title="Todavía no sigues ningún ejercicio"
-              action={<Link to="/catalog">Abrir el catálogo</Link>}
+              action={<Link to={CATALOG_PATH}>Abrir el catálogo</Link>}
             >
               Elige uno del catálogo o registra una serie desde el bot de Telegram.
             </Notice>
           ) : (
-            <ul className={styles.list}>
-              {items.map((exercise) => (
-                <ExerciseRow key={exercise.id} exercise={exercise} locale={locale} />
+            <div className={styles.groups}>
+              {groupExercisesByBodyPart(items).map((group) => (
+                <GroupSection key={group.label} group={group} locale={locale} />
               ))}
-            </ul>
+            </div>
           )
         }
       </AsyncContent>
@@ -43,28 +48,54 @@ export function ExercisesScreen() {
   );
 }
 
-function ExerciseRow({
-  exercise,
-  locale,
-}: {
-  readonly exercise: TrackedExercise;
-  readonly locale: 'es' | 'en';
-}) {
+interface GroupSectionProps {
+  readonly group: ExerciseGroup;
+  readonly locale: Locale;
+}
+
+function GroupSection({ group, locale }: GroupSectionProps) {
+  const titleId = useId();
   return (
-    <Surface as="li" className={styles.row}>
-      <div className={styles.text}>
-        <span className={styles.name}>{exercise.name}</span>
-        {exercise.bodyPart !== null && (
-          <span className={styles.meta}>{BODY_PART_LABELS[exercise.bodyPart]}</span>
+    <section className={styles.group} aria-labelledby={titleId}>
+      <h2 id={titleId} className={styles.groupTitle}>
+        {group.label}
+      </h2>
+      <ul className={styles.list}>
+        {group.items.map((exercise) => (
+          <ExerciseRow key={exercise.id} exercise={exercise} locale={locale} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+interface ExerciseRowProps {
+  readonly exercise: TrackedExercise;
+  readonly locale: Locale;
+}
+
+/** Una fila es un enlace a la ficha: ahí están el historial y la edición. */
+function ExerciseRow({ exercise, locale }: ExerciseRowProps) {
+  return (
+    <Surface as="li" padding="none">
+      <Link to={trackedExercisePath(exercise.id)} className={styles.row}>
+        <span className={styles.text}>
+          <span className={styles.name}>{exercise.name}</span>
+          <span className={styles.meta}>
+            {exercise.muscle !== null
+              ? MUSCLE_LABELS[exercise.muscle]
+              : ORIGIN_LABELS[exercise.origin]}
+          </span>
+        </span>
+        {exercise.workingWeight === null ? (
+          <Badge>Sin series</Badge>
+        ) : (
+          <Badge tone="accent">
+            {formatWeightLabel(exercise.workingWeight.weight, locale)} ×{' '}
+            {exercise.workingWeight.reps}
+          </Badge>
         )}
-      </div>
-      {exercise.workingWeight === null ? (
-        <Badge>Sin series</Badge>
-      ) : (
-        <Badge tone="accent">
-          {formatWeightLabel(exercise.workingWeight.weight, locale)} × {exercise.workingWeight.reps}
-        </Badge>
-      )}
+      </Link>
     </Surface>
   );
 }

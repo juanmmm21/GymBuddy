@@ -1,3 +1,25 @@
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-xl);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-sm);
+}
+
+.groupTitle {
+  padding: 0 var(--gb-space-xs);
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-label-size);
+  font-weight: var(--gb-type-label-weight);
+  line-height: var(--gb-type-label-line);
+  letter-spacing: var(--gb-type-label-tracking);
+  text-transform: uppercase;
+}
+
 .list {
   display: flex;
   flex-direction: column;
@@ -12,6 +34,9 @@
   justify-content: space-between;
   gap: var(--gb-space-md);
   min-height: var(--gb-size-touch-target);
+  padding: var(--gb-space-md) var(--gb-space-lg);
+  color: inherit;
+  text-decoration: none;
 }
 
 .text {
@@ -23,9 +48,7 @@
 
 .name {
   font-weight: var(--gb-type-body-strong-weight);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .meta {

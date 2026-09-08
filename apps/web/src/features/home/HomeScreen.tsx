@@ -1,10 +1,11 @@
-import type { Locale, PersonalRecordKind, TrainingSignals } from '@gymbuddy/shared';
+import type { Locale, TrainingSignals } from '@gymbuddy/shared';
 import { useTrainingSignals } from '../../api/queries';
 import { useSession } from '../../auth/SessionProvider';
 import { ScreenHeader } from '../../app/ScreenHeader';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
 import { Badge, Button, Notice, Surface } from '../../components/index';
 import { formatDaysAgo, formatWeightLabel, pluralize } from '../../lib/format';
+import { RECORD_LABELS } from '../exercises/labels';
 import styles from './HomeScreen.module.css';
 
 /** Resumen de cómo vas: las señales de `GET /stats/signals`, las mismas que verá la mascota. */
@@ -100,9 +101,3 @@ function Metric({ label, value }: { readonly label: string; readonly value: stri
     </div>
   );
 }
-
-const RECORD_LABELS: Readonly<Record<PersonalRecordKind, string>> = {
-  max_weight: 'Peso máximo',
-  estimated_1rm: '1RM estimado',
-  max_volume: 'Volumen',
-};
