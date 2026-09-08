@@ -1,9 +1,12 @@
 import { Hono } from 'hono';
+import { purgeExpiredNonces } from './auth/nonce';
 import { CatalogSourceError } from './catalog/client';
 import { recordCatalogSyncFailure, runCatalogSyncStep } from './catalog/index';
 import { createDatabase } from './db/client';
 import { registerErrorHandlers } from './http/error-handler';
+import { telegramRoute } from './routes/telegram';
 import { adminRoute } from './routes/v1/admin';
+import { authRoute } from './routes/v1/auth';
 import { catalogRoute } from './routes/v1/catalog';
 import { healthRoute } from './routes/v1/health';
 
@@ -15,7 +18,10 @@ registerErrorHandlers(app);
 
 app.route('/api/v1', healthRoute);
 app.route('/api/v1', catalogRoute);
+app.route('/api/v1', authRoute);
 app.route('/api/v1', adminRoute);
+// Fuera de /api/v1: no es contrato nuestro, es el canal por el que Telegram nos habla.
+app.route('/', telegramRoute);
 
 /**
  * El Cron Trigger es lo que encadena la sincronización: cada disparo avanza un músculo y,
@@ -25,6 +31,16 @@ app.route('/api/v1', adminRoute);
  */
 async function scheduled(_event: ScheduledController, env: Env): Promise<void> {
   const db = createDatabase(env.DB);
+
+  // Se barren aquí los enlaces de entrada caducados: sin esto, `login_nonce` crece con un
+  // registro por intento y no se vacía nunca. Va antes del catálogo porque es barato y no
+  // debe quedarse sin hacer si el origen está caído.
+  try {
+    const purged = await purgeExpiredNonces(db, new Date());
+    if (purged > 0) console.log(`Enlaces de entrada caducados retirados: ${String(purged)}`);
+  } catch (error) {
+    console.error('No se pudieron retirar los enlaces de entrada caducados', error);
+  }
 
   try {
     const step = await runCatalogSyncStep(db);
