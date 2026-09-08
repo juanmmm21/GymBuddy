@@ -32,3 +32,21 @@ export function parsePathParam<T>(value: string, schema: ZodType<T>, description
 
   return parsed.data;
 }
+
+/**
+ * Valida el cuerpo JSON con un esquema Zod. Un cuerpo ausente o roto es el mismo caso que
+ * uno fuera de contrato: la ruta nunca ve nada sin validar, ni siquiera para mirarlo.
+ */
+export async function parseJsonBody<T>(c: Context, schema: ZodType<T>): Promise<T> {
+  const body: unknown = await c.req.json().catch(() => null);
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) {
+    throw new ApiException(
+      'validation_failed',
+      'Cuerpo de la petición inválido',
+      parsed.error.issues.map((issue) => ({ path: issue.path.join('.'), message: issue.message })),
+    );
+  }
+
+  return parsed.data;
+}
