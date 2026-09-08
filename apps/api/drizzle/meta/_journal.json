@@ -15,6 +15,13 @@
       "when": 1788863828756,
       "tag": "0001_catalog_sync_state",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788884748610,
+      "tag": "0002_login_nonce_hash",
+      "breakpoints": true
     }
   ]
 }

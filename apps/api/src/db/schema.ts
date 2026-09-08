@@ -36,13 +36,19 @@ export const user = sqliteTable(
 export const loginNonce = sqliteTable(
   'login_nonce',
   {
-    nonce: text('nonce').primaryKey(),
+    // Se guarda el digest SHA-256, no el nonce: durante sus minutos de vida un nonce sin
+    // reclamar es una llave de sesión, y una copia de seguridad de la base no debe contener
+    // llaves utilizables. El original solo existe en el enlace que abre el usuario.
+    nonceHash: text('nonce_hash').primaryKey(),
     // Nulo hasta que alguien abre el enlace en Telegram: ahí se sabe de quién era.
     userId: rowId('user_id').references(() => user.id, { onDelete: 'cascade' }),
     createdAt: isoTimestamp('created_at').notNull(),
     expiresAt: isoTimestamp('expires_at').notNull(),
+    // Se sella al canjear el nonce por el JWT, y es lo que lo convierte en un solo uso.
     claimedAt: isoTimestamp('claimed_at'),
   },
+  // Los nonces caducados se barren por esta columna: sin el índice, la limpieza recorrería
+  // la tabla entera y D1 cobra por filas leídas.
   (table) => [index('login_nonce_expires_at_idx').on(table.expiresAt)],
 );
 
