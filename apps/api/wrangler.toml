@@ -4,6 +4,11 @@ main = "src/index.ts"
 # los tests ni siquiera arrancan el runtime.
 compatibility_date = "2026-08-22"
 
+# El nombre del bot es público (está en el enlace t.me/...), así que va aquí y no en los
+# secretos: el Worker arma con él el enlace de entrada y la PWA no lo lleva cableado.
+[vars]
+TELEGRAM_BOT_USERNAME = "GymBotBuddy_bot"
+
 # Los logs del Worker son el único sitio donde se ve un fallo en el edge.
 [observability]
 enabled = true
