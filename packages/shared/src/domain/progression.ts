@@ -117,6 +117,17 @@ export function estimateOneRepMaxGrams(weightGrams: number, reps: number): numbe
   return divideRoundingHalfUp(weightGrams * (EPLEY_REP_DIVISOR + reps), EPLEY_REP_DIVISOR);
 }
 
+/**
+ * El mismo 1RM de Epley a partir del numerador `w × (30 + reps)`. Existe porque ordenar
+ * por ese numerador ordena igual que por el 1RM, así que el Worker deja que SQL halle el
+ * máximo y lo convierte aquí, en vez de traerse el historial entero para buscar el mejor.
+ */
+export function oneRepMaxFromEpleyNumerator(numerator: number): number {
+  assertNonNegativeInteger(numerator, 'numerador de Epley');
+
+  return divideRoundingHalfUp(numerator, EPLEY_REP_DIVISOR);
+}
+
 /** Volumen de una serie: peso × repeticiones, en gramos. */
 export function setVolumeGrams(set: ProgressionSet): number {
   assertNonNegativeInteger(set.weightGrams, 'peso en gramos');

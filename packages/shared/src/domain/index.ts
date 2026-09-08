@@ -15,6 +15,7 @@ export {
   effectiveSets,
   estimateOneRepMaxGrams,
   heaviestSet,
+  oneRepMaxFromEpleyNumerator,
   progressionPoints,
   sessionVolumeGrams,
   setVolumeGrams,
