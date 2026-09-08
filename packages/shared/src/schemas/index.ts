@@ -9,6 +9,7 @@ export {
   resourceIdSchema,
   rpeSchema,
   unitSystemSchema,
+  volumeKilogramsSchema,
   weightKilogramsSchema,
 } from './common';
 export type {
@@ -17,6 +18,7 @@ export type {
   Locale,
   ResourceId,
   UnitSystem,
+  VolumeKilograms,
   WeightKilograms,
 } from './common';
 export {
@@ -50,15 +52,15 @@ export { updateUserRequestSchema, userSchema } from './user';
 export type { UpdateUserRequest, User } from './user';
 export {
   createTrackedExerciseRequestSchema,
-  lastSetSchema,
   trackedExerciseSchema,
   updateTrackedExerciseRequestSchema,
+  workingWeightSchema,
 } from './exercise';
 export type {
   CreateTrackedExerciseRequest,
-  LastSet,
   TrackedExercise,
   UpdateTrackedExerciseRequest,
+  WorkingWeight,
 } from './exercise';
 export {
   activeSessionResponseSchema,
@@ -93,3 +95,15 @@ export {
 export type { CreateRoutineRequest, Routine, RoutineItem, UpdateRoutineRequest } from './routine';
 export { personalRecordKindSchema, personalRecordSchema } from './record';
 export type { PersonalRecord, PersonalRecordKind } from './record';
+export {
+  exerciseStatsSchema,
+  progressionPointSchema,
+  stalledExerciseSchema,
+  trainingSignalsSchema,
+} from './stats';
+export type {
+  ExerciseStats,
+  ProgressionPointView,
+  StalledExercise,
+  TrainingSignals,
+} from './stats';

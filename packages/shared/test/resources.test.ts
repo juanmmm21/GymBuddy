@@ -273,7 +273,7 @@ describe('ejercicio seguido', () => {
       bodyPart: 'back',
       gifUrl: null,
       notes: null,
-      lastSet: null,
+      workingWeight: null,
       createdAt: '2026-09-07T18:00:00.000Z',
       archivedAt: null,
     });
@@ -281,7 +281,7 @@ describe('ejercicio seguido', () => {
     expect(parsed.success).toBe(true);
   });
 
-  it('lleva la última serie efectiva para precargar el peso', () => {
+  it('lleva el peso habitual para precargar el formulario', () => {
     const parsed = trackedExerciseSchema.safeParse({
       id: EXERCISE_ID,
       name: 'Press de banca',
@@ -291,7 +291,12 @@ describe('ejercicio seguido', () => {
       bodyPart: 'chest',
       gifUrl: null,
       notes: null,
-      lastSet: { weight: '82.50', reps: 8, completedAt: '2026-09-07T18:30:00.000Z' },
+      workingWeight: {
+        weight: '82.50',
+        reps: 8,
+        lastPerformedAt: '2026-09-07T18:30:00.000Z',
+        sessionCount: 3,
+      },
       createdAt: '2026-09-07T18:00:00.000Z',
       archivedAt: null,
     });

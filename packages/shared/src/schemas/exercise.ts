@@ -3,14 +3,18 @@ import { bodyPartSchema, muscleSchema } from './catalog';
 import { isoDatetimeSchema, resourceIdSchema, weightKilogramsSchema } from './common';
 
 /**
- * La última serie efectiva registrada de un ejercicio. Es lo que precarga el peso al
- * añadir la siguiente: sin esto el usuario reescribe cada semana lo que ya levantó. El
- * calentamiento queda fuera a propósito, porque no representa lo que mueve de verdad.
+ * El peso habitual de un ejercicio: la mediana del peso de la serie efectiva más pesada de
+ * las últimas cinco sesiones. Es la respuesta a "¿cuánto suelo levantar aquí?" y lo que
+ * precarga el formulario, y es una mediana y no la última serie porque un día malo o una
+ * sesión suelta de prueba no deben mover lo que la pantalla propone la próxima vez.
  */
-export const lastSetSchema = z.object({
+export const workingWeightSchema = z.object({
   weight: weightKilogramsSchema,
+  /** Las repeticiones de la última vez: el peso dice cuánto, esto dice cuántas. */
   reps: z.int().positive(),
-  completedAt: isoDatetimeSchema,
+  lastPerformedAt: isoDatetimeSchema,
+  /** Sobre cuántas sesiones se calculó. Con una sola, el peso habitual es solo un dato. */
+  sessionCount: z.int().positive(),
 });
 
 /**
@@ -27,7 +31,7 @@ export const trackedExerciseSchema = z.object({
   bodyPart: bodyPartSchema.nullable(),
   gifUrl: z.url().nullable(),
   notes: z.string().nullable(),
-  lastSet: lastSetSchema.nullable(),
+  workingWeight: workingWeightSchema.nullable(),
   createdAt: isoDatetimeSchema,
   archivedAt: isoDatetimeSchema.nullable(),
 });
@@ -60,7 +64,7 @@ export const updateTrackedExerciseRequestSchema = z
   })
   .partial();
 
-export type LastSet = z.infer<typeof lastSetSchema>;
+export type WorkingWeight = z.infer<typeof workingWeightSchema>;
 export type TrackedExercise = z.infer<typeof trackedExerciseSchema>;
 export type CreateTrackedExerciseRequest = z.infer<typeof createTrackedExerciseRequestSchema>;
 export type UpdateTrackedExerciseRequest = z.infer<typeof updateTrackedExerciseRequestSchema>;
