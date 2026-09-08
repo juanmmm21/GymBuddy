@@ -1,6 +1,7 @@
 export {
   assertTrackedExerciseBelongsToUser,
   createTrackedExercise,
+  exerciseNotFound,
   findTrackedExercise,
   listTrackedExercises,
   updateTrackedExercise,
@@ -11,6 +12,7 @@ export {
   findActiveSession,
   findSessionDetail,
   logSet,
+  sessionNotFound,
   startWorkoutSession,
   toSetEntry,
   toWorkoutSession,
