@@ -24,7 +24,7 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
     if (open && !dialog.open) {
       openDialog(dialog);
     } else if (!open && dialog.open) {
-      dialog.close();
+      closeDialog(dialog);
     }
   }, [open]);
 
@@ -82,5 +82,14 @@ function openDialog(dialog: HTMLDialogElement): void {
     dialog.showModal();
   } else {
     dialog.setAttribute('open', '');
+  }
+}
+
+/** El cierre va en espejo con la apertura: donde no hay `close`, se quita el atributo. */
+function closeDialog(dialog: HTMLDialogElement): void {
+  if (typeof dialog.close === 'function') {
+    dialog.close();
+  } else {
+    dialog.removeAttribute('open');
   }
 }
