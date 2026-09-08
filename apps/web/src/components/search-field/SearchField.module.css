@@ -1,0 +1,54 @@
+.field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.hiddenLabel {
+  position: absolute;
+  width: var(--gb-size-border-width);
+  height: var(--gb-size-border-width);
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.input {
+  width: 100%;
+  min-height: var(--gb-size-control-height);
+  padding: 0 var(--gb-size-control-height) 0 var(--gb-space-lg);
+  border: var(--gb-size-border-width) solid var(--gb-color-border);
+  border-radius: var(--gb-radius-md);
+  background: var(--gb-color-surface);
+  color: var(--gb-color-text);
+  -webkit-appearance: none;
+  appearance: none;
+  transition: border-color var(--gb-duration-fast) var(--gb-ease-standard);
+}
+
+.input::placeholder {
+  color: var(--gb-color-text-muted);
+}
+
+.input:focus {
+  border-color: var(--gb-color-accent);
+  outline: none;
+}
+
+/* El navegador ya pinta su propia equis en `type=search`; se quita para que solo haya una. */
+.input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.clear {
+  position: absolute;
+  right: 0;
+  width: var(--gb-size-control-height);
+  height: var(--gb-size-control-height);
+  border: 0;
+  background: transparent;
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-title-size);
+  line-height: 1;
+}

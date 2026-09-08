@@ -4,6 +4,8 @@ export { Button } from './button/Button';
 export type { ButtonProps, ButtonSize, ButtonVariant } from './button/Button';
 export { Notice } from './notice/Notice';
 export type { NoticeProps, NoticeTone } from './notice/Notice';
+export { SearchField } from './search-field/SearchField';
+export type { SearchFieldProps } from './search-field/SearchField';
 export { Sheet } from './sheet/Sheet';
 export type { SheetProps } from './sheet/Sheet';
 export { Spinner } from './spinner/Spinner';
