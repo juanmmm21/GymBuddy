@@ -13,6 +13,9 @@ import type {
   CatalogExercise,
   CatalogExercisePage,
   CatalogExerciseSummary,
+  ExerciseHistory,
+  ExerciseStats,
+  ResourceId,
   TrackedExercise,
   TrainingSignals,
   User,
@@ -24,6 +27,8 @@ import {
   fetchActiveSession,
   fetchCatalogExercise,
   fetchCurrentUser,
+  fetchExerciseHistory,
+  fetchExerciseStats,
   fetchTrainingSignals,
   listBodyParts,
   listCatalogExercises,
@@ -44,6 +49,7 @@ export const queryKeys = {
   exercises: {
     all: ['exercises'] as const,
     list: (options: ListTrackedExercisesOptions) => ['exercises', 'list', options] as const,
+    history: (exerciseId: ResourceId) => ['exercises', 'history', exerciseId] as const,
   },
   sessions: {
     all: ['sessions'] as const,
@@ -53,6 +59,7 @@ export const queryKeys = {
   stats: {
     all: ['stats'] as const,
     signals: ['stats', 'signals'] as const,
+    exercise: (exerciseId: ResourceId) => ['stats', 'exercise', exerciseId] as const,
   },
   catalog: {
     all: ['catalog'] as const,
@@ -114,6 +121,30 @@ export function useSessionHistory(
   return useQuery({
     queryKey: queryKeys.sessions.history(options),
     queryFn: () => listSessionHistory(client, options),
+    retry: shouldRetryRequest,
+  });
+}
+
+/**
+ * Cómo va un ejercicio: peso habitual, marcas vigentes, puntos de progresión y si está
+ * estancado. El Worker decide cuántas sesiones mira (diez por defecto): la ficha no pide
+ * más porque el mismo número tiene que salir igual aquí, en el bot y en la mascota.
+ */
+export function useExerciseStats(exerciseId: ResourceId): UseQueryResult<ExerciseStats> {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: queryKeys.stats.exercise(exerciseId),
+    queryFn: () => fetchExerciseStats(client, exerciseId),
+    retry: shouldRetryRequest,
+  });
+}
+
+/** Las últimas sesiones en las que se hizo un ejercicio, con solo sus series de ese ejercicio. */
+export function useExerciseHistory(exerciseId: ResourceId): UseQueryResult<ExerciseHistory> {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: queryKeys.exercises.history(exerciseId),
+    queryFn: () => fetchExerciseHistory(client, exerciseId),
     retry: shouldRetryRequest,
   });
 }

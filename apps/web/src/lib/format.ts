@@ -31,6 +31,15 @@ export function formatTime(iso: string, locale: Locale): string {
   }).format(new Date(iso));
 }
 
+/**
+ * El esfuerzo percibido tal como se lee: "RPE 8,5". El contrato lo trae como número en
+ * pasos de media unidad, así que aquí no hay aritmética, solo la coma del idioma.
+ */
+export function formatRpe(rpe: number, locale: Locale): string {
+  const text = String(rpe);
+  return `RPE ${locale === 'es' ? text.replace('.', ',') : text}`;
+}
+
 /** "hoy", "ayer", "hace 3 días": lo que responde a "¿cuándo entrené por última vez?". */
 export function formatDaysAgo(days: number): string {
   if (days === 0) return 'hoy';

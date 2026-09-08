@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { describeError } from '../../src/lib/errors';
 import {
   formatDaysAgo,
+  formatRpe,
   formatSessionDate,
   formatWeightLabel,
   pluralize,
@@ -21,6 +22,14 @@ describe('formatSessionDate', () => {
     const now = new Date('2026-09-08T12:00:00.000Z');
     expect(formatSessionDate('2026-09-06T18:00:00.000Z', 'en', now)).not.toMatch(/2026/);
     expect(formatSessionDate('2025-09-06T18:00:00.000Z', 'en', now)).toMatch(/2025/);
+  });
+});
+
+describe('formatRpe', () => {
+  it('pone la coma del idioma sin tocar el número', () => {
+    expect(formatRpe(8.5, 'es')).toBe('RPE 8,5');
+    expect(formatRpe(8.5, 'en')).toBe('RPE 8.5');
+    expect(formatRpe(9, 'es')).toBe('RPE 9');
   });
 });
 

@@ -1,9 +1,38 @@
-import type { CreateTrackedExerciseRequest, TrackedExercise } from '@gymbuddy/shared';
+import type {
+  CreateTrackedExerciseRequest,
+  ResourceId,
+  TrackedExercise,
+  UpdateTrackedExerciseRequest,
+} from '@gymbuddy/shared';
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { ApiRequestError, type ApiClient } from './client';
 import { createTrackedExercise, listTrackedExercises, updateTrackedExercise } from './endpoints';
 import { useApiClient } from './provider';
 import { queryKeys } from './queries';
+
+export interface UpdateTrackedExerciseVariables {
+  readonly exerciseId: ResourceId;
+  readonly body: UpdateTrackedExerciseRequest;
+}
+
+/**
+ * Edita las notas o archiva / recupera un ejercicio seguido. Cambia lo que el listado
+ * muestra de él, así que se invalida el listado entero: las fichas lo leen de ahí.
+ */
+export function useUpdateTrackedExercise(): UseMutationResult<
+  TrackedExercise,
+  Error,
+  UpdateTrackedExerciseVariables
+> {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ exerciseId, body }: UpdateTrackedExerciseVariables) =>
+      updateTrackedExercise(client, exerciseId, body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.exercises.all }),
+  });
+}
 
 /**
  * Da de alta un ejercicio en "mis ejercicios". El identificador lo trae la petición, así
