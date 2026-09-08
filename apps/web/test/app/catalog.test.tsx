@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { errorResponse, jsonResponse, type FakeFetch, type RecordedRequest } from '../fake-fetch';
 import {
   benchPress,
+  benchPressHistory,
+  benchPressStats,
   bodyParts,
   catalogArcherPushUp,
   catalogBenchPress,
@@ -26,6 +28,12 @@ function serveBenchPressDetail(fake: FakeFetch): void {
   fake.on('GET', '/catalog/exercises/pectorals/barbell-bench-press', () =>
     jsonResponse(catalogBenchPressDetail),
   );
+}
+
+/** Lo que pide la ficha del ejercicio seguido a la que se llega tras "seguir". */
+function serveTrackedBenchPress(fake: FakeFetch): void {
+  fake.on('GET', `/stats/exercise/${benchPress.id}`, () => jsonResponse(benchPressStats));
+  fake.on('GET', `/history/exercises/${benchPress.id}`, () => jsonResponse(benchPressHistory));
 }
 
 describe('catálogo: navegación por parte del cuerpo', () => {
@@ -220,7 +228,7 @@ describe('catálogo: ficha del ejercicio', () => {
     expect(screen.getByText('Cómo se hace')).toBeInTheDocument();
   });
 
-  it('"Seguir este ejercicio" da de alta con un id del cliente y lleva a mis ejercicios', async () => {
+  it('"Seguir este ejercicio" da de alta con un id del cliente y abre su ficha', async () => {
     const user = userEvent.setup();
     let tracked = false;
     const { fake } = renderApp({
@@ -228,6 +236,7 @@ describe('catálogo: ficha del ejercicio', () => {
       session,
       setup: (fake) => {
         serveBenchPressDetail(fake);
+        serveTrackedBenchPress(fake);
         fake.on('GET', '/exercises', () => jsonResponse(tracked ? [benchPress] : []));
         fake.on('POST', '/exercises', () => {
           tracked = true;
@@ -238,8 +247,11 @@ describe('catálogo: ficha del ejercicio', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Seguir este ejercicio' }));
 
-    expect(await screen.findByRole('heading', { name: 'Mis ejercicios' })).toBeInTheDocument();
-    expect(await screen.findByText('Press de banca')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Press de banca' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Mis ejercicios/ })).toHaveAttribute(
+      'href',
+      '/exercises',
+    );
 
     const creation = fake.requests.find((r) => r.method === 'POST' && r.path === '/exercises');
     expect(creation?.body).toMatchObject({
@@ -249,7 +261,7 @@ describe('catálogo: ficha del ejercicio', () => {
     expect((creation?.body as { id: string }).id).toMatch(UUID_PATTERN);
   });
 
-  it('un ejercicio que ya se sigue lo dice y enlaza a mis ejercicios', async () => {
+  it('un ejercicio que ya se sigue lo dice y enlaza a su ficha', async () => {
     renderApp({
       path: DETAIL_PATH,
       session,
@@ -260,9 +272,9 @@ describe('catálogo: ficha del ejercicio', () => {
     });
 
     expect(await screen.findByText('Ya lo sigues')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Ver mis ejercicios' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Abrir mi ficha' })).toHaveAttribute(
       'href',
-      '/exercises',
+      `/exercises/${benchPress.id}`,
     );
     expect(screen.queryByRole('button', { name: 'Seguir este ejercicio' })).not.toBeInTheDocument();
   });
@@ -290,12 +302,13 @@ describe('catálogo: ficha del ejercicio', () => {
           expect(request.body).toEqual({ archived: false });
           return jsonResponse(benchPress);
         });
+        serveTrackedBenchPress(fake);
       },
     });
 
     await user.click(await screen.findByRole('button', { name: 'Seguir este ejercicio' }));
 
-    expect(await screen.findByRole('heading', { name: 'Mis ejercicios' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Press de banca' })).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(
       fake.requests.some((r) => r.method === 'PATCH' && r.path === `/exercises/${benchPress.id}`),

@@ -8,13 +8,13 @@ import { AsyncContent } from '../../components/async-content/AsyncContent';
 import { Badge, Button, Notice, Surface } from '../../components/index';
 import { describeError } from '../../lib/errors';
 import { newResourceId } from '../../lib/ids';
+import { trackedExercisePath } from '../exercises/paths';
 import { ExerciseGif } from './ExerciseGif';
 import { BODY_PART_LABELS, MUSCLE_LABELS, categoryLabel, equipmentLabel } from './labels';
 import { CATALOG_PATH, bodyPartPath, parseMuscle } from './paths';
 import styles from './CatalogExerciseScreen.module.css';
 
 const BACK_TO_CATALOG: BackLink = { to: CATALOG_PATH, label: 'Catálogo' };
-const MY_EXERCISES_PATH = '/exercises';
 const CATALOG_SOURCE_URL = 'https://github.com/JahelCuadrado/ExerciseGymGifsDB';
 
 /** La ficha de un ejercicio del catálogo (`/catalog/:muscle/:slug`): GIF, cómo se hace y "seguir". */
@@ -113,9 +113,10 @@ interface FollowActionProps {
 }
 
 /**
- * "Seguir este ejercicio" lo mete en "mis ejercicios" y lleva allí. Si ya está, se dice y
- * se enlaza; la lista de seguidos puede no haber llegado aún, y entonces el botón se pinta
- * igual: el Worker responderá que ya existe y la mutación lo resuelve sin error.
+ * "Seguir este ejercicio" lo mete en "mis ejercicios" y abre su ficha. Si ya está, se dice
+ * y se enlaza a esa ficha; la lista de seguidos puede no haber llegado aún, y entonces el
+ * botón se pinta igual: el Worker responderá que ya existe y la mutación lo resuelve sin
+ * error, devolviendo la ficha existente a la que navegar.
  */
 function FollowAction({ exercise, alreadyTracked }: FollowActionProps) {
   const navigate = useNavigate();
@@ -125,7 +126,7 @@ function FollowAction({ exercise, alreadyTracked }: FollowActionProps) {
     return (
       <Surface className={styles.followed}>
         <Badge tone="success">Ya lo sigues</Badge>
-        <Link to={MY_EXERCISES_PATH}>Ver mis ejercicios</Link>
+        <Link to={trackedExercisePath(alreadyTracked.id)}>Abrir mi ficha</Link>
       </Surface>
     );
   }
@@ -140,8 +141,8 @@ function FollowAction({ exercise, alreadyTracked }: FollowActionProps) {
           follow.mutate(
             { id: newResourceId(), origin: 'catalog', catalogId: exercise.catalogId },
             {
-              onSuccess: () => {
-                void navigate(MY_EXERCISES_PATH);
+              onSuccess: (tracked) => {
+                void navigate(trackedExercisePath(tracked.id));
               },
             },
           );
