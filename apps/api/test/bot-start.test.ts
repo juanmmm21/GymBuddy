@@ -164,7 +164,8 @@ describe('mensajes del bot', () => {
 
 describe('webhook de Telegram', () => {
   const WEBHOOK = 'https://gymbuddy.test/telegram/webhook';
-  const TELEGRAM_BOT_TOKEN = '8960424053:token-de-pruebas';
+  // Token de mentira con la forma real: el id del bot es el número antes de los dos puntos.
+  const TELEGRAM_BOT_TOKEN = '1234567890:token-de-pruebas';
   const TELEGRAM_WEBHOOK_SECRET = 'secreto-del-webhook';
 
   const webhookEnv = (
