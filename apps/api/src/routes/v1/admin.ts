@@ -9,6 +9,7 @@ import {
 import { createDatabase } from '../../db/client';
 import { ApiException } from '../../http/errors';
 import { parseQuery } from '../../http/query';
+import { readSecret } from '../../http/env';
 import { constantTimeEquals } from '../../http/secrets';
 
 const ADMIN_TOKEN_HEADER = 'x-gymbuddy-admin-token';
@@ -28,7 +29,7 @@ export const adminRoute = new Hono<{ Bindings: Env }>()
    * el Cron Trigger: son la misma función, no dos caminos que puedan desincronizarse.
    */
   .post('/admin/catalog/sync', async (c) => {
-    await assertAdmin(c.req.header(ADMIN_TOKEN_HEADER), c.env.ADMIN_TOKEN);
+    await assertAdmin(c.req.header(ADMIN_TOKEN_HEADER), readSecret(c.env, 'ADMIN_TOKEN'));
 
     const { force } = parseQuery(c, syncQuerySchema);
     const db = createDatabase(c.env.DB);
@@ -46,7 +47,7 @@ export const adminRoute = new Hono<{ Bindings: Env }>()
   })
 
   .get('/admin/catalog/status', async (c) => {
-    await assertAdmin(c.req.header(ADMIN_TOKEN_HEADER), c.env.ADMIN_TOKEN);
+    await assertAdmin(c.req.header(ADMIN_TOKEN_HEADER), readSecret(c.env, 'ADMIN_TOKEN'));
 
     const status = await readCatalogSyncStatus(createDatabase(c.env.DB));
     if (status === null) {
@@ -68,7 +69,7 @@ async function assertAdmin(
 ): Promise<void> {
   const notFound = new ApiException('not_found', 'No existe la ruta solicitada');
 
-  if (expected === undefined || expected === '') throw notFound;
+  if (expected === undefined) throw notFound;
   if (provided === undefined) throw notFound;
   if (!(await constantTimeEquals(provided, expected))) throw notFound;
 }
