@@ -4,6 +4,8 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status';
 export const httpStatusByErrorCode: Record<ApiErrorCode, ContentfulStatusCode> = {
   validation_failed: 400,
   not_found: 404,
+  unauthorized: 401,
+  nonce_invalid: 400,
   // 503 y no 502: el origen es un CDN inmutable, así que el fallo es transitorio y
   // reintentar más tarde es la respuesta correcta.
   catalog_unavailable: 503,

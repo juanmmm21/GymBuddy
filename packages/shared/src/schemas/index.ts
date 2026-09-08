@@ -39,6 +39,13 @@ export type {
   CatalogSyncStep,
   Muscle,
 } from './catalog';
+export {
+  claimSessionRequestSchema,
+  claimSessionResponseSchema,
+  loginNonceSchema,
+  sessionSchema,
+} from './auth';
+export type { ClaimSessionRequest, ClaimSessionResponse, LoginNonce, Session } from './auth';
 export { updateUserRequestSchema, userSchema } from './user';
 export type { UpdateUserRequest, User } from './user';
 export {

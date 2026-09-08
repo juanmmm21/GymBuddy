@@ -8,6 +8,11 @@ import { z } from 'zod';
 export const apiErrorCodeSchema = z.enum([
   'validation_failed',
   'not_found',
+  // Sin sesión válida: falta el JWT, está caducado o no lo firmamos nosotros.
+  'unauthorized',
+  // El nonce del enlace de Telegram no sirve: no existe, caducó o ya se canjeó. Los tres
+  // casos comparten código a propósito, para no confirmarle a nadie que un nonce existió.
+  'nonce_invalid',
   // El catálogo externo no respondió y el snapshot no puede refrescarse: es un fallo
   // del origen, no nuestro, y la PWA debe poder distinguirlo para reintentar más tarde.
   'catalog_unavailable',
