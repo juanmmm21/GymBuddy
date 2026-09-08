@@ -1,4 +1,6 @@
 import { createBrowserRouter, createMemoryRouter, type RouteObject } from 'react-router';
+import { BodyPartScreen } from '../features/catalog/BodyPartScreen';
+import { CatalogExerciseScreen } from '../features/catalog/CatalogExerciseScreen';
 import { CatalogScreen } from '../features/catalog/CatalogScreen';
 import { ExercisesScreen } from '../features/exercises/ExercisesScreen';
 import { HistoryScreen } from '../features/history/HistoryScreen';
@@ -18,6 +20,10 @@ export const routes: RouteObject[] = [
           { index: true, element: <HomeScreen /> },
           { path: 'exercises', element: <ExercisesScreen /> },
           { path: 'catalog', element: <CatalogScreen /> },
+          // Un segmento es una parte del cuerpo; dos, "{muscle}/{slug}", la ficha. Son
+          // profundidades distintas, así que `chest` y `pectorals/...` no se confunden.
+          { path: 'catalog/:bodyPart', element: <BodyPartScreen /> },
+          { path: 'catalog/:muscle/:slug', element: <CatalogExerciseScreen /> },
           { path: 'history', element: <HistoryScreen /> },
         ],
       },

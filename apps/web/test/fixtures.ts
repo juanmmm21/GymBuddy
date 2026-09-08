@@ -1,5 +1,8 @@
 import type {
   BodyPartSummary,
+  CatalogExercise,
+  CatalogExercisePage,
+  CatalogExerciseSummary,
   Session,
   TrackedExercise,
   TrainingSignals,
@@ -79,6 +82,61 @@ export const bodyParts: BodyPartSummary[] = [
   { bodyPart: 'arms', exerciseCount: 329 },
   { bodyPart: 'chest', exerciseCount: 163 },
 ];
+
+const CDN = 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0';
+
+/** Resumen tal como lo lista el catálogo: sin instrucciones ni categoría. */
+export const catalogBenchPress: CatalogExerciseSummary = {
+  catalogId: 'pectorals/barbell-bench-press',
+  name: 'Press de banca con barra',
+  muscle: 'pectorals',
+  bodyPart: 'chest',
+  equipment: 'barbell',
+  gifUrl: `${CDN}/pectorals/barbell-bench-press.gif`,
+};
+
+export const catalogArcherPushUp: CatalogExerciseSummary = {
+  catalogId: 'pectorals/archer-push-up',
+  name: 'Flexión del arquero',
+  muscle: 'pectorals',
+  bodyPart: 'chest',
+  equipment: 'bodyweight',
+  gifUrl: `${CDN}/pectorals/archer-push-up.gif`,
+};
+
+/** La ficha completa del press de banca, con lo que pinta la pantalla de detalle. */
+export const catalogBenchPressDetail: CatalogExercise = {
+  ...catalogBenchPress,
+  category: 'strength',
+  secondaryMuscles: ['triceps', 'delts'],
+  instructions: [
+    'Carga el peso adecuado en la barra y adopta la postura inicial.',
+    'Activa el pectoral antes de iniciar el movimiento.',
+    'Vuelve a la posición inicial controlando la fase excéntrica.',
+  ],
+  syncedAt: '2026-09-08T06:00:00.000Z',
+};
+
+/** Genera `count` resúmenes distintos para probar la paginación sin escribirlos a mano. */
+export function catalogSummaries(count: number, offset = 0): CatalogExerciseSummary[] {
+  return Array.from({ length: count }, (_, index) => {
+    const number = offset + index + 1;
+    return {
+      ...catalogArcherPushUp,
+      catalogId: `pectorals/exercise-${String(number)}`,
+      name: `Ejercicio de pecho ${String(number)}`,
+    };
+  });
+}
+
+export function catalogPage(
+  items: CatalogExerciseSummary[],
+  total: number,
+  offset = 0,
+  limit = 50,
+): CatalogExercisePage {
+  return { items, total, limit, offset };
+}
 
 export const sessionPage: WorkoutSessionPage = {
   items: [

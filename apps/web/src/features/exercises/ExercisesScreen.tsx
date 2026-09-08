@@ -1,4 +1,5 @@
 import type { TrackedExercise } from '@gymbuddy/shared';
+import { Link } from 'react-router';
 import { useTrackedExercises } from '../../api/queries';
 import { useSession } from '../../auth/SessionProvider';
 import { ScreenHeader } from '../../app/ScreenHeader';
@@ -23,8 +24,11 @@ export function ExercisesScreen() {
       <AsyncContent query={exercises}>
         {(items) =>
           items.length === 0 ? (
-            <Notice title="Todavía no sigues ningún ejercicio">
-              Añádelos desde el catálogo o regístralos desde el bot de Telegram.
+            <Notice
+              title="Todavía no sigues ningún ejercicio"
+              action={<Link to="/catalog">Abrir el catálogo</Link>}
+            >
+              Elige uno del catálogo o registra una serie desde el bot de Telegram.
             </Notice>
           ) : (
             <ul className={styles.list}>
