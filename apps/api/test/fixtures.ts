@@ -11,10 +11,13 @@ import {
   type NewSetEntryRow,
 } from '../src/db/schema';
 
-export interface TrainingScenario {
+export interface SeededUsers {
   db: Database;
   userId: string;
   otherUserId: string;
+}
+
+export interface TrainingScenario extends SeededUsers {
   benchId: string;
   squatId: string;
   /** Sesiones del usuario principal, de la más antigua a la más reciente. */
@@ -160,11 +163,49 @@ export async function seedTrainingScenario(binding: D1Database): Promise<Trainin
 }
 
 /**
+ * Dos usuarios y nada más, para los tests que escriben su propio historial desde la API.
+ * El segundo existe siempre: sin alguien al lado no se puede comprobar que las rutas
+ * filtran por el usuario del contexto y no por el identificador de la URL.
+ */
+export async function seedUsers(binding: D1Database): Promise<SeededUsers> {
+  const db = createDatabase(binding);
+  await resetTrainingTables(db);
+
+  const userId = crypto.randomUUID();
+  const otherUserId = crypto.randomUUID();
+
+  await db.insert(user).values([
+    {
+      id: userId,
+      telegramUserId: 100_001,
+      firstName: 'Juan',
+      username: 'juanmmm21',
+      photoUrl: null,
+      locale: 'es',
+      unitSystem: 'metric',
+      createdAt: day('2026-08-01', '08:00:00'),
+    },
+    {
+      id: otherUserId,
+      telegramUserId: 100_002,
+      firstName: 'Otra',
+      username: null,
+      photoUrl: null,
+      locale: 'en',
+      unitSystem: 'metric',
+      createdAt: day('2026-08-01', '09:00:00'),
+    },
+  ]);
+
+  return { db, userId, otherUserId };
+}
+
+/**
  * Vacía los datos de usuario antes de sembrar. El pool comparte la base entre los tests
  * de un mismo fichero, así que sin esto la segunda siembra choca con la clave única de
  * Telegram. El catálogo no se toca: lo llena su propia sincronización.
  */
-async function resetTrainingTables(db: Database): Promise<void> {
+export async function resetTrainingTables(db: Database): Promise<void> {
   // En orden inverso a las dependencias: D1 aplica las claves ajenas.
   await db.delete(personalRecord);
   await db.delete(routineItem);
