@@ -1,0 +1,76 @@
+.screen {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--gb-space-xxl);
+  max-width: var(--gb-size-content-max-width);
+  margin: 0 auto;
+  padding: var(--gb-space-xxl) var(--gb-space-lg);
+  padding-top: calc(var(--gb-space-xxl) + env(safe-area-inset-top));
+  padding-bottom: calc(var(--gb-space-xxl) + env(safe-area-inset-bottom));
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-sm);
+}
+
+.title {
+  font-size: var(--gb-type-display-size);
+  font-weight: var(--gb-type-display-weight);
+  line-height: var(--gb-type-display-line);
+  letter-spacing: var(--gb-type-display-tracking);
+  color: var(--gb-color-accent);
+}
+
+.tagline {
+  color: var(--gb-color-text-secondary);
+  font-size: var(--gb-type-title-size);
+  line-height: var(--gb-type-title-line);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-lg);
+}
+
+.explain {
+  color: var(--gb-color-text-secondary);
+  line-height: var(--gb-type-body-line);
+}
+
+.waiting {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--gb-space-lg);
+}
+
+.telegramLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--gb-size-touch-target);
+  border-radius: var(--gb-radius-md);
+  background: var(--gb-color-accent);
+  color: var(--gb-color-on-accent);
+  font-size: var(--gb-type-title-size);
+  font-weight: var(--gb-type-title-weight);
+  text-decoration: none;
+  transition: background-color var(--gb-duration-fast) var(--gb-ease-standard);
+}
+
+.telegramLink:hover {
+  background: var(--gb-color-accent-strong);
+}
+
+.pending {
+  display: flex;
+  align-items: center;
+  gap: var(--gb-space-sm);
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-caption-size);
+}
