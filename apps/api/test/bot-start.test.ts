@@ -1,7 +1,7 @@
 import { apiErrorSchema } from '@gymbuddy/shared';
 import { env } from 'cloudflare:test';
 import { eq } from 'drizzle-orm';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { claimLoginNonce, issueLoginNonce } from '../src/auth/nonce';
 import { handleStartCommand, startMessage, type StartOutcome } from '../src/bot/start';
 import { createDatabase, type Database } from '../src/db/client';
@@ -207,6 +207,57 @@ describe('webhook de Telegram', () => {
       webhookEnv({ TELEGRAM_WEBHOOK_SECRET: '' }),
     );
     expect(withoutSecret.status).toBe(404);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('acepta el update aunque el bot no consiga contestar por Telegram', async () => {
+    const db = createDatabase(env.DB);
+    await db.delete(loginNonce);
+    await db.delete(user);
+    const { nonce } = await issueLoginNonce(db, new Date());
+
+    // Contestar falla —chat bloqueado, chat inexistente, Telegram caído—, y aun así el
+    // webhook tiene que responder 2xx: con un 500, Telegram reenvía el mismo update en
+    // bucle. Es lo que `bot.catch` NO cubre, porque solo actúa en long polling.
+    vi.stubGlobal('fetch', () => Promise.reject(new Error('Telegram no responde')));
+
+    const update = {
+      update_id: 3,
+      message: {
+        message_id: 1,
+        date: 1_788_870_000,
+        chat: { id: 999_000_111, type: 'private', first_name: 'Juan' },
+        from: {
+          id: 999_000_111,
+          is_bot: false,
+          first_name: 'Juan',
+          username: 'juanmmm21',
+          language_code: 'es',
+        },
+        text: `/start ${nonce}`,
+        entities: [{ type: 'bot_command', offset: 0, length: 6 }],
+      },
+    };
+
+    const response = await app.request(
+      WEBHOOK,
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-telegram-bot-api-secret-token': TELEGRAM_WEBHOOK_SECRET,
+        },
+        body: JSON.stringify(update),
+      },
+      webhookEnv(),
+    );
+
+    expect(response.status).toBe(200);
+    // Y el enlace quedó atado igualmente: lo que falló fue el acuse, no el trabajo.
+    expect(await claimLoginNonce(db, nonce, new Date())).toMatchObject({ status: 'ready' });
   });
 
   it('acepta un update con el secreto correcto sin llamar a Telegram', async () => {

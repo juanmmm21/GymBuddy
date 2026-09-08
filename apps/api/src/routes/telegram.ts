@@ -31,5 +31,14 @@ export const telegramRoute = new Hono<{ Bindings: Env }>().post('/telegram/webho
   if (provided === undefined) throw notFound;
   if (!(await constantTimeEquals(provided, webhookSecret))) throw notFound;
 
-  return webhookCallback(createBot(c.env, token), 'hono')(c);
+  try {
+    return await webhookCallback(createBot(c.env, token), 'hono')(c);
+  } catch (error) {
+    // Telegram reintenta cualquier update que no reciba un 2xx, así que un fallo al
+    // procesarlo no puede salir como 500: el mismo update volvería una y otra vez. Se
+    // registra y se acepta. (`bot.catch` de grammY no cubre esto: solo actúa en long
+    // polling, no en webhook, y por eso el manejo vive aquí.)
+    console.error('Bot: fallo procesando un update de Telegram', error);
+    return c.body(null, 200);
+  }
 });

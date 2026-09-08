@@ -33,11 +33,9 @@ export function createBot(env: Env, token: string): Bot {
     await ctx.reply(startMessage(outcome));
   });
 
-  bot.catch((error) => {
-    // Un fallo aquí no tiene a quién responder: Telegram solo ve el código HTTP del webhook.
-    console.error('Bot: fallo procesando un update', error);
-  });
-
+  // No se instala `bot.catch`: con webhook no llega a actuar (solo cubre long polling), y
+  // tenerlo puesto haría creer que los fallos están controlados aquí. El manejo real está
+  // en la ruta del webhook, que es la que decide qué código HTTP ve Telegram.
   return bot;
 }
 
