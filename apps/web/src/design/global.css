@@ -1,0 +1,71 @@
+/*
+ * Estilos globales: reset mínimo y tipografía base. Todo valor sale de las variables
+ * `--gb-*` que instala `theme.ts`; aquí tampoco se escriben literales de diseño.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  /* Sin el rebote de iOS al hacer scroll fuera del contenido: la PWA no es una web. */
+  overscroll-behavior: none;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--gb-color-canvas);
+  color: var(--gb-color-text);
+  font-family: var(--gb-font-sans);
+  font-size: var(--gb-type-body-size);
+  line-height: var(--gb-type-body-line);
+  font-weight: var(--gb-type-body-weight);
+  letter-spacing: var(--gb-type-body-tracking);
+  /* Los pesos y las repeticiones cambian sin que el texto de al lado se mueva. */
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: var(--gb-color-accent);
+}
+
+:focus-visible {
+  outline: var(--gb-size-focus-ring-width) solid var(--gb-color-focus-ring);
+  outline-offset: var(--gb-space-xxs);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
