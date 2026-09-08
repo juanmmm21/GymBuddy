@@ -6,6 +6,7 @@ import { Button } from '../../src/components/button/Button';
 import { Notice } from '../../src/components/notice/Notice';
 import { Sheet } from '../../src/components/sheet/Sheet';
 import { Surface } from '../../src/components/surface/Surface';
+import { TextArea } from '../../src/components/text-area/TextArea';
 
 describe('Button', () => {
   it('mientras carga no responde y lo anuncia', async () => {
@@ -91,5 +92,21 @@ describe('Sheet', () => {
     await user.click(screen.getByRole('button', { name: 'Cerrar' }));
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(screen.getByText('contenido')).toBeInTheDocument();
+  });
+});
+
+describe('TextArea', () => {
+  it('avisa de cada cambio y enseña cuánto queda del límite', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<TextArea label="Notas" value="Hola" onChange={onChange} maxLength={500} />);
+
+    const box = screen.getByRole('textbox', { name: 'Notas' });
+    expect(box).toHaveValue('Hola');
+    expect(box).toHaveAttribute('maxlength', '500');
+    expect(screen.getByText('4/500')).toBeInTheDocument();
+
+    await user.type(box, '!');
+    expect(onChange).toHaveBeenLastCalledWith('Hola!');
   });
 });

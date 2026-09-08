@@ -12,6 +12,8 @@ export { Spinner } from './spinner/Spinner';
 export type { SpinnerProps, SpinnerSize } from './spinner/Spinner';
 export { Surface } from './surface/Surface';
 export type { SurfacePadding, SurfaceProps } from './surface/Surface';
+export { TextArea } from './text-area/TextArea';
+export type { TextAreaProps } from './text-area/TextArea';
 export { WeightField } from './weight-field/WeightField';
 export type { WeightFieldProps } from './weight-field/WeightField';
 export {
