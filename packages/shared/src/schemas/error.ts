@@ -16,6 +16,18 @@ export const apiErrorCodeSchema = z.enum([
   // El catálogo externo no respondió y el snapshot no puede refrescarse: es un fallo
   // del origen, no nuestro, y la PWA debe poder distinguirlo para reintentar más tarde.
   'catalog_unavailable',
+  // El ejercicio del catálogo ya está en "mis ejercicios": seguirlo dos veces partiría su
+  // historial en dos fichas. La PWA lo trata abriendo el que ya existe, no como un fallo.
+  'exercise_already_tracked',
+  // Ya hay una sesión sin cerrar. Solo se entrena una cosa a la vez, y abrir otra dejaría
+  // la anterior huérfana; el `detail` lleva el id de la que sigue abierta.
+  'session_already_open',
+  // La sesión ya se cerró: sus series no se tocan. Es lo que ve la cola offline cuando
+  // reenvía una serie de una sesión que se cerró desde el bot mientras no había red.
+  'session_closed',
+  // Ese identificador ya existe con otro contenido. La cola offline reenvía la misma
+  // escritura una y otra vez, así que repetir es normal; cambiarla por debajo, no.
+  'conflicting_write',
   'internal_error',
 ]);
 

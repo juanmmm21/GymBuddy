@@ -40,6 +40,17 @@ describe('apiErrorCodeSchema', () => {
   it('incluye el fallo del origen del catálogo, que no es un error interno nuestro', () => {
     expect(apiErrorCodeSchema.safeParse('catalog_unavailable').success).toBe(true);
   });
+
+  it('distingue los cuatro choques del registro de entrenamiento', () => {
+    for (const code of [
+      'exercise_already_tracked',
+      'session_already_open',
+      'session_closed',
+      'conflicting_write',
+    ]) {
+      expect(apiErrorCodeSchema.safeParse(code).success).toBe(true);
+    }
+  });
 });
 
 describe('healthResponseSchema', () => {

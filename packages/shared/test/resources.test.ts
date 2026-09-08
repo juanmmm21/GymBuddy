@@ -1,17 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import {
+  activeSessionResponseSchema,
   bodyPartSchema,
   catalogExercisePageSchema,
   catalogSyncStepSchema,
   createRoutineRequestSchema,
   createTrackedExerciseRequestSchema,
+  exerciseHistorySchema,
   logSetRequestSchema,
   muscleSchema,
   personalRecordSchema,
   setEntrySchema,
+  startSessionRequestSchema,
   trackedExerciseSchema,
   userSchema,
   workoutSessionDetailSchema,
+  workoutSessionPageSchema,
 } from '../src/schemas/index';
 
 const EXERCISE_ID = '3f6c2b1a-58e6-4c65-9d0e-2b1a4c7f8d31';
@@ -138,6 +142,7 @@ describe('series', () => {
 
   it('deja el rpe y el momento fuera de lo obligatorio al registrar', () => {
     const parsed = logSetRequestSchema.safeParse({
+      id: SET_ID,
       trackedExerciseId: EXERCISE_ID,
       weight: '60.00',
       reps: 10,
@@ -146,9 +151,62 @@ describe('series', () => {
 
     expect(parsed.success).toBe(true);
   });
+
+  it('exige el identificador de la serie: sin él la cola offline duplicaría al reenviar', () => {
+    expect(
+      logSetRequestSchema.safeParse({
+        trackedExerciseId: EXERCISE_ID,
+        weight: '60.00',
+        reps: 10,
+        source: 'bot',
+      }).success,
+    ).toBe(false);
+
+    expect(
+      logSetRequestSchema.safeParse({
+        id: 'serie-1',
+        trackedExerciseId: EXERCISE_ID,
+        weight: '60.00',
+        reps: 10,
+        source: 'bot',
+      }).success,
+    ).toBe(false);
+  });
 });
 
 describe('sesión', () => {
+  it('exige el identificador al abrir, igual que al registrar una serie', () => {
+    expect(startSessionRequestSchema.safeParse({ source: 'web' }).success).toBe(false);
+    expect(startSessionRequestSchema.safeParse({ id: SESSION_ID, source: 'web' }).success).toBe(
+      true,
+    );
+  });
+
+  it('representa "no hay sesión en curso" como un nulo, no como una ausencia', () => {
+    expect(activeSessionResponseSchema.safeParse({ session: null }).success).toBe(true);
+    expect(activeSessionResponseSchema.safeParse({}).success).toBe(false);
+  });
+
+  it('acepta una página del historial con su recuento de series', () => {
+    const page = {
+      items: [
+        {
+          id: SESSION_ID,
+          startedAt: '2026-09-07T18:00:00.000Z',
+          endedAt: '2026-09-07T19:10:00.000Z',
+          notes: null,
+          source: 'web',
+          setCount: 5,
+        },
+      ],
+      total: 42,
+      limit: 20,
+      offset: 0,
+    };
+
+    expect(workoutSessionPageSchema.safeParse(page).success).toBe(true);
+  });
+
   it('acepta una sesión abierta sin fin y con sus series', () => {
     const parsed = workoutSessionDetailSchema.safeParse({
       id: SESSION_ID,
@@ -167,6 +225,7 @@ describe('ejercicio seguido', () => {
   it('distingue el alta desde el catálogo del ejercicio propio', () => {
     expect(
       createTrackedExerciseRequestSchema.safeParse({
+        id: EXERCISE_ID,
         origin: 'catalog',
         catalogId: 'pectorals/archer-push-up',
       }).success,
@@ -174,6 +233,7 @@ describe('ejercicio seguido', () => {
 
     expect(
       createTrackedExerciseRequestSchema.safeParse({
+        id: EXERCISE_ID,
         origin: 'custom',
         name: 'Remo con mancuerna en banco',
         bodyPart: 'back',
@@ -182,11 +242,24 @@ describe('ejercicio seguido', () => {
   });
 
   it('no deja crear un ejercicio sin catálogo ni nombre propio', () => {
-    expect(createTrackedExerciseRequestSchema.safeParse({ origin: 'catalog' }).success).toBe(false);
-    expect(createTrackedExerciseRequestSchema.safeParse({ origin: 'custom' }).success).toBe(false);
+    expect(
+      createTrackedExerciseRequestSchema.safeParse({ id: EXERCISE_ID, origin: 'catalog' }).success,
+    ).toBe(false);
+    expect(
+      createTrackedExerciseRequestSchema.safeParse({ id: EXERCISE_ID, origin: 'custom' }).success,
+    ).toBe(false);
     expect(
       createTrackedExerciseRequestSchema.safeParse({ catalogId: 'pectorals/archer-push-up' })
         .success,
+    ).toBe(false);
+  });
+
+  it('exige el identificador también al dar de alta un ejercicio', () => {
+    expect(
+      createTrackedExerciseRequestSchema.safeParse({
+        origin: 'catalog',
+        catalogId: 'pectorals/archer-push-up',
+      }).success,
     ).toBe(false);
   });
 
@@ -200,11 +273,60 @@ describe('ejercicio seguido', () => {
       bodyPart: 'back',
       gifUrl: null,
       notes: null,
+      lastSet: null,
       createdAt: '2026-09-07T18:00:00.000Z',
       archivedAt: null,
     });
 
     expect(parsed.success).toBe(true);
+  });
+
+  it('lleva la última serie efectiva para precargar el peso', () => {
+    const parsed = trackedExerciseSchema.safeParse({
+      id: EXERCISE_ID,
+      name: 'Press de banca',
+      origin: 'custom',
+      catalogId: null,
+      muscle: 'pectorals',
+      bodyPart: 'chest',
+      gifUrl: null,
+      notes: null,
+      lastSet: { weight: '82.50', reps: 8, completedAt: '2026-09-07T18:30:00.000Z' },
+      createdAt: '2026-09-07T18:00:00.000Z',
+      archivedAt: null,
+    });
+
+    expect(parsed.success).toBe(true);
+  });
+});
+
+describe('historial de un ejercicio', () => {
+  it('agrupa las series por la sesión en la que se hicieron', () => {
+    const history = {
+      trackedExerciseId: EXERCISE_ID,
+      sessions: [
+        {
+          sessionId: SESSION_ID,
+          startedAt: '2026-09-07T18:00:00.000Z',
+          endedAt: null,
+          sets: [
+            {
+              id: SET_ID,
+              trackedExerciseId: EXERCISE_ID,
+              orderIndex: 1,
+              weight: '82.50',
+              reps: 8,
+              rpe: null,
+              isWarmup: false,
+              completedAt: '2026-09-07T18:30:00.000Z',
+              source: 'web',
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(exerciseHistorySchema.safeParse(history).success).toBe(true);
   });
 });
 

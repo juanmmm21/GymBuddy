@@ -1,6 +1,17 @@
 import { z } from 'zod';
 import { bodyPartSchema, muscleSchema } from './catalog';
-import { isoDatetimeSchema, resourceIdSchema } from './common';
+import { isoDatetimeSchema, resourceIdSchema, weightKilogramsSchema } from './common';
+
+/**
+ * La última serie efectiva registrada de un ejercicio. Es lo que precarga el peso al
+ * añadir la siguiente: sin esto el usuario reescribe cada semana lo que ya levantó. El
+ * calentamiento queda fuera a propósito, porque no representa lo que mueve de verdad.
+ */
+export const lastSetSchema = z.object({
+  weight: weightKilogramsSchema,
+  reps: z.int().positive(),
+  completedAt: isoDatetimeSchema,
+});
 
 /**
  * Un ejercicio seguido por el usuario viene del catálogo o es suyo. Se refleja como unión
@@ -16,17 +27,24 @@ export const trackedExerciseSchema = z.object({
   bodyPart: bodyPartSchema.nullable(),
   gifUrl: z.url().nullable(),
   notes: z.string().nullable(),
+  lastSet: lastSetSchema.nullable(),
   createdAt: isoDatetimeSchema,
   archivedAt: isoDatetimeSchema.nullable(),
 });
 
+/**
+ * El identificador lo manda el cliente —también sin red— para que reenviar el alta no
+ * cree dos fichas del mismo ejercicio. Es la misma regla que en sesiones y series.
+ */
 export const createTrackedExerciseRequestSchema = z.discriminatedUnion('origin', [
   z.object({
+    id: resourceIdSchema,
     origin: z.literal('catalog'),
     catalogId: z.string().min(1),
     notes: z.string().max(500).nullish(),
   }),
   z.object({
+    id: resourceIdSchema,
     origin: z.literal('custom'),
     name: z.string().min(1).max(120),
     muscle: muscleSchema.nullish(),
@@ -42,6 +60,7 @@ export const updateTrackedExerciseRequestSchema = z
   })
   .partial();
 
+export type LastSet = z.infer<typeof lastSetSchema>;
 export type TrackedExercise = z.infer<typeof trackedExerciseSchema>;
 export type CreateTrackedExerciseRequest = z.infer<typeof createTrackedExerciseRequestSchema>;
 export type UpdateTrackedExerciseRequest = z.infer<typeof updateTrackedExerciseRequestSchema>;

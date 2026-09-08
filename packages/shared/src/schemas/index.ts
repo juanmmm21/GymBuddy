@@ -50,30 +50,40 @@ export { updateUserRequestSchema, userSchema } from './user';
 export type { UpdateUserRequest, User } from './user';
 export {
   createTrackedExerciseRequestSchema,
+  lastSetSchema,
   trackedExerciseSchema,
   updateTrackedExerciseRequestSchema,
 } from './exercise';
 export type {
   CreateTrackedExerciseRequest,
+  LastSet,
   TrackedExercise,
   UpdateTrackedExerciseRequest,
 } from './exercise';
 export {
+  activeSessionResponseSchema,
   endSessionRequestSchema,
   logSetRequestSchema,
   setEntrySchema,
   startSessionRequestSchema,
   workoutSessionDetailSchema,
+  workoutSessionPageSchema,
   workoutSessionSchema,
+  workoutSessionSummarySchema,
 } from './session';
 export type {
+  ActiveSessionResponse,
   EndSessionRequest,
   LogSetRequest,
   SetEntry,
   StartSessionRequest,
   WorkoutSession,
   WorkoutSessionDetail,
+  WorkoutSessionPage,
+  WorkoutSessionSummary,
 } from './session';
+export { exerciseHistoryEntrySchema, exerciseHistorySchema } from './history';
+export type { ExerciseHistory, ExerciseHistoryEntry } from './history';
 export {
   createRoutineRequestSchema,
   routineItemSchema,

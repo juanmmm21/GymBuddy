@@ -9,6 +9,12 @@ export const httpStatusByErrorCode: Record<ApiErrorCode, ContentfulStatusCode> =
   // 503 y no 502: el origen es un CDN inmutable, así que el fallo es transitorio y
   // reintentar más tarde es la respuesta correcta.
   catalog_unavailable: 503,
+  // Los cuatro choques del registro de entrenamiento son 409: la petición es válida y
+  // está autorizada, pero contradice el estado que ya hay guardado.
+  exercise_already_tracked: 409,
+  session_already_open: 409,
+  session_closed: 409,
+  conflicting_write: 409,
   internal_error: 500,
 };
 
