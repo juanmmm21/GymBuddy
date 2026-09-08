@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { apiError, apiErrorSchema, healthResponseSchema } from '../src/index';
+import { apiError, apiErrorCodeSchema, apiErrorSchema, healthResponseSchema } from '../src/index';
 
 describe('apiError', () => {
   it('omite detail cuando no se pasa', () => {
@@ -33,6 +33,12 @@ describe('apiErrorSchema', () => {
     expect(apiErrorSchema.safeParse({ error: { code: 'not_found', message: '' } }).success).toBe(
       false,
     );
+  });
+});
+
+describe('apiErrorCodeSchema', () => {
+  it('incluye el fallo del origen del catálogo, que no es un error interno nuestro', () => {
+    expect(apiErrorCodeSchema.safeParse('catalog_unavailable').success).toBe(true);
   });
 });
 

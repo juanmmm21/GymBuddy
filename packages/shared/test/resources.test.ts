@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   bodyPartSchema,
+  catalogExercisePageSchema,
+  catalogSyncStepSchema,
   createRoutineRequestSchema,
   createTrackedExerciseRequestSchema,
   logSetRequestSchema,
@@ -30,6 +32,78 @@ describe('catálogo: muscle no es bodyPart', () => {
   it('cubre los diecinueve músculos y las siete partes del cuerpo del catálogo', () => {
     expect(muscleSchema.options).toHaveLength(19);
     expect(bodyPartSchema.options).toHaveLength(7);
+  });
+});
+
+describe('página del catálogo', () => {
+  const summary = {
+    catalogId: 'pectorals/archer-push-up',
+    name: 'Flexión del arquero',
+    muscle: 'pectorals',
+    bodyPart: 'chest',
+    equipment: 'bodyweight',
+    gifUrl:
+      'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/archer-push-up.gif',
+  };
+
+  it('acepta una página con su total y su ventana', () => {
+    const page = { items: [summary], total: 158, limit: 50, offset: 0 };
+
+    expect(catalogExercisePageSchema.safeParse(page).success).toBe(true);
+  });
+
+  it('rechaza un límite de cero: una página vacía por definición no es una ventana válida', () => {
+    expect(
+      catalogExercisePageSchema.safeParse({ items: [], total: 0, limit: 0, offset: 0 }).success,
+    ).toBe(false);
+  });
+
+  it('rechaza un resumen cuyo bodyPart sea en realidad un músculo', () => {
+    const page = { items: [{ ...summary, bodyPart: 'pectorals' }], total: 1, limit: 50, offset: 0 };
+
+    expect(catalogExercisePageSchema.safeParse(page).success).toBe(false);
+  });
+});
+
+describe('estado de la sincronización del catálogo', () => {
+  const status = {
+    catalogVersion: 'v1.1.0',
+    startedAt: '2026-09-08T10:00:00.000Z',
+    updatedAt: '2026-09-08T10:05:00.000Z',
+    completedAt: null,
+    nextMuscle: 'adductors',
+    exerciseCount: 174,
+  };
+
+  it('acepta un ciclo en marcha y uno terminado', () => {
+    expect(
+      catalogSyncStepSchema.safeParse({
+        syncedMuscle: 'abs',
+        exercisesUpserted: 169,
+        staleExercisesRemoved: 0,
+        status,
+      }).success,
+    ).toBe(true);
+
+    expect(
+      catalogSyncStepSchema.safeParse({
+        syncedMuscle: 'upper-back',
+        exercisesUpserted: 87,
+        staleExercisesRemoved: 3,
+        status: { ...status, completedAt: '2026-09-08T10:10:00.000Z', nextMuscle: null },
+      }).success,
+    ).toBe(true);
+  });
+
+  it('rechaza un músculo pendiente que no esté en el catálogo', () => {
+    expect(
+      catalogSyncStepSchema.safeParse({
+        syncedMuscle: null,
+        exercisesUpserted: 0,
+        staleExercisesRemoved: 0,
+        status: { ...status, nextMuscle: 'chest' },
+      }).success,
+    ).toBe(false);
   });
 });
 

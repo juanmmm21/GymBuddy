@@ -22,15 +22,21 @@ export type {
 export {
   bodyPartSchema,
   bodyPartSummarySchema,
+  catalogExercisePageSchema,
   catalogExerciseSchema,
   catalogExerciseSummarySchema,
+  catalogSyncStatusSchema,
+  catalogSyncStepSchema,
   muscleSchema,
 } from './catalog';
 export type {
   BodyPart,
   BodyPartSummary,
   CatalogExercise,
+  CatalogExercisePage,
   CatalogExerciseSummary,
+  CatalogSyncStatus,
+  CatalogSyncStep,
   Muscle,
 } from './catalog';
 export { updateUserRequestSchema, userSchema } from './user';

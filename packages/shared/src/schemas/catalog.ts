@@ -64,8 +64,44 @@ export const bodyPartSummarySchema = z.object({
   exerciseCount: z.int().nonnegative(),
 });
 
+/**
+ * Una página del catálogo. Un `bodyPart` como `legs` reúne varios cientos de ejercicios:
+ * devolverlos de golpe castigaría el límite de filas leídas de D1 en cada visita a la
+ * pantalla de navegación, y la PWA solo pinta los que caben en el móvil.
+ */
+export const catalogExercisePageSchema = z.object({
+  items: z.array(catalogExerciseSummarySchema),
+  total: z.int().nonnegative(),
+  limit: z.int().positive(),
+  offset: z.int().nonnegative(),
+});
+
+/**
+ * Estado del snapshot local del catálogo. `nextMuscle` es el músculo que falta por
+ * traer: mientras no sea `null`, el ciclo de sincronización sigue en marcha.
+ */
+export const catalogSyncStatusSchema = z.object({
+  catalogVersion: z.string().min(1),
+  startedAt: isoDatetimeSchema,
+  updatedAt: isoDatetimeSchema,
+  completedAt: isoDatetimeSchema.nullable(),
+  nextMuscle: muscleSchema.nullable(),
+  exerciseCount: z.int().nonnegative(),
+});
+
+/** Lo que devuelve una invocación de la sincronización: qué hizo este paso y cómo queda el ciclo. */
+export const catalogSyncStepSchema = z.object({
+  syncedMuscle: muscleSchema.nullable(),
+  exercisesUpserted: z.int().nonnegative(),
+  staleExercisesRemoved: z.int().nonnegative(),
+  status: catalogSyncStatusSchema,
+});
+
 export type BodyPart = z.infer<typeof bodyPartSchema>;
 export type Muscle = z.infer<typeof muscleSchema>;
 export type CatalogExerciseSummary = z.infer<typeof catalogExerciseSummarySchema>;
 export type CatalogExercise = z.infer<typeof catalogExerciseSchema>;
 export type BodyPartSummary = z.infer<typeof bodyPartSummarySchema>;
+export type CatalogExercisePage = z.infer<typeof catalogExercisePageSchema>;
+export type CatalogSyncStatus = z.infer<typeof catalogSyncStatusSchema>;
+export type CatalogSyncStep = z.infer<typeof catalogSyncStepSchema>;

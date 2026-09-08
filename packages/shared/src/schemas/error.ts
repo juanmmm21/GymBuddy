@@ -5,7 +5,14 @@ import { z } from 'zod';
  * de ellos y la PWA decide qué hacer mirando el código, nunca el texto del mensaje
  * (que es para humanos y está sujeto a traducción).
  */
-export const apiErrorCodeSchema = z.enum(['validation_failed', 'not_found', 'internal_error']);
+export const apiErrorCodeSchema = z.enum([
+  'validation_failed',
+  'not_found',
+  // El catálogo externo no respondió y el snapshot no puede refrescarse: es un fallo
+  // del origen, no nuestro, y la PWA debe poder distinguirlo para reintentar más tarde.
+  'catalog_unavailable',
+  'internal_error',
+]);
 
 export type ApiErrorCode = z.infer<typeof apiErrorCodeSchema>;
 
