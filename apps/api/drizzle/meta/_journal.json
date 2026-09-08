@@ -8,6 +8,13 @@
       "when": 1788817527352,
       "tag": "0000_initial_training_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1788863828756,
+      "tag": "0001_catalog_sync_state",
+      "breakpoints": true
     }
   ]
 }

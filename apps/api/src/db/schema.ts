@@ -76,6 +76,30 @@ export const catalogExercise = sqliteTable(
   ],
 );
 
+/**
+ * Puntero del ciclo de sincronización del catálogo. Existe porque el snapshot se trae
+ * de un músculo por invocación (el límite de CPU del plan gratuito prohíbe traerlo
+ * entero) y hace falta saber por dónde iba el ciclo entre una invocación y la siguiente.
+ * Vive en D1 y no en KV para no meter un binding más por una sola fila.
+ */
+export const catalogSyncState = sqliteTable(
+  'catalog_sync_state',
+  {
+    id: text('id').primaryKey(),
+    catalogVersion: text('catalog_version').notNull(),
+    // Nulo cuando el ciclo terminó; si no, el músculo que falta por traer.
+    nextMuscle: text('next_muscle'),
+    startedAt: isoTimestamp('started_at').notNull(),
+    updatedAt: isoTimestamp('updated_at').notNull(),
+    completedAt: isoTimestamp('completed_at'),
+    // El último fallo del origen queda registrado: en el edge no hay otro rastro de por
+    // qué un ciclo se quedó parado a mitad.
+    lastError: text('last_error'),
+  },
+  // Es una fila única. El CHECK lo impone en la base y no en la confianza de quien escriba.
+  (table) => [check('catalog_sync_state_singleton', sql`${table.id} = 'catalog'`)],
+);
+
 export const trackedExercise = sqliteTable(
   'tracked_exercise',
   {
@@ -227,6 +251,8 @@ export type LoginNonceRow = typeof loginNonce.$inferSelect;
 export type NewLoginNonceRow = typeof loginNonce.$inferInsert;
 export type CatalogExerciseRow = typeof catalogExercise.$inferSelect;
 export type NewCatalogExerciseRow = typeof catalogExercise.$inferInsert;
+export type CatalogSyncStateRow = typeof catalogSyncState.$inferSelect;
+export type NewCatalogSyncStateRow = typeof catalogSyncState.$inferInsert;
 export type TrackedExerciseRow = typeof trackedExercise.$inferSelect;
 export type NewTrackedExerciseRow = typeof trackedExercise.$inferInsert;
 export type WorkoutSessionRow = typeof workoutSession.$inferSelect;
