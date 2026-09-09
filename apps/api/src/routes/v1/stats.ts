@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { createDatabase } from '../../db/client';
 import { requireUser, type AuthenticatedEnv } from '../../http/current-user';
 import { parseQuery } from '../../http/query';
-import { getExerciseStats, getTrainingSignals } from '../../training/index';
+import { getExerciseStats, getTrainingSignals, getWeeklyCalendar } from '../../training/index';
 
 /** Diez sesiones llenan la gráfica de un ejercicio semanal sin castigar las filas leídas. */
 const DEFAULT_STATS_SESSIONS = 10;
@@ -32,4 +32,9 @@ export const statsRoute = new Hono<AuthenticatedEnv>()
   /** Las señales del usuario entero. No lleva parámetros: es el estado, no una consulta. */
   .get('/stats/signals', async (c) => {
     return c.json(await getTrainingSignals(createDatabase(c.env.DB), c.get('user').id, new Date()));
+  })
+
+  /** La semana en curso, día a día. Tampoco lleva parámetros: la semana es la de hoy. */
+  .get('/stats/week', async (c) => {
+    return c.json(await getWeeklyCalendar(createDatabase(c.env.DB), c.get('user').id, new Date()));
   });

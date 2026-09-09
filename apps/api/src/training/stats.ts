@@ -1,14 +1,19 @@
 import {
+  DAYS_PER_WEEK,
   WORKING_WEIGHT_SESSIONS,
   daysSinceLastSession,
   detectStagnation,
   formatGramsAsKilograms,
   formatGramsAsVolumeKilograms,
+  isoDateOfDay,
   progressionPoints,
   sessionsThisWeek,
   suggestedIncrementGrams,
   summarizeWorkingWeight,
   topSetsBySession,
+  weekIndexOf,
+  weekStartDayIndex,
+  weeklyBodyPartCalendar,
   weeklyStreak,
   type ExerciseStats,
   type PersonalRecord,
@@ -17,12 +22,18 @@ import {
   type SessionTopSet,
   type StalledExercise,
   type TrainingSignals,
+  type WeeklyCalendar,
+  type WeekSetEntry,
 } from '@gymbuddy/shared';
 import { and, desc, eq, gte, isNull } from 'drizzle-orm';
 import type { Database } from '../db/client';
-import { listExerciseHistory, listTopSetsPerSession } from '../db/queries';
+import { listExerciseHistory, listSetsInWindow, listTopSetsPerSession } from '../db/queries';
 import { personalRecord, workoutSession, type SetEntryRow } from '../db/schema';
-import { listTrackedExerciseFacts, requireTrackedExerciseFacts } from './exercises';
+import {
+  listTrackedExerciseFacts,
+  parseNullableBodyPart,
+  requireTrackedExerciseFacts,
+} from './exercises';
 import { getCurrentRecords, toPersonalRecord } from './records';
 
 /**
@@ -31,8 +42,14 @@ import { getCurrentRecords, toPersonalRecord } from './records';
  */
 const SIGNAL_WINDOW_WEEKS = 52;
 const MAX_SIGNAL_SESSIONS = 400;
-const DAYS_PER_WEEK = 7;
 const MILLISECONDS_PER_DAY = 86_400_000;
+
+/**
+ * Tope de series que se leen para el calendario. Una semana muy cargada son unas
+ * doscientas; el límite está para que una semana absurda no se coma filas de D1, y al
+ * alcanzarlo se pierde lo último del domingo, no el reparto de los días anteriores.
+ */
+const MAX_WEEK_SETS = 500;
 
 /**
  * Todo lo que la pantalla de un ejercicio sabe decir de él: peso habitual, marcas vigentes,
@@ -154,6 +171,48 @@ export async function getTrainingSignals(
     activeSessionId: active[0]?.id ?? null,
     latestRecord,
     stalled: await findStalledExercises(db, userId),
+  };
+}
+
+/**
+ * El mini calendario de la semana en curso: los siete días con la parte del cuerpo que más
+ * volumen tuvo en cada uno. Va aparte de `GET /stats/signals` a propósito: las señales las
+ * pide también el bot y la mascota, y leer las series de la semana entera en cada una de
+ * esas llamadas sería pagar por un dato que solo pinta la pantalla de Hoy.
+ */
+export async function getWeeklyCalendar(
+  db: Database,
+  userId: string,
+  now: Date,
+): Promise<WeeklyCalendar> {
+  const weekStart = weekStartDayIndex(weekIndexOf(now.getTime()));
+  const from = new Date(weekStart * MILLISECONDS_PER_DAY).toISOString();
+  const to = new Date((weekStart + DAYS_PER_WEEK) * MILLISECONDS_PER_DAY).toISOString();
+
+  const rows = await listSetsInWindow(db, userId, from, to, MAX_WEEK_SETS);
+
+  const entries: WeekSetEntry[] = rows.map((row) => ({
+    sessionStartedAt: row.sessionStartedAt,
+    bodyPart: parseNullableBodyPart(row.bodyPart),
+    set: {
+      weightGrams: row.weightGrams,
+      reps: row.reps,
+      isWarmup: row.isWarmup,
+      completedAt: row.completedAt,
+    },
+  }));
+
+  return {
+    generatedAt: now.toISOString(),
+    weekStart: isoDateOfDay(weekStart),
+    days: weeklyBodyPartCalendar(entries, now).map((day) => ({
+      dayIndex: day.dayIndex,
+      date: day.date,
+      trained: day.trained,
+      bodyPart: day.bodyPart,
+      volume: formatGramsAsVolumeKilograms(day.volumeGrams),
+      setCount: day.setCount,
+    })),
   };
 }
 

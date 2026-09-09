@@ -434,6 +434,6 @@ function parseNullableMuscle(value: string | null): Muscle | null {
   return value === null ? null : muscleSchema.parse(value);
 }
 
-function parseNullableBodyPart(value: string | null): BodyPart | null {
+export function parseNullableBodyPart(value: string | null): BodyPart | null {
   return value === null ? null : bodyPartSchema.parse(value);
 }

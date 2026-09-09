@@ -5,6 +5,7 @@ export {
   findTrackedExercise,
   listTrackedExerciseFacts,
   listTrackedExercises,
+  parseNullableBodyPart,
   requireTrackedExerciseFacts,
   updateTrackedExercise,
 } from './exercises';
@@ -23,5 +24,5 @@ export {
 } from './sessions';
 export { applyPersonalRecords, getCurrentRecords, toPersonalRecord } from './records';
 export { getExerciseHistory, listSessionPage } from './history';
-export { getExerciseStats, getTrainingSignals } from './stats';
+export { getExerciseStats, getTrainingSignals, getWeeklyCalendar } from './stats';
 export type { SessionPageQuery } from './history';

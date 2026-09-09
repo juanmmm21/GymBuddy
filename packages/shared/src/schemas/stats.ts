@@ -75,7 +75,10 @@ export const trainingSignalsSchema = z.object({
  */
 export const weeklyCalendarDaySchema = z.object({
   /** 0 es lunes y 6 domingo, que es el orden en el que se pinta la fila. */
-  dayIndex: z.int().min(0).max(DAYS_PER_WEEK - 1),
+  dayIndex: z
+    .int()
+    .min(0)
+    .max(DAYS_PER_WEEK - 1),
   date: z.iso.date(),
   trained: z.boolean(),
   bodyPart: bodyPartSchema.nullable(),

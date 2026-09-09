@@ -1,7 +1,14 @@
 import { EPLEY_REP_DIVISOR } from '@gymbuddy/shared';
-import { and, asc, desc, eq, getTableColumns, gt, inArray, ne, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, getTableColumns, gt, gte, inArray, lt, ne, sql } from 'drizzle-orm';
 import type { Database } from './client';
-import { personalRecord, setEntry, workoutSession, type SetEntryRow } from './schema';
+import {
+  catalogExercise,
+  personalRecord,
+  setEntry,
+  trackedExercise,
+  workoutSession,
+  type SetEntryRow,
+} from './schema';
 
 /** Una sesión pasada junto a las series que contiene de un ejercicio concreto. */
 export interface ExerciseSessionHistory {
@@ -87,6 +94,72 @@ export async function listExerciseHistory(
     startedAt: session.startedAt,
     endedAt: session.endedAt,
     sets: setsBySession.get(session.id) ?? [],
+  }));
+}
+
+/**
+ * Una serie dentro de una ventana de tiempo, con la parte del cuerpo de su ejercicio ya
+ * resuelta. Es texto crudo de SQLite: quien la consume la valida contra el enum del
+ * contrato, igual que hace la ficha de un ejercicio.
+ */
+export interface WindowSetRow {
+  sessionStartedAt: string;
+  bodyPart: string | null;
+  weightGrams: number;
+  reps: number;
+  isWarmup: boolean;
+  completedAt: string;
+}
+
+/**
+ * Las series de las sesiones **empezadas** dentro de una ventana, con la parte del cuerpo
+ * de cada una. Es lo que le falta a `GET /history/sessions` para poder decir qué se
+ * trabajó cada día: la sesión sabe cuándo fue, pero no qué se tocó en ella.
+ *
+ * La ventana filtra por el comienzo de la sesión y no por el de la serie, para que una
+ * sesión que cruza la medianoche cuente entera en su día. El `left join` con el catálogo
+ * es lo que deja pasar los ejercicios propios: los suyos traen `custom_body_part`, que
+ * puede ser nulo, y esa fila tiene que llegar igual.
+ */
+export async function listSetsInWindow(
+  db: Database,
+  userId: string,
+  from: string,
+  to: string,
+  limit: number,
+): Promise<WindowSetRow[]> {
+  const rows = await db
+    .select({
+      sessionStartedAt: workoutSession.startedAt,
+      catalogBodyPart: catalogExercise.bodyPart,
+      customBodyPart: trackedExercise.customBodyPart,
+      weightGrams: setEntry.weightGrams,
+      reps: setEntry.reps,
+      isWarmup: setEntry.isWarmup,
+      completedAt: setEntry.completedAt,
+    })
+    .from(setEntry)
+    .innerJoin(workoutSession, eq(workoutSession.id, setEntry.sessionId))
+    .innerJoin(trackedExercise, eq(trackedExercise.id, setEntry.trackedExerciseId))
+    .leftJoin(catalogExercise, eq(catalogExercise.catalogId, trackedExercise.catalogId))
+    .where(
+      and(
+        eq(workoutSession.userId, userId),
+        gte(workoutSession.startedAt, from),
+        lt(workoutSession.startedAt, to),
+      ),
+    )
+    .orderBy(asc(workoutSession.startedAt), asc(setEntry.orderIndex))
+    .limit(limit);
+
+  return rows.map((row) => ({
+    sessionStartedAt: row.sessionStartedAt,
+    // El catálogo manda sobre la clasificación propia, igual que en la ficha del ejercicio.
+    bodyPart: row.catalogBodyPart ?? row.customBodyPart,
+    weightGrams: row.weightGrams,
+    reps: row.reps,
+    isWarmup: row.isWarmup,
+    completedAt: row.completedAt,
   }));
 }
 

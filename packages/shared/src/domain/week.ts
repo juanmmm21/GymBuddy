@@ -97,7 +97,12 @@ export function weeklyBodyPartCalendar(
   }
 
   return Array.from({ length: DAYS_PER_WEEK }, (_unused, dayIndex) =>
-    summarizeDay(dayIndex, weekStart + dayIndex, trainedDays.has(dayIndex), setsByDay.get(dayIndex)),
+    summarizeDay(
+      dayIndex,
+      weekStart + dayIndex,
+      trainedDays.has(dayIndex),
+      setsByDay.get(dayIndex),
+    ),
   );
 }
 
