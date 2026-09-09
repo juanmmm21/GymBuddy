@@ -1,4 +1,5 @@
 import type { Locale, TrainingSignals } from '@gymbuddy/shared';
+import { Link } from 'react-router';
 import { useTrainingSignals } from '../../api/queries';
 import { useSession } from '../../auth/SessionProvider';
 import { ScreenHeader } from '../../app/ScreenHeader';
@@ -6,6 +7,7 @@ import { AsyncContent } from '../../components/async-content/AsyncContent';
 import { Badge, Button, Notice, Surface } from '../../components/index';
 import { formatDaysAgo, formatWeightLabel, pluralize } from '../../lib/format';
 import { RECORD_LABELS } from '../exercises/labels';
+import { SESSION_PATH } from '../session/paths';
 import styles from './HomeScreen.module.css';
 
 /** Resumen de cómo vas: las señales de `GET /stats/signals`, las mismas que verá la mascota. */
@@ -40,18 +42,28 @@ interface SignalsSummaryProps {
 function SignalsSummary({ signals, locale }: SignalsSummaryProps) {
   if (signals.lastSessionAt === null) {
     return (
-      <Notice title="Todavía no has entrenado">
-        Cuando registres tu primera sesión, aquí verás tu racha y tus últimas marcas.
-      </Notice>
+      <div className={styles.stack}>
+        <Notice title="Todavía no has entrenado">
+          Cuando registres tu primera sesión, aquí verás tu racha y tus últimas marcas.
+        </Notice>
+        <Link to={SESSION_PATH} className={styles.cta}>
+          Empezar a entrenar
+        </Link>
+      </div>
     );
   }
 
   return (
     <div className={styles.stack}>
-      {signals.activeSessionId !== null && (
+      {signals.activeSessionId === null ? (
+        <Link to={SESSION_PATH} className={styles.cta}>
+          Empezar a entrenar
+        </Link>
+      ) : (
         <Surface className={styles.active}>
           <Badge tone="accent">Sesión en curso</Badge>
           <p className={styles.activeText}>Tienes una sesión abierta.</p>
+          <Link to={SESSION_PATH}>Seguir</Link>
         </Surface>
       )}
 

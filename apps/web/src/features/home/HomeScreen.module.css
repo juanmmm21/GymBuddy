@@ -11,7 +11,29 @@
 }
 
 .activeText {
+  flex: 1;
   color: var(--gb-color-text-secondary);
+}
+
+/* Enlace con aspecto de acción principal: la sesión es lo único que se pulsa en Hoy. */
+.cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--gb-size-touch-target);
+  padding: var(--gb-space-md) var(--gb-space-xl);
+  border-radius: var(--gb-radius-md);
+  background: var(--gb-color-accent);
+  color: var(--gb-color-on-accent);
+  font-size: var(--gb-type-body-strong-size);
+  font-weight: var(--gb-type-body-strong-weight);
+  line-height: var(--gb-type-body-strong-line);
+  text-decoration: none;
+  transition: background-color var(--gb-duration-fast) var(--gb-ease-standard);
+}
+
+.cta:active {
+  background: var(--gb-color-accent-strong);
 }
 
 .metrics {

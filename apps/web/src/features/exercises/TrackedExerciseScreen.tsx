@@ -26,6 +26,7 @@ import {
 import { ExerciseGif } from '../catalog/ExerciseGif';
 import { BODY_PART_LABELS, MUSCLE_LABELS } from '../catalog/labels';
 import { catalogExercisePath, catalogExerciseRef } from '../catalog/paths';
+import { sessionPathForExercise } from '../session/paths';
 import { EditExerciseSheet } from './EditExerciseSheet';
 import { ORIGIN_LABELS, RECORD_LABELS, RECORD_ORDER } from './labels';
 import { EXERCISES_PATH, parseResourceId } from './paths';
@@ -114,6 +115,12 @@ function TrackedExerciseDetail({ exerciseId }: TrackedExerciseDetailProps) {
                 )}
 
                 <ExerciseTags exercise={found} />
+
+                {found.archivedAt === null && (
+                  <Link to={sessionPathForExercise(found.id)} className={styles.logLink}>
+                    Registrar una serie
+                  </Link>
+                )}
 
                 <AsyncContent query={stats}>
                   {(data) => <StatsSection stats={data} locale={locale} />}
