@@ -13,8 +13,16 @@ const INTL_LOCALE: Readonly<Record<Locale, string>> = { es: 'es-ES', en: 'en-GB'
  * por gramos enteros y no por `Number(...)`, igual que todo lo demás que toca un peso.
  */
 export function formatWeightLabel(weight: WeightKilograms, locale: Locale): string {
-  const text = formatWeightForInput(parseKilogramsToGrams(weight));
-  return `${locale === 'es' ? text.replace('.', ',') : text} kg`;
+  return `${formatWeightValue(parseKilogramsToGrams(weight), locale)} kg`;
+}
+
+/**
+ * El número de un peso en gramos, sin su unidad: "82,5". Es lo que va en el eje de una
+ * gráfica, donde los kilogramos se dicen una sola vez en la leyenda y no en cada marca.
+ */
+export function formatWeightValue(grams: number, locale: Locale): string {
+  const text = formatWeightForInput(grams);
+  return locale === 'es' ? text.replace('.', ',') : text;
 }
 
 /**
@@ -36,6 +44,14 @@ export function formatSessionDate(iso: string, locale: Locale, now: Date = new D
     month: 'short',
     ...(sameYear ? {} : { year: 'numeric' }),
   }).format(date);
+}
+
+/** "6 sept": la fecha sin el día de la semana, para el eje de una gráfica. */
+export function formatShortDate(iso: string, locale: Locale): string {
+  return new Intl.DateTimeFormat(INTL_LOCALE[locale], {
+    day: 'numeric',
+    month: 'short',
+  }).format(new Date(iso));
 }
 
 export function formatTime(iso: string, locale: Locale): string {

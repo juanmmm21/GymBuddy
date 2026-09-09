@@ -5,9 +5,11 @@ import {
   formatDuration,
   formatRpe,
   formatSessionDate,
+  formatShortDate,
   formatStopwatch,
   formatVolumeLabel,
   formatWeightLabel,
+  formatWeightValue,
   pluralize,
 } from '../../src/lib/format';
 import { ApiContractError, ApiRequestError, ApiTransportError } from '../../src/api/client';
@@ -17,6 +19,25 @@ describe('formatWeightLabel', () => {
     expect(formatWeightLabel('82.50', 'es')).toBe('82,5 kg');
     expect(formatWeightLabel('82.50', 'en')).toBe('82.5 kg');
     expect(formatWeightLabel('100.00', 'es')).toBe('100 kg');
+  });
+});
+
+describe('formatWeightValue', () => {
+  it('deja el número del peso sin su unidad, para el eje de una gráfica', () => {
+    expect(formatWeightValue(82_500, 'es')).toBe('82,5');
+    expect(formatWeightValue(82_500, 'en')).toBe('82.5');
+    expect(formatWeightValue(110_000, 'es')).toBe('110');
+    expect(formatWeightValue(0, 'es')).toBe('0');
+  });
+});
+
+describe('formatShortDate', () => {
+  it('deja la fecha sin el día de la semana', () => {
+    const short = formatShortDate('2026-09-06T18:00:00.000Z', 'es');
+
+    expect(short).toMatch(/^6\b/);
+    expect(short).not.toMatch(/2026/);
+    expect(short.length).toBeLessThan(formatSessionDate('2026-09-06T18:00:00.000Z', 'es').length);
   });
 });
 
