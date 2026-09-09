@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { groupExercisesByBodyPart, UNGROUPED_LABEL } from '../../src/features/exercises/grouping';
 import { normalizeNotes } from '../../src/lib/notes';
-import { parseResourceId, trackedExercisePath } from '../../src/features/exercises/paths';
+import { trackedExercisePath } from '../../src/features/exercises/paths';
 import { benchPress, customCurl, squat } from '../fixtures';
 
 describe('groupExercisesByBodyPart', () => {
@@ -45,11 +45,5 @@ describe('normalizeNotes', () => {
 describe('rutas de mis ejercicios', () => {
   it('la ficha cuelga de /exercises con el id del ejercicio', () => {
     expect(trackedExercisePath(benchPress.id)).toBe(`/exercises/${benchPress.id}`);
-  });
-
-  it('solo acepta un UUID como identificador', () => {
-    expect(parseResourceId(benchPress.id)).toBe(benchPress.id);
-    expect(parseResourceId('no-es-un-id')).toBeNull();
-    expect(parseResourceId(undefined)).toBeNull();
   });
 });

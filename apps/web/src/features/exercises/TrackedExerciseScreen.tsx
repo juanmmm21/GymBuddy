@@ -23,13 +23,14 @@ import {
   formatWeightLabel,
   pluralize,
 } from '../../lib/format';
+import { parseResourceId } from '../../lib/ids';
 import { ExerciseGif } from '../catalog/ExerciseGif';
 import { BODY_PART_LABELS, MUSCLE_LABELS } from '../catalog/labels';
 import { catalogExercisePath, catalogExerciseRef } from '../catalog/paths';
 import { sessionPathForExercise } from '../session/paths';
 import { EditExerciseSheet } from './EditExerciseSheet';
 import { ORIGIN_LABELS, RECORD_LABELS, RECORD_ORDER } from './labels';
-import { EXERCISES_PATH, parseResourceId } from './paths';
+import { EXERCISES_PATH } from './paths';
 import styles from './TrackedExerciseScreen.module.css';
 
 const BACK_TO_EXERCISES: BackLink = { to: EXERCISES_PATH, label: 'Mis ejercicios' };

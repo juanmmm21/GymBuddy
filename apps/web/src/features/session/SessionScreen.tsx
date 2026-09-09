@@ -24,10 +24,9 @@ import {
   formatWeightLabel,
   pluralize,
 } from '../../lib/format';
-import { newResourceId } from '../../lib/ids';
+import { newResourceId, parseResourceId } from '../../lib/ids';
 import { elapsedSecondsSince } from '../../lib/time';
 import { RECORD_LABELS } from '../exercises/labels';
-import { parseResourceId } from '../exercises/paths';
 import { EditSetSheet } from './EditSetSheet';
 import { EndSessionSheet } from './EndSessionSheet';
 import { LogSetSheet } from './LogSetSheet';
