@@ -6,6 +6,7 @@ import type {
   ExerciseHistory,
   ExerciseStats,
   PersonalRecord,
+  ProgressionPointView,
   Session,
   TrackedExercise,
   TrainingSignals,
@@ -286,6 +287,54 @@ export const newMaxWeightRecord: PersonalRecord = {
   achievedAt: '2026-09-08T18:20:00.000Z',
 };
 
+/**
+ * Cuatro sesiones de press de banca, de la más antigua a la más reciente, como las da el
+ * contrato. El 1RM de cada punto es el de Epley sobre su serie top (82,5 × 8 estima 104,50,
+ * que es justo la marca de 1RM vigente), para que la gráfica y las marcas cuadren.
+ */
+export const benchPressPoints: ProgressionPointView[] = [
+  {
+    sessionId: 'd1a2b3c4-5d6e-4f70-8a91-b2c3d4e5f601',
+    startedAt: '2026-08-23T18:00:00.000Z',
+    topWeight: '80.00',
+    topReps: 6,
+    estimatedOneRepMax: '96.00',
+    volume: '1440.00',
+    totalReps: 18,
+    setCount: 3,
+  },
+  {
+    sessionId: 'e2b3c4d5-6e7f-4081-9ba2-c3d4e5f60712',
+    startedAt: '2026-08-30T18:00:00.000Z',
+    topWeight: '82.50',
+    topReps: 8,
+    estimatedOneRepMax: '104.50',
+    volume: '1980.00',
+    totalReps: 24,
+    setCount: 3,
+  },
+  {
+    sessionId: 'cf6e6192-8dae-4fb5-a0f1-6c7d8e9fa1b2',
+    startedAt: '2026-09-03T18:00:00.000Z',
+    topWeight: '82.50',
+    topReps: 8,
+    estimatedOneRepMax: '104.50',
+    volume: '1980.00',
+    totalReps: 24,
+    setCount: 3,
+  },
+  {
+    sessionId: 'be5c4f7a-6b8c-4d93-aedf-4a5b6c7d8e9f',
+    startedAt: '2026-09-06T18:00:00.000Z',
+    topWeight: '85.00',
+    topReps: 6,
+    estimatedOneRepMax: '102.00',
+    volume: '1530.00',
+    totalReps: 18,
+    setCount: 3,
+  },
+];
+
 /** Cómo va el press de banca: peso habitual, dos marcas y estancado. */
 export const benchPressStats: ExerciseStats = {
   trackedExerciseId: benchPress.id,
@@ -308,7 +357,7 @@ export const benchPressStats: ExerciseStats = {
       achievedAt: '2026-08-30T18:20:00.000Z',
     },
   ],
-  points: [],
+  points: benchPressPoints,
   stalled: {
     trackedExerciseId: benchPress.id,
     weight: '82.50',
