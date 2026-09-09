@@ -106,10 +106,14 @@ export {
   progressionPointSchema,
   stalledExerciseSchema,
   trainingSignalsSchema,
+  weeklyCalendarDaySchema,
+  weeklyCalendarSchema,
 } from './stats';
 export type {
   ExerciseStats,
   ProgressionPointView,
   StalledExercise,
   TrainingSignals,
+  WeeklyCalendar,
+  WeeklyCalendarDay,
 } from './stats';

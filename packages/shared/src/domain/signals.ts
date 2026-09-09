@@ -6,14 +6,9 @@
 
 import type { BodyPart } from '../schemas/catalog';
 import type { SessionTopSet } from './progression';
+import { weekIndexOf } from './week';
 
 const MILLISECONDS_PER_DAY = 86_400_000;
-/**
- * 1970-01-01 fue jueves, así que desplazar tres días deja los lunes en el corte: el índice
- * de semana cambia justo al empezar la semana, sin construir un `Date` por sesión.
- */
-const EPOCH_WEEKDAY_OFFSET = 3;
-const DAYS_PER_WEEK = 7;
 
 /** Sesiones seguidas con el mismo peso a partir de las cuales se sugiere subir. */
 export const STAGNATION_SESSIONS = 3;
@@ -136,14 +131,4 @@ export function suggestedIncrementGrams(bodyPart: BodyPart | null): number {
   return bodyPart !== null && LARGE_INCREMENT_BODY_PARTS.includes(bodyPart)
     ? LARGE_INCREMENT_GRAMS
     : SMALL_INCREMENT_GRAMS;
-}
-
-/**
- * Índice de la semana (lunes a domingo) en la que cae un instante. Comparar índices evita
- * construir fechas y deja el cálculo idéntico en el Worker y en el navegador.
- */
-function weekIndexOf(timestamp: number): number {
-  const days = Math.floor(timestamp / MILLISECONDS_PER_DAY);
-
-  return Math.floor((days + EPOCH_WEEKDAY_OFFSET) / DAYS_PER_WEEK);
 }

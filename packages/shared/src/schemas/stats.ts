@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { DAYS_PER_WEEK } from '../domain/week';
+import { bodyPartSchema } from './catalog';
 import {
   isoDatetimeSchema,
   resourceIdSchema,
@@ -65,7 +67,37 @@ export const trainingSignalsSchema = z.object({
   stalled: z.array(stalledExerciseSchema),
 });
 
+/**
+ * Un día del mini calendario de la semana. Lleva **una sola** parte del cuerpo, la de más
+ * volumen: la fila tiene que caber en el ancho de un móvil. `bodyPart` nulo con `trained`
+ * en cierto es un día de ejercicios propios sin clasificar — entrenó, pero no hay etiqueta
+ * honesta que ponerle—, y con `trained` en falso, un día de descanso.
+ */
+export const weeklyCalendarDaySchema = z.object({
+  /** 0 es lunes y 6 domingo, que es el orden en el que se pinta la fila. */
+  dayIndex: z.int().min(0).max(DAYS_PER_WEEK - 1),
+  date: z.iso.date(),
+  trained: z.boolean(),
+  bodyPart: bodyPartSchema.nullable(),
+  /** Volumen del día entero, no solo el de la parte dominante. */
+  volume: volumeKilogramsSchema,
+  setCount: z.int().nonnegative(),
+});
+
+/**
+ * La semana en curso, siempre con sus siete días: los de descanso son parte del dibujo y
+ * dejarlos fuera obligaría a la pantalla a rellenar los huecos por su cuenta.
+ */
+export const weeklyCalendarSchema = z.object({
+  generatedAt: isoDatetimeSchema,
+  /** El lunes de la semana, en `YYYY-MM-DD` UTC. */
+  weekStart: z.iso.date(),
+  days: z.array(weeklyCalendarDaySchema).length(DAYS_PER_WEEK),
+});
+
 export type ProgressionPointView = z.infer<typeof progressionPointSchema>;
 export type StalledExercise = z.infer<typeof stalledExerciseSchema>;
 export type ExerciseStats = z.infer<typeof exerciseStatsSchema>;
 export type TrainingSignals = z.infer<typeof trainingSignalsSchema>;
+export type WeeklyCalendarDay = z.infer<typeof weeklyCalendarDaySchema>;
+export type WeeklyCalendar = z.infer<typeof weeklyCalendarSchema>;

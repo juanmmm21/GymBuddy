@@ -16,6 +16,7 @@ import {
   startSessionRequestSchema,
   trackedExerciseSchema,
   userSchema,
+  weeklyCalendarSchema,
   workoutSessionDetailSchema,
   workoutSessionPageSchema,
 } from '../src/schemas/index';
@@ -435,5 +436,56 @@ describe('récords y usuario', () => {
     });
 
     expect(parsed.success).toBe(true);
+  });
+});
+
+describe('calendario de la semana', () => {
+  const day = (dayIndex: number, date: string) => ({
+    dayIndex,
+    date,
+    trained: false,
+    bodyPart: null,
+    volume: '0.00',
+    setCount: 0,
+  });
+
+  const week = [
+    { ...day(0, '2026-09-07'), trained: true, bodyPart: 'chest', volume: '1320.00', setCount: 4 },
+    day(1, '2026-09-08'),
+    day(2, '2026-09-09'),
+    { ...day(3, '2026-09-10'), trained: true },
+    day(4, '2026-09-11'),
+    day(5, '2026-09-12'),
+    day(6, '2026-09-13'),
+  ];
+
+  it('acepta la semana entera, con su día entrenado sin parte del cuerpo clasificable', () => {
+    const parsed = weeklyCalendarSchema.safeParse({
+      generatedAt: '2026-09-10T18:00:00.000Z',
+      weekStart: '2026-09-07',
+      days: week,
+    });
+
+    expect(parsed.success).toBe(true);
+  });
+
+  it('exige los siete días: un hueco lo tendría que rellenar la pantalla', () => {
+    const parsed = weeklyCalendarSchema.safeParse({
+      generatedAt: '2026-09-10T18:00:00.000Z',
+      weekStart: '2026-09-07',
+      days: week.slice(0, 6),
+    });
+
+    expect(parsed.success).toBe(false);
+  });
+
+  it('la etiqueta del día es una parte del cuerpo, no un músculo', () => {
+    const parsed = weeklyCalendarSchema.safeParse({
+      generatedAt: '2026-09-10T18:00:00.000Z',
+      weekStart: '2026-09-07',
+      days: [{ ...week[0], bodyPart: 'pectorals' }, ...week.slice(1)],
+    });
+
+    expect(parsed.success).toBe(false);
   });
 });

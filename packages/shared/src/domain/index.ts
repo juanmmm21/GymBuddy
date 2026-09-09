@@ -42,3 +42,12 @@ export {
   weeklyStreak,
 } from './signals';
 export type { RepRange, StagnationSignal } from './signals';
+export {
+  DAYS_PER_WEEK,
+  dayIndexOf,
+  isoDateOfDay,
+  weekIndexOf,
+  weekStartDayIndex,
+  weeklyBodyPartCalendar,
+} from './week';
+export type { WeekDaySummary, WeekSetEntry } from './week';
