@@ -22,6 +22,14 @@ export {
   toWorkoutSession,
   updateSet,
 } from './sessions';
+export {
+  createRoutine,
+  findRoutine,
+  listRoutines,
+  routineNotFound,
+  updateRoutine,
+} from './routines';
+export type { ListRoutinesOptions } from './routines';
 export { applyPersonalRecords, getCurrentRecords, toPersonalRecord } from './records';
 export { getExerciseHistory, listSessionPage } from './history';
 export { getExerciseStats, getTrainingSignals, getWeeklyCalendar } from './stats';
