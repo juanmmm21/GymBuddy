@@ -20,6 +20,8 @@ export interface SeededUsers {
 export interface TrainingScenario extends SeededUsers {
   benchId: string;
   squatId: string;
+  /** Un ejercicio del segundo usuario: es lo que prueba que lo ajeno responde 404. */
+  otherExerciseId: string;
   /** Sesiones del usuario principal, de la más antigua a la más reciente. */
   sessionIds: [string, string, string];
 }
@@ -159,7 +161,7 @@ export async function seedTrainingScenario(binding: D1Database): Promise<Trainin
 
   await db.insert(setEntry).values(sets);
 
-  return { db, userId, otherUserId, benchId, squatId, sessionIds };
+  return { db, userId, otherUserId, benchId, squatId, otherExerciseId, sessionIds };
 }
 
 /**
