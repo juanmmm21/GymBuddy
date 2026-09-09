@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react';
 import { useUpdateTrackedExercise } from '../../api/mutations';
 import { Button, Notice, Sheet, TextArea } from '../../components/index';
 import { describeError } from '../../lib/errors';
-import { MAX_NOTES_LENGTH, normalizeNotes } from './notes';
+import { MAX_EXERCISE_NOTES_LENGTH, normalizeNotes } from '../../lib/notes';
 import styles from './EditExerciseSheet.module.css';
 
 export interface EditExerciseSheetProps {
@@ -56,7 +56,7 @@ function EditExerciseForm({ exercise, onDone }: EditExerciseFormProps) {
         label="Notas"
         value={notes}
         onChange={setNotes}
-        maxLength={MAX_NOTES_LENGTH}
+        maxLength={MAX_EXERCISE_NOTES_LENGTH}
         placeholder="Agarre, altura del asiento, lo que quieras recordar la próxima vez."
       />
 

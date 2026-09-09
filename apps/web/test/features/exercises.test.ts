@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { groupExercisesByBodyPart, UNGROUPED_LABEL } from '../../src/features/exercises/grouping';
-import { normalizeNotes } from '../../src/features/exercises/notes';
+import { normalizeNotes } from '../../src/lib/notes';
 import { parseResourceId, trackedExercisePath } from '../../src/features/exercises/paths';
 import { benchPress, customCurl, squat } from '../fixtures';
 
