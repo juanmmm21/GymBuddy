@@ -1,6 +1,7 @@
 import {
   activeSessionResponseSchema,
   apiErrorSchema,
+  exerciseHistorySchema,
   logSetResponseSchema,
   trackedExerciseSchema,
   workoutSessionDetailSchema,
@@ -324,6 +325,84 @@ describe('api de entrenamiento', () => {
       token,
     });
     expect(trackedExerciseSchema.array().parse(await withArchived.json())).toHaveLength(1);
+  });
+
+  it('renombra un ejercicio propio sin tocar su historial', async () => {
+    const { exerciseId, sessionId } = await openSessionWith(token);
+    await call({
+      method: 'POST',
+      path: `/sessions/${sessionId}/sets`,
+      token,
+      body: { id: uuid(), trackedExerciseId: exerciseId, weight: '80.00', reps: 8, source: 'web' },
+    });
+
+    const renamed = await call({
+      method: 'PATCH',
+      path: `/exercises/${exerciseId}`,
+      token,
+      body: { name: '  Press de banca con mancuernas  ' },
+    });
+
+    expect(renamed.status).toBe(200);
+    // Recortado por el contrato: lo que se teclea de más no llega a la ficha.
+    expect(trackedExerciseSchema.parse(await renamed.json()).name).toBe(
+      'Press de banca con mancuernas',
+    );
+
+    const history = await call({ method: 'GET', path: `/history/exercises/${exerciseId}`, token });
+    expect(exerciseHistorySchema.parse(await history.json()).sessions[0]?.sets).toHaveLength(1);
+  });
+
+  it('no deja renombrar un ejercicio del catálogo: su nombre viene del catálogo', async () => {
+    const exerciseId = uuid();
+    await call({
+      method: 'POST',
+      path: '/exercises',
+      token,
+      body: { id: exerciseId, origin: 'catalog', catalogId: BENCH_CATALOG_ID },
+    });
+
+    const response = await call({
+      method: 'PATCH',
+      path: `/exercises/${exerciseId}`,
+      token,
+      body: { name: 'Mi press' },
+    });
+
+    expect(response.status).toBe(400);
+    expect(await errorCode(response)).toBe('validation_failed');
+
+    const detail = await call({ method: 'GET', path: `/exercises/${exerciseId}`, token });
+    expect(trackedExerciseSchema.parse(await detail.json()).name).toBe('Press de banca con barra');
+  });
+
+  it('renombra y cambia las notas en la misma petición', async () => {
+    const { exerciseId } = await openSessionWith(token);
+
+    const updated = await call({
+      method: 'PATCH',
+      path: `/exercises/${exerciseId}`,
+      token,
+      body: { name: 'Press inclinado', notes: 'Banco al segundo agujero' },
+    });
+
+    const exercise = trackedExerciseSchema.parse(await updated.json());
+    expect(exercise.name).toBe('Press inclinado');
+    expect(exercise.notes).toBe('Banco al segundo agujero');
+  });
+
+  it('rechaza un nombre vacío al renombrar', async () => {
+    const { exerciseId } = await openSessionWith(token);
+
+    const response = await call({
+      method: 'PATCH',
+      path: `/exercises/${exerciseId}`,
+      token,
+      body: { name: '   ' },
+    });
+
+    expect(response.status).toBe(400);
+    expect(await errorCode(response)).toBe('validation_failed');
   });
 
   it('sirve el nombre del catálogo en el idioma que se pida', async () => {

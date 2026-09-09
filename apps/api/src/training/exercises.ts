@@ -150,7 +150,10 @@ export async function createTrackedExercise(
   };
 }
 
-/** Cambia las notas y archiva o recupera. La baja es blanda: borrar se llevaría el historial. */
+/**
+ * Cambia el nombre —solo si el ejercicio es propio— y las notas, y archiva o recupera. La
+ * baja es blanda: borrar la fila se llevaría por delante el historial que cuelga de ella.
+ */
 export async function updateTrackedExercise(
   db: Database,
   userId: string,
@@ -160,6 +163,9 @@ export async function updateTrackedExercise(
   now: Date,
 ): Promise<TrackedExercise> {
   const changes: Partial<TrackedExerciseRow> = {};
+  if (request.name !== undefined) {
+    changes.customName = await requireCustomName(db, userId, exerciseId, request.name);
+  }
   if (request.notes !== undefined) changes.notes = request.notes;
   if (request.archived !== undefined) {
     changes.archivedAt = request.archived ? now.toISOString() : null;
@@ -246,6 +252,35 @@ export async function assertTrackedExerciseBelongsToUser(
     .limit(1);
 
   if (row === undefined) throw exerciseNotFound(exerciseId);
+}
+
+/**
+ * El nombre de un ejercicio del catálogo lo pone el catálogo, y en el idioma del usuario:
+ * la columna `custom_name` de una ficha con `catalog_id` no se lee nunca, así que aceptar
+ * el renombrado sería guardar un dato que no se vería. Se rechaza en vez de ignorarse.
+ */
+async function requireCustomName(
+  db: Database,
+  userId: string,
+  exerciseId: string,
+  name: string,
+): Promise<string> {
+  const [row] = await db
+    .select({ catalogId: trackedExercise.catalogId })
+    .from(trackedExercise)
+    .where(and(eq(trackedExercise.id, exerciseId), eq(trackedExercise.userId, userId)))
+    .limit(1);
+
+  if (row === undefined) throw exerciseNotFound(exerciseId);
+  if (row.catalogId !== null) {
+    throw new ApiException(
+      'validation_failed',
+      'El nombre de un ejercicio del catálogo no se puede cambiar',
+      { origin: 'catalog' },
+    );
+  }
+
+  return name;
 }
 
 export function exerciseNotFound(exerciseId: string): ApiException {
