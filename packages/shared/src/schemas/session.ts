@@ -64,15 +64,31 @@ export const logSetRequestSchema = z.object({
   source: entrySourceSchema,
 });
 
+/**
+ * Corregir una serie ya registrada: se teclea entre series y con prisa, así que el peso
+ * equivocado es cuestión de tiempo. Va parcial —solo lo que se toca— y deja fuera el
+ * ejercicio: cambiarlo no es corregir la serie, es borrarla y registrar otra.
+ */
+export const updateSetRequestSchema = z
+  .object({
+    weight: weightKilogramsSchema,
+    reps: z.int().positive().max(1000),
+    // Nulo para quitar un RPE anotado por error, no solo para cambiarlo.
+    rpe: rpeSchema.nullable(),
+    isWarmup: z.boolean(),
+  })
+  .partial();
+
 export const endSessionRequestSchema = z.object({
   endedAt: isoDatetimeSchema.optional(),
   notes: z.string().max(1000).nullish(),
 });
 
 /**
- * Lo que responde el registro de una serie. Los récords que acaba de romper viajan con
- * ella para que la celebración salga en el momento, y no al abrir otra pantalla; en un
- * reenvío de la cola offline la lista llega vacía, porque la marca ya estaba puesta.
+ * Lo que responden el registro y la corrección de una serie. Los récords que acaba de
+ * romper viajan con ella para que la celebración salga en el momento, y no al abrir otra
+ * pantalla; en un reenvío de la cola offline la lista llega vacía, porque la marca ya
+ * estaba puesta. Al corregir puede venir vacía por lo contrario: la serie dejó de marcar.
  */
 export const logSetResponseSchema = z.object({
   set: setEntrySchema,
@@ -103,5 +119,6 @@ export type WorkoutSessionPage = z.infer<typeof workoutSessionPageSchema>;
 export type ActiveSessionResponse = z.infer<typeof activeSessionResponseSchema>;
 export type StartSessionRequest = z.infer<typeof startSessionRequestSchema>;
 export type LogSetRequest = z.infer<typeof logSetRequestSchema>;
+export type UpdateSetRequest = z.infer<typeof updateSetRequestSchema>;
 export type LogSetResponse = z.infer<typeof logSetResponseSchema>;
 export type EndSessionRequest = z.infer<typeof endSessionRequestSchema>;

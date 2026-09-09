@@ -26,6 +26,13 @@ export const volumeKilogramsSchema = z.string().regex(API_VOLUME_PATTERN, {
   message: 'El volumen debe ir en kilogramos con dos decimales, por ejemplo "1320.00"',
 });
 
+/**
+ * Una respuesta sin cuerpo (204). Está en el contrato porque el cliente de la PWA valida
+ * toda respuesta contra un esquema: sin esto, "esta ruta no devuelve nada" sería una
+ * excepción escrita a mano en `apps/web` en vez de una forma acordada entre los dos lados.
+ */
+export const noContentSchema = z.null();
+
 /** Superficie desde la que se escribió el dato: la PWA o el bot. */
 export const entrySourceSchema = z.enum(['web', 'bot']);
 

@@ -8,6 +8,8 @@ import {
   createTrackedExerciseRequestSchema,
   exerciseHistorySchema,
   logSetRequestSchema,
+  updateSetRequestSchema,
+  updateTrackedExerciseRequestSchema,
   muscleSchema,
   personalRecordSchema,
   setEntrySchema,
@@ -172,6 +174,34 @@ describe('series', () => {
       }).success,
     ).toBe(false);
   });
+
+  it('corrige solo lo que se toca y acepta la petición vacía', () => {
+    expect(updateSetRequestSchema.safeParse({}).success).toBe(true);
+    expect(updateSetRequestSchema.safeParse({ weight: '80.00' }).success).toBe(true);
+    expect(updateSetRequestSchema.safeParse({ reps: 6, isWarmup: true }).success).toBe(true);
+  });
+
+  it('deja quitar un rpe anotado por error, pero no inventarse uno fuera de paso', () => {
+    expect(updateSetRequestSchema.safeParse({ rpe: null }).success).toBe(true);
+    expect(updateSetRequestSchema.safeParse({ rpe: 8.5 }).success).toBe(true);
+    expect(updateSetRequestSchema.safeParse({ rpe: 8.3 }).success).toBe(false);
+  });
+
+  it('no deja mover una serie de ejercicio ni de momento al corregirla', () => {
+    const parsed = updateSetRequestSchema.safeParse({
+      weight: '80.00',
+      trackedExerciseId: EXERCISE_ID,
+      completedAt: '2026-09-07T18:30:00.000Z',
+    });
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.data).toEqual({ weight: '80.00' });
+  });
+
+  it('mantiene el peso y las repeticiones dentro de lo registrable al corregir', () => {
+    expect(updateSetRequestSchema.safeParse({ weight: '80.5' }).success).toBe(false);
+    expect(updateSetRequestSchema.safeParse({ reps: 0 }).success).toBe(false);
+  });
 });
 
 describe('sesión', () => {
@@ -279,6 +309,24 @@ describe('ejercicio seguido', () => {
     });
 
     expect(parsed.success).toBe(true);
+  });
+
+  it('renombra un ejercicio recortando lo que se teclea de más', () => {
+    const parsed = updateTrackedExerciseRequestSchema.safeParse({ name: '  Remo Pendlay  ' });
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.data).toEqual({ name: 'Remo Pendlay' });
+  });
+
+  it('no acepta un nombre vacío ni de solo espacios', () => {
+    expect(updateTrackedExerciseRequestSchema.safeParse({ name: '' }).success).toBe(false);
+    expect(updateTrackedExerciseRequestSchema.safeParse({ name: '   ' }).success).toBe(false);
+  });
+
+  it('deja tocar por separado el nombre, las notas y el archivado', () => {
+    expect(updateTrackedExerciseRequestSchema.safeParse({}).success).toBe(true);
+    expect(updateTrackedExerciseRequestSchema.safeParse({ notes: null }).success).toBe(true);
+    expect(updateTrackedExerciseRequestSchema.safeParse({ archived: true }).success).toBe(true);
   });
 
   it('lleva el peso habitual para precargar el formulario', () => {

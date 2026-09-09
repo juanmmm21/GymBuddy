@@ -6,6 +6,7 @@ export {
   entrySourceSchema,
   isoDatetimeSchema,
   localeSchema,
+  noContentSchema,
   resourceIdSchema,
   rpeSchema,
   unitSystemSchema,
@@ -52,6 +53,7 @@ export { updateUserRequestSchema, userSchema } from './user';
 export type { UpdateUserRequest, User } from './user';
 export {
   createTrackedExerciseRequestSchema,
+  trackedExerciseNameSchema,
   trackedExerciseSchema,
   updateTrackedExerciseRequestSchema,
   workingWeightSchema,
@@ -69,6 +71,7 @@ export {
   logSetResponseSchema,
   setEntrySchema,
   startSessionRequestSchema,
+  updateSetRequestSchema,
   workoutSessionDetailSchema,
   workoutSessionPageSchema,
   workoutSessionSchema,
@@ -81,6 +84,7 @@ export type {
   LogSetResponse,
   SetEntry,
   StartSessionRequest,
+  UpdateSetRequest,
   WorkoutSession,
   WorkoutSessionDetail,
   WorkoutSessionPage,

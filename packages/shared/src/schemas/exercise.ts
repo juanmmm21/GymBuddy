@@ -18,6 +18,13 @@ export const workingWeightSchema = z.object({
 });
 
 /**
+ * El nombre de un ejercicio propio, con el mismo tope al crearlo y al renombrarlo: es el
+ * mismo campo y una definición por sitio acabaría divergiendo. Se recorta al entrar
+ * porque un nombre de solo espacios pasaría el mínimo y dejaría la ficha sin título.
+ */
+export const trackedExerciseNameSchema = z.string().trim().min(1).max(120);
+
+/**
  * Un ejercicio seguido por el usuario viene del catálogo o es suyo. Se refleja como unión
  * discriminada porque es la misma restricción que impone la tabla: o hay catálogo, o hay nombre.
  */
@@ -50,15 +57,21 @@ export const createTrackedExerciseRequestSchema = z.discriminatedUnion('origin',
   z.object({
     id: resourceIdSchema,
     origin: z.literal('custom'),
-    name: z.string().min(1).max(120),
+    name: trackedExerciseNameSchema,
     muscle: muscleSchema.nullish(),
     bodyPart: bodyPartSchema.nullish(),
     notes: z.string().max(500).nullish(),
   }),
 ]);
 
+/**
+ * Lo que se puede cambiar de un ejercicio ya seguido. El nombre solo cuando es propio: el
+ * de uno del catálogo viene del catálogo y en el idioma del usuario, así que renombrarlo
+ * aquí no tendría dónde guardarse. El Worker lo rechaza mirando el origen de la ficha.
+ */
 export const updateTrackedExerciseRequestSchema = z
   .object({
+    name: trackedExerciseNameSchema,
     notes: z.string().max(500).nullable(),
     archived: z.boolean(),
   })
