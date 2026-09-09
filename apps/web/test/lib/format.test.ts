@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { describeError } from '../../src/lib/errors';
 import {
   formatDaysAgo,
+  formatDuration,
   formatRpe,
   formatSessionDate,
   formatStopwatch,
@@ -62,6 +63,20 @@ describe('formatDaysAgo', () => {
     expect(formatDaysAgo(0)).toBe('hoy');
     expect(formatDaysAgo(1)).toBe('ayer');
     expect(formatDaysAgo(4)).toBe('hace 4 días');
+  });
+});
+
+describe('formatDuration', () => {
+  it('cuenta en horas y minutos, sin segundos', () => {
+    expect(formatDuration(3930)).toBe('1 h 5 min');
+    expect(formatDuration(2700)).toBe('45 min');
+    expect(formatDuration(7200)).toBe('2 h');
+  });
+
+  it('por debajo del minuto lo dice con palabras', () => {
+    expect(formatDuration(0)).toBe('menos de 1 min');
+    expect(formatDuration(59)).toBe('menos de 1 min');
+    expect(formatDuration(-10)).toBe('menos de 1 min');
   });
 });
 

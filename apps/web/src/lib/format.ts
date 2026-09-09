@@ -78,6 +78,21 @@ export function formatStopwatch(totalSeconds: number): string {
   return hours > 0 ? `${String(hours)}:${tail}` : `${String(minutes)}:${padTwo(rest)}`;
 }
 
+/**
+ * Lo que duró una sesión terminada: "1 h 5 min" o "45 min". No es un cronómetro —eso es
+ * `formatStopwatch`—, así que los segundos sobran: por debajo del minuto se dice así.
+ */
+export function formatDuration(totalSeconds: number): string {
+  const seconds = Math.max(0, Math.floor(totalSeconds));
+  if (seconds < SECONDS_PER_MINUTE) return 'menos de 1 min';
+
+  const hours = Math.floor(seconds / SECONDS_PER_HOUR);
+  const minutes = Math.floor((seconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE);
+  if (hours === 0) return `${String(minutes)} min`;
+
+  return minutes === 0 ? `${String(hours)} h` : `${String(hours)} h ${String(minutes)} min`;
+}
+
 function padTwo(value: number): string {
   return String(value).padStart(2, '0');
 }

@@ -1,0 +1,108 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-lg);
+}
+
+/* El resumen en rejilla: en el móvil entran dos por fila sin quedarse estrechas. */
+.summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--gb-space-lg) var(--gb-space-md);
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-xxs);
+  min-width: 0;
+}
+
+.metricLabel {
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-label-size);
+  font-weight: var(--gb-type-label-weight);
+  letter-spacing: var(--gb-type-label-tracking);
+  text-transform: uppercase;
+}
+
+.metricValue {
+  font-size: var(--gb-type-title-size);
+  font-weight: var(--gb-type-title-weight);
+  line-height: var(--gb-type-title-line);
+  letter-spacing: var(--gb-type-title-tracking);
+  overflow-wrap: anywhere;
+}
+
+.sectionLabel {
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-label-size);
+  font-weight: var(--gb-type-label-weight);
+  letter-spacing: var(--gb-type-label-tracking);
+  text-transform: uppercase;
+  margin-bottom: var(--gb-space-xs);
+}
+
+.notes {
+  color: var(--gb-color-text-secondary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-md);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-md);
+}
+
+.groupTitle {
+  color: inherit;
+  font-size: var(--gb-type-title-size);
+  font-weight: var(--gb-type-title-weight);
+  line-height: var(--gb-type-title-line);
+  letter-spacing: var(--gb-type-title-tracking);
+  text-decoration: none;
+}
+
+.sets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.set {
+  display: flex;
+  align-items: center;
+  gap: var(--gb-space-md);
+}
+
+.setPosition {
+  min-width: var(--gb-space-xl);
+  color: var(--gb-color-text-muted);
+  font-family: var(--gb-font-mono);
+  font-size: var(--gb-type-caption-size);
+}
+
+.setValue {
+  font-family: var(--gb-font-mono);
+  font-weight: var(--gb-type-body-strong-weight);
+}
+
+.setMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--gb-space-sm);
+  margin-left: auto;
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-caption-size);
+  line-height: var(--gb-type-caption-line);
+}

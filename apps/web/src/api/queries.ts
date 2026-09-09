@@ -19,6 +19,7 @@ import type {
   TrackedExercise,
   TrainingSignals,
   User,
+  WorkoutSessionDetail,
   WorkoutSessionPage,
 } from '@gymbuddy/shared';
 import { nextPageOffset } from '../lib/paging';
@@ -29,6 +30,7 @@ import {
   fetchCurrentUser,
   fetchExerciseHistory,
   fetchExerciseStats,
+  fetchSessionDetail,
   fetchTrainingSignals,
   listBodyParts,
   listCatalogExercises,
@@ -54,6 +56,7 @@ export const queryKeys = {
   sessions: {
     all: ['sessions'] as const,
     active: ['sessions', 'active'] as const,
+    detail: (sessionId: ResourceId) => ['sessions', 'detail', sessionId] as const,
     history: (options: SessionHistoryOptions) => ['sessions', 'history', options] as const,
   },
   stats: {
@@ -127,6 +130,19 @@ export function useSessionHistory(
     queryFn: ({ pageParam }) => listSessionHistory(client, { ...options, offset: pageParam }),
     initialPageParam: 0,
     getNextPageParam: nextPageOffset,
+    retry: shouldRetryRequest,
+  });
+}
+
+/**
+ * Una sesión pasada con todas sus series. Es la única consulta que usa `GET /sessions/{id}`:
+ * la sesión en curso llega por `/sessions/active`, que ya trae su detalle.
+ */
+export function useSessionDetail(sessionId: ResourceId): UseQueryResult<WorkoutSessionDetail> {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: queryKeys.sessions.detail(sessionId),
+    queryFn: () => fetchSessionDetail(client, sessionId),
     retry: shouldRetryRequest,
   });
 }

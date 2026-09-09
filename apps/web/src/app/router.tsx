@@ -5,6 +5,7 @@ import { CatalogScreen } from '../features/catalog/CatalogScreen';
 import { ExercisesScreen } from '../features/exercises/ExercisesScreen';
 import { TrackedExerciseScreen } from '../features/exercises/TrackedExerciseScreen';
 import { HistoryScreen } from '../features/history/HistoryScreen';
+import { SessionDetailScreen } from '../features/history/SessionDetailScreen';
 import { HomeScreen } from '../features/home/HomeScreen';
 import { SessionScreen } from '../features/session/SessionScreen';
 import { LoginRoute } from './LoginRoute';
@@ -31,6 +32,7 @@ export const routes: RouteObject[] = [
           { path: 'catalog/:bodyPart', element: <BodyPartScreen /> },
           { path: 'catalog/:muscle/:slug', element: <CatalogExerciseScreen /> },
           { path: 'history', element: <HistoryScreen /> },
+          { path: 'history/:id', element: <SessionDetailScreen /> },
         ],
       },
     ],

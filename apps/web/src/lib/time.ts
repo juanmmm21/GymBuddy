@@ -13,3 +13,15 @@ export function elapsedSecondsSince(iso: string, now: number): number {
 
   return Math.max(0, Math.floor((now - started) / MILLISECONDS_PER_SECOND));
 }
+
+/**
+ * Lo que duró algo con principio y final del contrato. Nulo cuando alguna de las dos
+ * fechas no se puede leer: la pantalla la omite en vez de escribir un `NaN`.
+ */
+export function durationSecondsBetween(startIso: string, endIso: string): number | null {
+  const start = Date.parse(startIso);
+  const end = Date.parse(endIso);
+  if (Number.isNaN(start) || Number.isNaN(end)) return null;
+
+  return Math.max(0, Math.floor((end - start) / MILLISECONDS_PER_SECOND));
+}

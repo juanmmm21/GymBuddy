@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createTicker } from '../../src/lib/ticker';
-import { elapsedSecondsSince } from '../../src/lib/time';
+import { durationSecondsBetween, elapsedSecondsSince } from '../../src/lib/time';
 
 describe('createTicker', () => {
   beforeEach(() => {
@@ -85,5 +85,22 @@ describe('elapsedSecondsSince', () => {
 
   it('una fecha ilegible no propaga un NaN a la pantalla', () => {
     expect(elapsedSecondsSince('no es una fecha', Date.parse(start))).toBe(0);
+  });
+});
+
+describe('durationSecondsBetween', () => {
+  const start = '2026-09-06T18:00:00.000Z';
+
+  it('mide lo que duró una sesión terminada', () => {
+    expect(durationSecondsBetween(start, '2026-09-06T19:05:30.000Z')).toBe(3930);
+  });
+
+  it('nunca va hacia atrás: el reloj del bot y el del móvil no van a la par', () => {
+    expect(durationSecondsBetween(start, '2026-09-06T17:59:00.000Z')).toBe(0);
+  });
+
+  it('una fecha ilegible se queda sin duración en vez de dar un NaN', () => {
+    expect(durationSecondsBetween(start, 'no es una fecha')).toBeNull();
+    expect(durationSecondsBetween('no es una fecha', start)).toBeNull();
   });
 });
