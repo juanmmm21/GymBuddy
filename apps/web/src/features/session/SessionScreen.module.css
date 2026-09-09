@@ -72,14 +72,24 @@
 
 .set {
   display: flex;
+  width: 100%;
   align-items: center;
   gap: var(--gb-space-md);
   padding: var(--gb-space-sm) 0;
+  border: none;
   border-top: var(--gb-size-border-width) solid var(--gb-color-border);
+  background: none;
+  color: inherit;
+  text-align: left;
+  transition: transform var(--gb-duration-fast) var(--gb-ease-standard);
 }
 
-.set:first-child {
+.sets > li:first-child .set {
   border-top: none;
+}
+
+.set:active {
+  transform: scale(0.99);
 }
 
 .setPosition {

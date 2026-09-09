@@ -28,12 +28,13 @@ import { newResourceId } from '../../lib/ids';
 import { elapsedSecondsSince } from '../../lib/time';
 import { RECORD_LABELS } from '../exercises/labels';
 import { parseResourceId } from '../exercises/paths';
+import { EditSetSheet } from './EditSetSheet';
 import { EndSessionSheet } from './EndSessionSheet';
 import { LogSetSheet } from './LogSetSheet';
 import { SESSION_EXERCISE_PARAM } from './paths';
 import { RestTimer } from './RestTimer';
 import { DEFAULT_REST_TARGET_SECONDS, type RestTargetSeconds } from './rest';
-import { groupSetsByExercise, latestSetCompletedAt } from './summary';
+import { groupSetsByExercise, latestSetCompletedAt, type SessionExerciseGroup } from './summary';
 import styles from './SessionScreen.module.css';
 
 const BACK_TO_HOME: BackLink = { to: '/', label: 'Hoy' };
@@ -57,6 +58,7 @@ export function SessionScreen() {
   // Llegar desde la ficha de un ejercicio abre la hoja directamente: ese es el motivo de
   // venir. El valor inicial se decide en el primer pintado, sin efecto que lo resincronice.
   const [logging, setLogging] = useState(requestedExerciseId !== null);
+  const [editing, setEditing] = useState<SetEntry | null>(null);
   const [ending, setEnding] = useState(false);
   const [restTarget, setRestTarget] = useState<RestTargetSeconds>(DEFAULT_REST_TARGET_SECONDS);
   const [records, setRecords] = useState<readonly PersonalRecord[]>([]);
@@ -64,6 +66,12 @@ export function SessionScreen() {
   const handleLogged = (response: LogSetResponse): void => {
     setRecords((current) => [...current, ...response.records]);
     setLogging(false);
+  };
+
+  // Corregir al alza también bate marcas, así que se celebran igual que al registrar.
+  const handleCorrected = (response: LogSetResponse): void => {
+    setRecords((current) => [...current, ...response.records]);
+    setEditing(null);
   };
 
   return (
@@ -86,6 +94,7 @@ export function SessionScreen() {
                   records={records}
                   requestedExerciseId={requestedExerciseId}
                   logging={logging}
+                  editing={editing}
                   ending={ending}
                   restTarget={restTarget}
                   onRestTargetChange={setRestTarget}
@@ -96,6 +105,11 @@ export function SessionScreen() {
                     setLogging(false);
                   }}
                   onLogged={handleLogged}
+                  onOpenEdit={setEditing}
+                  onCloseEdit={() => {
+                    setEditing(null);
+                  }}
+                  onCorrected={handleCorrected}
                   onOpenEnd={() => {
                     setEnding(true);
                   }}
@@ -149,12 +163,16 @@ interface ActiveSessionProps {
   readonly records: readonly PersonalRecord[];
   readonly requestedExerciseId: ResourceId | null;
   readonly logging: boolean;
+  readonly editing: SetEntry | null;
   readonly ending: boolean;
   readonly restTarget: RestTargetSeconds;
   readonly onRestTargetChange: (target: RestTargetSeconds) => void;
   readonly onOpenLog: () => void;
   readonly onCloseLog: () => void;
   readonly onLogged: (response: LogSetResponse) => void;
+  readonly onOpenEdit: (set: SetEntry) => void;
+  readonly onCloseEdit: () => void;
+  readonly onCorrected: (response: LogSetResponse) => void;
   readonly onOpenEnd: () => void;
   readonly onCloseEnd: () => void;
 }
@@ -166,12 +184,16 @@ function ActiveSession({
   records,
   requestedExerciseId,
   logging,
+  editing,
   ending,
   restTarget,
   onRestTargetChange,
   onOpenLog,
   onCloseLog,
   onLogged,
+  onOpenEdit,
+  onCloseEdit,
+  onCorrected,
   onOpenEnd,
   onCloseEnd,
 }: ActiveSessionProps) {
@@ -214,7 +236,13 @@ function ActiveSession({
               <h2 className={styles.groupTitle}>{group.name}</h2>
               <ol className={styles.sets}>
                 {group.sets.map((set, index) => (
-                  <SetRow key={set.id} set={set} position={index + 1} locale={locale} />
+                  <SetRow
+                    key={set.id}
+                    set={set}
+                    position={index + 1}
+                    locale={locale}
+                    onEdit={onOpenEdit}
+                  />
                 ))}
               </ol>
             </Surface>
@@ -234,6 +262,16 @@ function ActiveSession({
         open={logging}
         onClose={onCloseLog}
         onLogged={onLogged}
+      />
+
+      <EditSetSheet
+        sessionId={session.id}
+        set={editing}
+        exerciseName={editing === null ? '' : exerciseNameOf(editing, groups)}
+        locale={locale}
+        onClose={onCloseEdit}
+        onUpdated={onCorrected}
+        onRemoved={onCloseEdit}
       />
 
       <EndSessionSheet
@@ -276,20 +314,38 @@ interface SetRowProps {
   readonly set: SetEntry;
   readonly position: number;
   readonly locale: Locale;
+  readonly onEdit: (set: SetEntry) => void;
 }
 
-function SetRow({ set, position, locale }: SetRowProps) {
+/** La fila entera abre la corrección: en el gimnasio se toca con el pulgar y sin mirar. */
+function SetRow({ set, position, locale, onEdit }: SetRowProps) {
   return (
-    <li className={styles.set}>
-      <span className={styles.setPosition}>{position}</span>
-      <span className={styles.setValue}>
-        {formatWeightLabel(set.weight, locale)} × {set.reps}
-      </span>
-      <span className={styles.setMeta}>
-        {set.isWarmup && <Badge>Calentamiento</Badge>}
-        {set.rpe !== null && <span>{formatRpe(set.rpe, locale)}</span>}
-        {set.source === 'bot' && <Badge>Telegram</Badge>}
-      </span>
+    <li>
+      <button
+        type="button"
+        className={styles.set}
+        onClick={() => {
+          onEdit(set);
+        }}
+      >
+        <span className={styles.setPosition}>{position}</span>
+        <span className={styles.setValue}>
+          {formatWeightLabel(set.weight, locale)} × {set.reps}
+        </span>
+        <span className={styles.setMeta}>
+          {set.isWarmup && <Badge>Calentamiento</Badge>}
+          {set.rpe !== null && <span>{formatRpe(set.rpe, locale)}</span>}
+          {set.source === 'bot' && <Badge>Telegram</Badge>}
+        </span>
+      </button>
     </li>
   );
+}
+
+/**
+ * El nombre del ejercicio de una serie sale de los grupos que ya pinta la pantalla: el
+ * título de la hoja tiene que decir qué se está corrigiendo, y ese dato ya está resuelto.
+ */
+function exerciseNameOf(set: SetEntry, groups: readonly SessionExerciseGroup[]): string {
+  return groups.find((group) => group.trackedExerciseId === set.trackedExerciseId)?.name ?? '';
 }

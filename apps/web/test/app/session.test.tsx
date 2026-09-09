@@ -1,4 +1,10 @@
-import type { LogSetRequest, StartSessionRequest, WorkoutSessionDetail } from '@gymbuddy/shared';
+import type {
+  LogSetRequest,
+  SetEntry,
+  StartSessionRequest,
+  UpdateSetRequest,
+  WorkoutSessionDetail,
+} from '@gymbuddy/shared';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
@@ -257,6 +263,113 @@ describe('sesión: terminarla', () => {
     await user.click(await screen.findByRole('button', { name: 'Terminar sesión' }));
 
     expect(screen.getByText('Sesión sin series')).toBeInTheDocument();
+  });
+});
+
+describe('corregir una serie desde la sesión', () => {
+  const loggedSet = activeSession.sets[0];
+
+  it('la fila abre la hoja con lo que se registró', async () => {
+    const user = userEvent.setup();
+    renderApp({ path: '/session', session, setup: serveActiveSession });
+
+    await user.click(await screen.findByRole('button', { name: /82,5 kg × 8/ }));
+
+    expect(screen.getByRole('heading', { name: /Corregir serie · Press de banca/ })).toBeVisible();
+    expect(screen.getByLabelText('Peso')).toHaveValue('82.5');
+    expect(screen.getByLabelText('Repeticiones')).toHaveValue('8');
+  });
+
+  it('corrige el peso y manda solo la serie tocada', async () => {
+    const user = userEvent.setup();
+    let current = activeSession;
+    const { fake } = renderApp({
+      path: '/session',
+      session,
+      setup: (fake) => {
+        fake.on('GET', '/sessions/active', () => jsonResponse({ session: current }));
+        fake.on('GET', '/exercises', () => jsonResponse([benchPress, squat]));
+        fake.on('PATCH', `/sessions/${activeSession.id}/sets/${loggedSet?.id ?? ''}`, (request) => {
+          const body = request.body as UpdateSetRequest;
+          const corrected = { ...(loggedSet as SetEntry), weight: body.weight ?? '0.00' };
+          current = { ...current, sets: [corrected] };
+          return jsonResponse({ set: corrected, records: [] });
+        });
+      },
+    });
+
+    await user.click(await screen.findByRole('button', { name: /82,5 kg × 8/ }));
+    await user.clear(screen.getByLabelText('Peso'));
+    await user.type(screen.getByLabelText('Peso'), '80');
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+
+    // La lista se relee al invalidar: la corrección se ve sin recargar la pantalla.
+    expect(await screen.findByRole('button', { name: /80 kg × 8/ })).toBeInTheDocument();
+
+    const patch = fake.requests.find((request) => request.method === 'PATCH');
+    expect(patch?.body).toEqual({ weight: '80.00', reps: 8, rpe: null, isWarmup: false });
+  });
+
+  it('corregir al alza celebra la marca igual que registrarla', async () => {
+    const user = userEvent.setup();
+    renderApp({
+      path: '/session',
+      session,
+      setup: (fake) => {
+        serveActiveSession(fake);
+        fake.on('PATCH', `/sessions/${activeSession.id}/sets/${loggedSet?.id ?? ''}`, () =>
+          jsonResponse({ set: loggedSet, records: [newMaxWeightRecord] }),
+        );
+      },
+    });
+
+    await user.click(await screen.findByRole('button', { name: /82,5 kg × 8/ }));
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+
+    expect(await screen.findByText('1 marca nueva')).toBeInTheDocument();
+    expect(screen.getByText('Peso máximo: 90 kg')).toBeInTheDocument();
+  });
+
+  it('borra la serie y la sesión se queda sin ella', async () => {
+    const user = userEvent.setup();
+    let current = activeSession;
+    const { fake } = renderApp({
+      path: '/session',
+      session,
+      setup: (fake) => {
+        fake.on('GET', '/sessions/active', () => jsonResponse({ session: current }));
+        fake.on('GET', '/exercises', () => jsonResponse([benchPress, squat]));
+        fake.on('DELETE', `/sessions/${activeSession.id}/sets/${loggedSet?.id ?? ''}`, () => {
+          current = { ...current, sets: [] };
+          return new Response(null, { status: 204 });
+        });
+      },
+    });
+
+    await user.click(await screen.findByRole('button', { name: /82,5 kg × 8/ }));
+    await user.click(screen.getByRole('button', { name: 'Borrar serie' }));
+
+    expect(await screen.findByText('Todavía no has registrado ninguna serie')).toBeInTheDocument();
+    expect(fake.requests.some((request) => request.method === 'DELETE')).toBe(true);
+  });
+
+  it('una sesión que se cerró por otro lado lo dice en vez de tragárselo', async () => {
+    const user = userEvent.setup();
+    renderApp({
+      path: '/session',
+      session,
+      setup: (fake) => {
+        serveActiveSession(fake);
+        fake.on('PATCH', `/sessions/${activeSession.id}/sets/${loggedSet?.id ?? ''}`, () =>
+          errorResponse('session_closed', 409, 'Esa sesión ya está cerrada'),
+        );
+      },
+    });
+
+    await user.click(await screen.findByRole('button', { name: /82,5 kg × 8/ }));
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+
+    expect(await screen.findByText('No se pudo corregir')).toBeInTheDocument();
   });
 });
 
