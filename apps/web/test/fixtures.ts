@@ -12,6 +12,7 @@ import type {
   User,
   WorkoutSessionDetail,
   WorkoutSessionPage,
+  WorkoutSessionSummary,
 } from '@gymbuddy/shared';
 
 export const user: User = {
@@ -158,6 +159,31 @@ export const sessionPage: WorkoutSessionPage = {
   offset: 0,
 };
 
+/** Genera resúmenes de sesión distintos para probar la paginación del historial. */
+export function sessionSummaries(count: number, offset = 0): WorkoutSessionSummary[] {
+  return Array.from({ length: count }, (_, index) => {
+    const number = offset + index + 1;
+    const day = String(((number - 1) % 28) + 1).padStart(2, '0');
+    return {
+      id: `00000000-0000-4000-8000-${String(number).padStart(12, '0')}`,
+      startedAt: `2026-08-${day}T18:00:00.000Z`,
+      endedAt: `2026-08-${day}T19:00:00.000Z`,
+      notes: null,
+      source: 'web',
+      setCount: 10,
+    };
+  });
+}
+
+export function sessionHistoryPage(
+  items: WorkoutSessionSummary[],
+  total: number,
+  offset = 0,
+  limit = 20,
+): WorkoutSessionPage {
+  return { items, total, limit, offset };
+}
+
 /** Una sentadilla seguida del catálogo, para que haya dos grupos en "mis ejercicios". */
 export const squat: TrackedExercise = {
   id: '9d3e2f50-4a6b-4c71-8bcd-2e3f4a5b6c7d',
@@ -176,6 +202,53 @@ export const squat: TrackedExercise = {
   },
   createdAt: '2026-08-03T10:00:00.000Z',
   archivedAt: null,
+};
+
+/**
+ * Una sesión pasada ya cerrada, con calentamiento y dos ejercicios: es lo que pinta el
+ * detalle del historial (totales, notas y las series agrupadas).
+ */
+export const pastSession: WorkoutSessionDetail = {
+  id: 'be5c4f7a-6b8c-4d93-aedf-4a5b6c7d8e9f',
+  startedAt: '2026-09-06T18:00:00.000Z',
+  endedAt: '2026-09-06T19:05:00.000Z',
+  notes: 'Buen día, la barra subía sola.',
+  source: 'web',
+  sets: [
+    {
+      id: 'c06d5081-7c9d-4ea4-bfe0-5b6c7d8e9fa1',
+      trackedExerciseId: benchPress.id,
+      orderIndex: 0,
+      weight: '60.00',
+      reps: 10,
+      rpe: null,
+      isWarmup: true,
+      completedAt: '2026-09-06T18:05:00.000Z',
+      source: 'web',
+    },
+    {
+      id: 'ad4b3e6f-5a7b-4c82-9dce-3f4a5b6c7d8e',
+      trackedExerciseId: benchPress.id,
+      orderIndex: 1,
+      weight: '85.00',
+      reps: 6,
+      rpe: 8.5,
+      isWarmup: false,
+      completedAt: '2026-09-06T18:20:00.000Z',
+      source: 'web',
+    },
+    {
+      id: 'd07f72a3-9ebf-40c6-b102-7d8e9fa1b2c3',
+      trackedExerciseId: squat.id,
+      orderIndex: 2,
+      weight: '100.00',
+      reps: 5,
+      rpe: null,
+      isWarmup: false,
+      completedAt: '2026-09-06T18:45:00.000Z',
+      source: 'bot',
+    },
+  ],
 };
 
 /**
