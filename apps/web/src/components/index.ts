@@ -18,6 +18,8 @@ export { Surface } from './surface/Surface';
 export type { SurfacePadding, SurfaceProps } from './surface/Surface';
 export { TextArea } from './text-area/TextArea';
 export type { TextAreaProps } from './text-area/TextArea';
+export { TextField } from './text-field/TextField';
+export type { TextFieldProps } from './text-field/TextField';
 export { WeightField } from './weight-field/WeightField';
 export type { WeightFieldProps } from './weight-field/WeightField';
 export {

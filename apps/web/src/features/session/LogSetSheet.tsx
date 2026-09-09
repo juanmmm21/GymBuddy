@@ -8,28 +8,12 @@ import {
 } from '@gymbuddy/shared';
 import { useState, type FormEvent } from 'react';
 import { useLogSet } from '../../api/mutations';
-import {
-  Button,
-  Notice,
-  NumberField,
-  Select,
-  Sheet,
-  WeightField,
-  type SelectOption,
-} from '../../components/index';
-import { cx } from '../../lib/cx';
+import { Button, Notice, Select, Sheet, type SelectOption } from '../../components/index';
 import { describeError } from '../../lib/errors';
-import { formatRpe } from '../../lib/format';
 import { newResourceId } from '../../lib/ids';
 import { groupExercisesByBodyPart } from '../exercises/grouping';
 import styles from './LogSetSheet.module.css';
-
-/** Los valores de RPE que se anotan de verdad: por debajo de 6 la serie no dice nada. */
-const RPE_OPTIONS: readonly number[] = [6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10];
-const NO_RPE = '';
-
-/** El tope de repeticiones del contrato (`logSetRequestSchema`). */
-const MAX_REPS = 1000;
+import { isCompleteSet, SetFields, type SetValues } from './SetFields';
 
 export interface LogSetSheetProps {
   readonly sessionId: ResourceId;
@@ -88,10 +72,7 @@ interface LogSetFormProps {
 
 function LogSetForm({ sessionId, exercises, initialExercise, locale, onLogged }: LogSetFormProps) {
   const [exercise, setExercise] = useState(initialExercise);
-  const [weightGrams, setWeightGrams] = useState(workingWeightGramsOf(initialExercise));
-  const [reps, setReps] = useState<number | null>(initialExercise.workingWeight?.reps ?? null);
-  const [rpe, setRpe] = useState<number | null>(null);
-  const [isWarmup, setIsWarmup] = useState(false);
+  const [values, setValues] = useState<SetValues>(() => proposalFor(initialExercise));
   const log = useLogSet();
 
   // Cambiar de ejercicio recarga lo que se propone: cada uno tiene su peso habitual, y
@@ -101,13 +82,12 @@ function LogSetForm({ sessionId, exercises, initialExercise, locale, onLogged }:
     if (next === undefined) return;
 
     setExercise(next);
-    setWeightGrams(workingWeightGramsOf(next));
-    setReps(next.workingWeight?.reps ?? null);
+    setValues(proposalFor(next));
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
-    if (weightGrams === null || reps === null) return;
+    if (!isCompleteSet(values)) return;
 
     log.mutate(
       {
@@ -115,10 +95,10 @@ function LogSetForm({ sessionId, exercises, initialExercise, locale, onLogged }:
         body: {
           id: newResourceId(),
           trackedExerciseId: exercise.id,
-          weight: formatGramsAsKilograms(weightGrams),
-          reps,
-          rpe,
-          isWarmup,
+          weight: formatGramsAsKilograms(values.weightGrams),
+          reps: values.reps,
+          rpe: values.rpe,
+          isWarmup: values.isWarmup,
           source: 'web',
         },
       },
@@ -135,40 +115,16 @@ function LogSetForm({ sessionId, exercises, initialExercise, locale, onLogged }:
         options={exerciseOptions(exercises)}
       />
 
-      <WeightField
-        label="Peso"
-        valueGrams={weightGrams}
-        onChange={setWeightGrams}
-        hint={
+      <SetFields
+        values={values}
+        onChange={setValues}
+        locale={locale}
+        weightHint={
           exercise.workingWeight === null
             ? 'Es tu primera serie de este ejercicio: todavía no hay peso habitual.'
             : 'Tu peso habitual, con las repeticiones de la última vez.'
         }
       />
-
-      <NumberField label="Repeticiones" value={reps} onChange={setReps} min={1} max={MAX_REPS} />
-
-      <div className={styles.row}>
-        <Select
-          label="RPE"
-          value={rpe === null ? NO_RPE : String(rpe)}
-          onChange={(value) => {
-            setRpe(RPE_OPTIONS.find((option) => String(option) === value) ?? null);
-          }}
-          options={rpeOptions(locale)}
-        />
-
-        <button
-          type="button"
-          className={cx(styles.warmup, isWarmup && styles.warmupActive)}
-          aria-pressed={isWarmup}
-          onClick={() => {
-            setIsWarmup(!isWarmup);
-          }}
-        >
-          Calentamiento
-        </button>
-      </div>
 
       {log.isError && (
         <Notice tone="danger" title="No se pudo registrar">
@@ -181,7 +137,7 @@ function LogSetForm({ sessionId, exercises, initialExercise, locale, onLogged }:
         size="lg"
         fullWidth
         loading={log.isPending}
-        disabled={weightGrams === null || reps === null}
+        disabled={!isCompleteSet(values)}
       >
         Registrar serie
       </Button>
@@ -189,11 +145,16 @@ function LogSetForm({ sessionId, exercises, initialExercise, locale, onLogged }:
   );
 }
 
-/** El peso habitual en gramos enteros: del contrato al campo sin pasar por `Number`. */
-function workingWeightGramsOf(exercise: TrackedExercise): number | null {
-  return exercise.workingWeight === null
-    ? null
-    : parseKilogramsToGrams(exercise.workingWeight.weight);
+/** Lo que se propone al elegir un ejercicio: su peso habitual y las repeticiones de la última vez. */
+function proposalFor(exercise: TrackedExercise): SetValues {
+  return {
+    // Del contrato al campo sin pasar por `Number`: el peso es entero de gramos.
+    weightGrams:
+      exercise.workingWeight === null ? null : parseKilogramsToGrams(exercise.workingWeight.weight),
+    reps: exercise.workingWeight?.reps ?? null,
+    rpe: null,
+    isWarmup: false,
+  };
 }
 
 /** Las mismas agrupaciones que "mis ejercicios": se busca donde uno está acostumbrado. */
@@ -205,11 +166,4 @@ function exerciseOptions(exercises: readonly TrackedExercise[]): SelectOption[] 
       group: group.label,
     })),
   );
-}
-
-function rpeOptions(locale: Locale): SelectOption[] {
-  return [
-    { value: NO_RPE, label: 'Sin anotar' },
-    ...RPE_OPTIONS.map((option) => ({ value: String(option), label: formatRpe(option, locale) })),
-  ];
 }
