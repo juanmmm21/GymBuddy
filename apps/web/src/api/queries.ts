@@ -114,13 +114,19 @@ export function useActiveSession(): UseQueryResult<ActiveSessionResponse> {
   });
 }
 
+/**
+ * El historial de sesiones, por páginas que se van acumulando: quien lleva un año
+ * entrenando tiene cientos de sesiones y la pantalla no puede pedirlas todas de golpe.
+ */
 export function useSessionHistory(
   options: SessionHistoryOptions = {},
-): UseQueryResult<WorkoutSessionPage> {
+): UseInfiniteQueryResult<InfiniteData<WorkoutSessionPage>> {
   const client = useApiClient();
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: queryKeys.sessions.history(options),
-    queryFn: () => listSessionHistory(client, options),
+    queryFn: ({ pageParam }) => listSessionHistory(client, { ...options, offset: pageParam }),
+    initialPageParam: 0,
+    getNextPageParam: nextPageOffset,
     retry: shouldRetryRequest,
   });
 }
