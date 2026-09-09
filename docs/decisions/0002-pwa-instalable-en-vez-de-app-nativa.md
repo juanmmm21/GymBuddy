@@ -42,3 +42,29 @@ sintiera una app de verdad, no una conversación.
     ya lo exigía; dónde alojarlo se resolvió en la decisión
     [`0004`](0004-cloudflare-y-backend-typescript.md).
 *   El sistema de diseño se construye desde cero en CSS/TS en vez de heredar los componentes de Apple.
+
+## Revisión — 2026-09-09
+
+Otras personas empezaron a pedir la app, y eso obligó a revisar la decisión con un dato que en
+septiembre no existía: los usuarios ya no son solo quien la escribe. La pregunta concreta era si
+llevarla a la App Store con un envoltorio nativo (Capacitor / WKWebView) para que instalarla fuera
+trivial. **Se mantiene la PWA**, con una consecuencia nueva.
+
+Lo que decidió es el coste de instalar, no el de desarrollar:
+
+*   En **Android** ya es trivial: existe `beforeinstallprompt`, así que la propia app puede ofrecer
+    un botón «Instalar» y se resuelve en dos toques.
+*   En **iOS** no hay equivalente: hay que abrir el enlace en Safari y usar *Compartir → Añadir a
+    pantalla de inicio*. Y el enlace suele llegar por un chat, que lo abre en su navegador interno,
+    donde esa opción ni siquiera aparece. Es la fricción real, y es **de una sola vez**.
+*   La App Store no sale gratis a cambio: cuenta de desarrollador de pago anual, un envoltorio
+    nativo que mantener, revisión en cada actualización —hoy publicar es un `push`— y la
+    *guideline 4.2*, con la que Apple rechaza con frecuencia webs envueltas sin funcionalidad
+    nativa propia. Sigue en pie, además, el argumento 1 de arriba: lo que se buscaba era no
+    depender del ciclo de firma y publicación de Apple.
+*   Y hay una fricción anterior que la App Store no resolvería: la identidad es Telegram
+    ([`0003`](0003-telegram-como-identidad.md)), que hace falta igual.
+
+**Consecuencia:** la fricción de iOS se ataca donde está, con una **pantalla de instalación guiada**
+en la propia PWA —detecta la plataforma y el navegador interno de un chat, y enseña los pasos— en
+lugar de con un segundo canal de distribución.
