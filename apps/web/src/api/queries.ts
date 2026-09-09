@@ -19,6 +19,7 @@ import type {
   TrackedExercise,
   TrainingSignals,
   User,
+  WeeklyCalendar,
   WorkoutSessionDetail,
   WorkoutSessionPage,
 } from '@gymbuddy/shared';
@@ -32,6 +33,7 @@ import {
   fetchExerciseStats,
   fetchSessionDetail,
   fetchTrainingSignals,
+  fetchWeeklyCalendar,
   listBodyParts,
   listCatalogExercises,
   listSessionHistory,
@@ -62,6 +64,7 @@ export const queryKeys = {
   stats: {
     all: ['stats'] as const,
     signals: ['stats', 'signals'] as const,
+    week: ['stats', 'week'] as const,
     exercise: (exerciseId: ResourceId) => ['stats', 'exercise', exerciseId] as const,
   },
   catalog: {
@@ -176,6 +179,20 @@ export function useTrainingSignals(): UseQueryResult<TrainingSignals> {
   return useQuery({
     queryKey: queryKeys.stats.signals,
     queryFn: () => fetchTrainingSignals(client),
+    retry: shouldRetryRequest,
+  });
+}
+
+/**
+ * La semana en curso, para el mini calendario de Hoy. Va en su propia consulta y no dentro
+ * de las señales porque el Worker la calcula leyendo las series de la semana: el resto de
+ * Hoy no tiene por qué esperar a eso, y lo invalidan las mismas claves de `stats`.
+ */
+export function useWeeklyCalendar(): UseQueryResult<WeeklyCalendar> {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: queryKeys.stats.week,
+    queryFn: () => fetchWeeklyCalendar(client),
     retry: shouldRetryRequest,
   });
 }

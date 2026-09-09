@@ -8,6 +8,7 @@ import { Badge, Button, Notice, Surface } from '../../components/index';
 import { formatDaysAgo, formatWeightLabel, pluralize } from '../../lib/format';
 import { RECORD_LABELS } from '../exercises/labels';
 import { SESSION_PATH } from '../session/paths';
+import { WeekCalendar } from './WeekCalendar';
 import styles from './HomeScreen.module.css';
 
 /** Resumen de cómo vas: las señales de `GET /stats/signals`, las mismas que verá la mascota. */
@@ -66,6 +67,8 @@ function SignalsSummary({ signals, locale }: SignalsSummaryProps) {
           <Link to={SESSION_PATH}>Seguir</Link>
         </Surface>
       )}
+
+      <WeekCalendar locale={locale} />
 
       <Surface as="section" className={styles.metrics}>
         <Metric label="Racha" value={pluralize(signals.weeklyStreak, 'semana', 'semanas')} />

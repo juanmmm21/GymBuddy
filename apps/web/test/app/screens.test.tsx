@@ -3,7 +3,15 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { SESSION_STORAGE_KEY } from '../../src/auth/session-store';
 import { errorResponse, jsonResponse } from '../fake-fetch';
-import { benchPress, bodyParts, customCurl, session, sessionPage, signals } from '../fixtures';
+import {
+  benchPress,
+  bodyParts,
+  customCurl,
+  session,
+  sessionPage,
+  signals,
+  weeklyCalendar,
+} from '../fixtures';
 import { renderApp } from './render-app';
 
 describe('pantallas del shell', () => {
@@ -13,6 +21,7 @@ describe('pantallas del shell', () => {
       session,
       setup: (fake) => {
         fake.on('GET', '/stats/signals', () => jsonResponse(signals));
+        fake.on('GET', '/stats/week', () => jsonResponse(weeklyCalendar));
       },
     });
 

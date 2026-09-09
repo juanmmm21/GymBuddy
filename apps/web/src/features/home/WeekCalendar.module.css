@@ -1,0 +1,73 @@
+.sectionLabel {
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-label-size);
+  font-weight: var(--gb-type-label-weight);
+  letter-spacing: var(--gb-type-label-tracking);
+  text-transform: uppercase;
+  margin-bottom: var(--gb-space-sm);
+}
+
+/* Siete columnas iguales: los días caben todos o no cabe ninguno. */
+.week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--gb-space-xs);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gb-space-xxs);
+  min-width: 0;
+}
+
+.weekday {
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-label-size);
+  font-weight: var(--gb-type-label-weight);
+  letter-spacing: var(--gb-type-label-tracking);
+}
+
+/* Hoy se señala con el acento: es la columna que el usuario busca primero. */
+.weekdayToday {
+  composes: weekday;
+  color: var(--gb-color-accent);
+}
+
+/*
+ * La etiqueta de la parte del cuerpo. En una columna de un séptimo del ancho no cabe
+ * "Hombros" entero en pantallas estrechas, así que se recorta con puntos suspensivos en
+ * vez de partirse: el tooltip y el texto para lectores llevan el detalle completo.
+ */
+.trained {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--gb-color-text);
+  font-size: var(--gb-type-caption-size);
+  font-weight: var(--gb-type-body-strong-weight);
+  line-height: var(--gb-type-caption-line);
+}
+
+.rest {
+  composes: trained;
+  color: var(--gb-color-text-muted);
+  font-weight: var(--gb-type-body-weight);
+}
+
+/* Se lee, no se ve: el nombre del día que la inicial no dice en voz alta. */
+.visuallyHidden {
+  position: absolute;
+  width: var(--gb-size-border-width);
+  height: var(--gb-size-border-width);
+  padding: 0;
+  margin: calc(-1 * var(--gb-size-border-width));
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

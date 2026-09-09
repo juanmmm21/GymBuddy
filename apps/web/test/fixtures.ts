@@ -11,6 +11,7 @@ import type {
   TrackedExercise,
   TrainingSignals,
   User,
+  WeeklyCalendar,
   WorkoutSessionDetail,
   WorkoutSessionPage,
   WorkoutSessionSummary,
@@ -82,6 +83,73 @@ export const signals: TrainingSignals = {
     achievedAt: '2026-09-06T18:20:00.000Z',
   },
   stalled: [],
+};
+
+/**
+ * La semana de las señales: lunes 7 con pecho, miércoles 9 sin clasificar y jueves 10 —el
+ * día de `generatedAt`— todavía sin entrenar.
+ */
+export const weeklyCalendar: WeeklyCalendar = {
+  generatedAt: '2026-09-10T12:00:00.000Z',
+  weekStart: '2026-09-07',
+  days: [
+    {
+      dayIndex: 0,
+      date: '2026-09-07',
+      trained: true,
+      bodyPart: 'chest',
+      volume: '1480.00',
+      setCount: 3,
+    },
+    {
+      dayIndex: 1,
+      date: '2026-09-08',
+      trained: false,
+      bodyPart: null,
+      volume: '0.00',
+      setCount: 0,
+    },
+    {
+      dayIndex: 2,
+      date: '2026-09-09',
+      trained: true,
+      bodyPart: null,
+      volume: '240.00',
+      setCount: 2,
+    },
+    {
+      dayIndex: 3,
+      date: '2026-09-10',
+      trained: false,
+      bodyPart: null,
+      volume: '0.00',
+      setCount: 0,
+    },
+    {
+      dayIndex: 4,
+      date: '2026-09-11',
+      trained: false,
+      bodyPart: null,
+      volume: '0.00',
+      setCount: 0,
+    },
+    {
+      dayIndex: 5,
+      date: '2026-09-12',
+      trained: false,
+      bodyPart: null,
+      volume: '0.00',
+      setCount: 0,
+    },
+    {
+      dayIndex: 6,
+      date: '2026-09-13',
+      trained: false,
+      bodyPart: null,
+      volume: '0.00',
+      setCount: 0,
+    },
+  ],
 };
 
 export const bodyParts: BodyPartSummary[] = [

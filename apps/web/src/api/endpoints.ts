@@ -13,6 +13,7 @@ import {
   trackedExerciseSchema,
   trainingSignalsSchema,
   userSchema,
+  weeklyCalendarSchema,
   workoutSessionDetailSchema,
   workoutSessionPageSchema,
   workoutSessionSchema,
@@ -39,6 +40,7 @@ import {
   type TrainingSignals,
   type UpdateTrackedExerciseRequest,
   type User,
+  type WeeklyCalendar,
   type WorkoutSession,
   type WorkoutSessionDetail,
   type WorkoutSessionPage,
@@ -243,6 +245,11 @@ export function fetchExerciseStats(
 
 export function fetchTrainingSignals(client: ApiClient): Promise<TrainingSignals> {
   return client.request({ method: 'GET', path: '/stats/signals', schema: trainingSignalsSchema });
+}
+
+/** La semana en curso día a día. No lleva parámetros: la semana es siempre la de hoy. */
+export function fetchWeeklyCalendar(client: ApiClient): Promise<WeeklyCalendar> {
+  return client.request({ method: 'GET', path: '/stats/week', schema: weeklyCalendarSchema });
 }
 
 export function listBodyParts(client: ApiClient, lang?: Locale): Promise<BodyPartSummary[]> {
