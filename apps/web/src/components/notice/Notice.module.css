@@ -45,3 +45,12 @@
 .danger .title {
   color: var(--gb-color-danger);
 }
+
+.success {
+  background: var(--gb-color-success-soft);
+  border-color: var(--gb-color-success-soft);
+}
+
+.success .title {
+  color: var(--gb-color-success);
+}

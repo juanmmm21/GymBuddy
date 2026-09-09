@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { cx } from '../../lib/cx';
 import styles from './Notice.module.css';
 
-export type NoticeTone = 'info' | 'warning' | 'danger';
+export type NoticeTone = 'info' | 'success' | 'warning' | 'danger';
 
 export interface NoticeProps {
   readonly title: string;
@@ -31,6 +31,7 @@ export function Notice({ title, children, tone = 'info', action }: NoticeProps) 
 
 const toneClass: Readonly<Record<NoticeTone, string | undefined>> = {
   info: styles.info,
+  success: styles.success,
   warning: styles.warning,
   danger: styles.danger,
 };
