@@ -5,10 +5,12 @@ import type {
   CatalogExerciseSummary,
   ExerciseHistory,
   ExerciseStats,
+  PersonalRecord,
   Session,
   TrackedExercise,
   TrainingSignals,
   User,
+  WorkoutSessionDetail,
   WorkoutSessionPage,
 } from '@gymbuddy/shared';
 
@@ -174,6 +176,41 @@ export const squat: TrackedExercise = {
   },
   createdAt: '2026-08-03T10:00:00.000Z',
   archivedAt: null,
+};
+
+/**
+ * Una sesión abierta con una serie de press de banca ya registrada. La fecha está en el
+ * pasado a propósito: el descanso sale cumplido y el cronómetro no depende del reloj.
+ */
+export const activeSession: WorkoutSessionDetail = {
+  id: 'e19a7b3c-4d5e-4f61-9a2b-3c4d5e6f7a8b',
+  startedAt: '2026-09-08T18:00:00.000Z',
+  endedAt: null,
+  notes: null,
+  source: 'web',
+  sets: [
+    {
+      id: 'f2ab8c4d-5e6f-4a72-8b3c-4d5e6f7a8b9c',
+      trackedExerciseId: benchPress.id,
+      orderIndex: 0,
+      weight: '82.50',
+      reps: 8,
+      rpe: null,
+      isWarmup: false,
+      completedAt: '2026-09-08T18:10:00.000Z',
+      source: 'web',
+    },
+  ],
+};
+
+/** La marca que devuelve `POST /sessions/{id}/sets` al superar el peso máximo. */
+export const newMaxWeightRecord: PersonalRecord = {
+  id: '03bc9d5e-6f7a-4b83-9c4d-5e6f7a8b9c0d',
+  trackedExerciseId: benchPress.id,
+  kind: 'max_weight',
+  value: '90.00',
+  setEntryId: '14cdae6f-7a8b-4c94-ad5e-6f7a8b9c0d1e',
+  achievedAt: '2026-09-08T18:20:00.000Z',
 };
 
 /** Cómo va el press de banca: peso habitual, dos marcas y estancado. */
