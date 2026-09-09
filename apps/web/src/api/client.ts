@@ -1,7 +1,7 @@
 import { apiErrorSchema, type ApiErrorCode } from '@gymbuddy/shared';
 import type { ZodType } from 'zod';
 
-export type HttpMethod = 'GET' | 'POST' | 'PATCH';
+export type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
 
 export type QueryParams = Readonly<Record<string, string | number | boolean | undefined>>;
 

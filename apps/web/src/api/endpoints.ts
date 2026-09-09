@@ -9,6 +9,7 @@ import {
   exerciseStatsSchema,
   loginNonceSchema,
   logSetResponseSchema,
+  noContentSchema,
   trackedExerciseSchema,
   trainingSignalsSchema,
   userSchema,
@@ -33,6 +34,7 @@ import {
   type LogSetResponse,
   type Muscle,
   type StartSessionRequest,
+  type UpdateSetRequest,
   type TrackedExercise,
   type TrainingSignals,
   type UpdateTrackedExerciseRequest,
@@ -151,6 +153,33 @@ export function logSet(
     path: `/sessions/${encodeURIComponent(sessionId)}/sets`,
     schema: logSetResponseSchema,
     body,
+  });
+}
+
+/**
+ * Corrige una serie ya registrada. Responde lo mismo que registrarla porque corregir al
+ * alza también puede batir una marca, y la pantalla la celebra igual.
+ */
+export function updateSet(
+  client: ApiClient,
+  sessionId: string,
+  setId: string,
+  body: UpdateSetRequest,
+): Promise<LogSetResponse> {
+  return client.request({
+    method: 'PATCH',
+    path: `/sessions/${encodeURIComponent(sessionId)}/sets/${encodeURIComponent(setId)}`,
+    schema: logSetResponseSchema,
+    body,
+  });
+}
+
+/** Borra una serie. El Worker responde 204, así que no hay cuerpo que devolver. */
+export function removeSet(client: ApiClient, sessionId: string, setId: string): Promise<null> {
+  return client.request({
+    method: 'DELETE',
+    path: `/sessions/${encodeURIComponent(sessionId)}/sets/${encodeURIComponent(setId)}`,
+    schema: noContentSchema,
   });
 }
 

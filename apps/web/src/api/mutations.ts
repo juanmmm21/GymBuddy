@@ -6,6 +6,7 @@ import type {
   ResourceId,
   StartSessionRequest,
   TrackedExercise,
+  UpdateSetRequest,
   UpdateTrackedExerciseRequest,
   WorkoutSession,
 } from '@gymbuddy/shared';
@@ -21,7 +22,9 @@ import {
   endSession,
   listTrackedExercises,
   logSet,
+  removeSet,
   startSession,
+  updateSet,
   updateTrackedExercise,
 } from './endpoints';
 import { useApiClient } from './provider';
@@ -111,6 +114,44 @@ export function useLogSet(): UseMutationResult<LogSetResponse, Error, LogSetVari
 
   return useMutation({
     mutationFn: ({ sessionId, body }: LogSetVariables) => logSet(client, sessionId, body),
+    onSuccess: () => invalidateTrainingData(queryClient),
+  });
+}
+
+export interface UpdateSetVariables {
+  readonly sessionId: ResourceId;
+  readonly setId: ResourceId;
+  readonly body: UpdateSetRequest;
+}
+
+/**
+ * Corrige una serie mal metida. Devuelve las marcas que la corrección haya batido —una
+ * serie corregida al alza puede ser un récord— y, al invalidar, la pantalla ve también
+ * las que hayan dejado de serlo: eso no viaja en la respuesta, sale de las estadísticas.
+ */
+export function useUpdateSet(): UseMutationResult<LogSetResponse, Error, UpdateSetVariables> {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ sessionId, setId, body }: UpdateSetVariables) =>
+      updateSet(client, sessionId, setId, body),
+    onSuccess: () => invalidateTrainingData(queryClient),
+  });
+}
+
+export interface RemoveSetVariables {
+  readonly sessionId: ResourceId;
+  readonly setId: ResourceId;
+}
+
+/** Borra una serie. Sus marcas se van con ella en el Worker, así que basta con invalidar. */
+export function useRemoveSet(): UseMutationResult<null, Error, RemoveSetVariables> {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ sessionId, setId }: RemoveSetVariables) => removeSet(client, sessionId, setId),
     onSuccess: () => invalidateTrainingData(queryClient),
   });
 }
