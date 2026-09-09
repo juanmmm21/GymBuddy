@@ -1,12 +1,29 @@
 import type {
   CreateTrackedExerciseRequest,
+  EndSessionRequest,
+  LogSetRequest,
+  LogSetResponse,
   ResourceId,
+  StartSessionRequest,
   TrackedExercise,
   UpdateTrackedExerciseRequest,
+  WorkoutSession,
 } from '@gymbuddy/shared';
-import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQueryClient,
+  type QueryClient,
+  type UseMutationResult,
+} from '@tanstack/react-query';
 import { ApiRequestError, type ApiClient } from './client';
-import { createTrackedExercise, listTrackedExercises, updateTrackedExercise } from './endpoints';
+import {
+  createTrackedExercise,
+  endSession,
+  listTrackedExercises,
+  logSet,
+  startSession,
+  updateTrackedExercise,
+} from './endpoints';
 import { useApiClient } from './provider';
 import { queryKeys } from './queries';
 
@@ -49,6 +66,67 @@ export function useCreateTrackedExercise(): UseMutationResult<
   return useMutation({
     mutationFn: (body: CreateTrackedExerciseRequest) => trackExercise(client, body),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.exercises.all }),
+  });
+}
+
+/**
+ * Una escritura de entrenamiento toca las tres familias de datos: la sesión, el peso
+ * habitual que sale en "mis ejercicios" y las señales y marcas de las estadísticas. Se
+ * invalidan juntas porque una serie las mueve todas a la vez.
+ */
+async function invalidateTrainingData(queryClient: QueryClient): Promise<void> {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: queryKeys.sessions.all }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.exercises.all }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.stats.all }),
+  ]);
+}
+
+/**
+ * Abre una sesión. El identificador lo trae la petición, así que reenviarla devuelve la
+ * que ya está abierta en vez de encadenar sesiones vacías.
+ */
+export function useStartSession(): UseMutationResult<WorkoutSession, Error, StartSessionRequest> {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (body: StartSessionRequest) => startSession(client, body),
+    onSuccess: () => invalidateTrainingData(queryClient),
+  });
+}
+
+export interface LogSetVariables {
+  readonly sessionId: ResourceId;
+  readonly body: LogSetRequest;
+}
+
+/**
+ * Registra una serie. La respuesta trae las marcas que acaba de romper para celebrarlas
+ * en el momento; en un reenvío llegan vacías porque la marca ya estaba puesta.
+ */
+export function useLogSet(): UseMutationResult<LogSetResponse, Error, LogSetVariables> {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ sessionId, body }: LogSetVariables) => logSet(client, sessionId, body),
+    onSuccess: () => invalidateTrainingData(queryClient),
+  });
+}
+
+export interface EndSessionVariables {
+  readonly sessionId: ResourceId;
+  readonly body?: EndSessionRequest;
+}
+
+export function useEndSession(): UseMutationResult<WorkoutSession, Error, EndSessionVariables> {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ sessionId, body }: EndSessionVariables) => endSession(client, sessionId, body),
+    onSuccess: () => invalidateTrainingData(queryClient),
   });
 }
 
