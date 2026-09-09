@@ -1,0 +1,32 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-xl);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--gb-space-md);
+  align-items: end;
+}
+
+.warmup {
+  min-height: var(--gb-size-control-height);
+  padding: 0 var(--gb-space-lg);
+  border: var(--gb-size-border-width) solid var(--gb-color-border);
+  border-radius: var(--gb-radius-pill);
+  background: var(--gb-color-surface);
+  color: var(--gb-color-text-secondary);
+  font-size: var(--gb-type-caption-size);
+  font-weight: var(--gb-type-body-strong-weight);
+  transition:
+    background-color var(--gb-duration-fast) var(--gb-ease-standard),
+    color var(--gb-duration-fast) var(--gb-ease-standard);
+}
+
+.warmupActive {
+  border-color: var(--gb-color-accent);
+  background: var(--gb-color-accent-soft);
+  color: var(--gb-color-accent);
+}

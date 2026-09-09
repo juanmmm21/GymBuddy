@@ -1,0 +1,92 @@
+.timer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-sm);
+  padding: var(--gb-space-lg);
+  border: var(--gb-size-border-width) solid var(--gb-color-border);
+  border-radius: var(--gb-radius-lg);
+  background: var(--gb-color-surface);
+  transition:
+    background-color var(--gb-duration-base) var(--gb-ease-standard),
+    border-color var(--gb-duration-base) var(--gb-ease-standard);
+}
+
+.timerDone {
+  border-color: var(--gb-color-success);
+  background: var(--gb-color-success-soft);
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--gb-space-md);
+}
+
+.label {
+  color: var(--gb-color-text-secondary);
+  font-size: var(--gb-type-label-size);
+  font-weight: var(--gb-type-label-weight);
+  line-height: var(--gb-type-label-line);
+  letter-spacing: var(--gb-type-label-tracking);
+  text-transform: uppercase;
+}
+
+.value {
+  font-family: var(--gb-font-mono);
+  font-size: var(--gb-type-headline-size);
+  font-weight: var(--gb-type-headline-weight);
+  line-height: var(--gb-type-headline-line);
+  letter-spacing: var(--gb-type-headline-tracking);
+}
+
+.track {
+  overflow: hidden;
+  height: var(--gb-space-sm);
+  border-radius: var(--gb-radius-pill);
+  background: var(--gb-color-surface-sunken);
+}
+
+.fill {
+  height: 100%;
+  border-radius: var(--gb-radius-pill);
+  background: var(--gb-color-accent);
+  transition: width var(--gb-duration-base) var(--gb-ease-standard);
+}
+
+.timerDone .fill {
+  background: var(--gb-color-success);
+}
+
+.status {
+  margin: 0;
+  color: var(--gb-color-text-secondary);
+  font-size: var(--gb-type-caption-size);
+  line-height: var(--gb-type-caption-line);
+}
+
+.targets {
+  display: flex;
+  gap: var(--gb-space-sm);
+}
+
+.target {
+  flex: 1;
+  min-height: var(--gb-size-control-height);
+  border: var(--gb-size-border-width) solid var(--gb-color-border);
+  border-radius: var(--gb-radius-pill);
+  background: var(--gb-color-surface);
+  color: var(--gb-color-text-secondary);
+  font-family: var(--gb-font-mono);
+  font-size: var(--gb-type-caption-size);
+  font-weight: var(--gb-type-body-strong-weight);
+  transition:
+    background-color var(--gb-duration-fast) var(--gb-ease-standard),
+    color var(--gb-duration-fast) var(--gb-ease-standard);
+}
+
+.targetActive {
+  border-color: var(--gb-color-accent);
+  background: var(--gb-color-accent-soft);
+  color: var(--gb-color-accent);
+}

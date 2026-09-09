@@ -6,6 +6,7 @@ import { ExercisesScreen } from '../features/exercises/ExercisesScreen';
 import { TrackedExerciseScreen } from '../features/exercises/TrackedExerciseScreen';
 import { HistoryScreen } from '../features/history/HistoryScreen';
 import { HomeScreen } from '../features/home/HomeScreen';
+import { SessionScreen } from '../features/session/SessionScreen';
 import { LoginRoute } from './LoginRoute';
 import { RequireSession } from './RequireSession';
 import { TabShell } from './TabShell';
@@ -19,6 +20,9 @@ export const routes: RouteObject[] = [
         element: <TabShell />,
         children: [
           { index: true, element: <HomeScreen /> },
+          // La sesión no es una pestaña: se entra desde Hoy o desde la ficha de un
+          // ejercicio, que es cuando hay algo que registrar.
+          { path: 'session', element: <SessionScreen /> },
           { path: 'exercises', element: <ExercisesScreen /> },
           { path: 'exercises/:id', element: <TrackedExerciseScreen /> },
           { path: 'catalog', element: <CatalogScreen /> },

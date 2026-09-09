@@ -1,0 +1,107 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-lg);
+}
+
+.clock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-sm);
+}
+
+.clockHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gb-space-md);
+}
+
+.clockStart {
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-caption-size);
+  line-height: var(--gb-type-caption-line);
+}
+
+.clockValue {
+  margin: 0;
+  font-family: var(--gb-font-mono);
+  font-size: var(--gb-type-display-size);
+  font-weight: var(--gb-type-display-weight);
+  line-height: var(--gb-type-display-line);
+  letter-spacing: var(--gb-type-display-tracking);
+}
+
+.records {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-xxs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-md);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-sm);
+}
+
+.groupTitle {
+  font-size: var(--gb-type-title-size);
+  font-weight: var(--gb-type-title-weight);
+  line-height: var(--gb-type-title-line);
+  letter-spacing: var(--gb-type-title-tracking);
+  overflow-wrap: anywhere;
+}
+
+.sets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.set {
+  display: flex;
+  align-items: center;
+  gap: var(--gb-space-md);
+  padding: var(--gb-space-sm) 0;
+  border-top: var(--gb-size-border-width) solid var(--gb-color-border);
+}
+
+.set:first-child {
+  border-top: none;
+}
+
+.setPosition {
+  min-width: var(--gb-space-xl);
+  color: var(--gb-color-text-muted);
+  font-family: var(--gb-font-mono);
+  font-size: var(--gb-type-caption-size);
+}
+
+.setValue {
+  flex: 1;
+  font-family: var(--gb-font-mono);
+  font-size: var(--gb-type-body-strong-size);
+  font-weight: var(--gb-type-body-strong-weight);
+  line-height: var(--gb-type-body-strong-line);
+}
+
+.setMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--gb-space-sm);
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-caption-size);
+  line-height: var(--gb-type-caption-line);
+}
