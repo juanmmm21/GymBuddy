@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   formatGramsAsKilograms,
+  formatGramsAsVolumeKilograms,
   parseKilogramsToGrams,
+  parseVolumeKilogramsToGrams,
   roundGramsToApiPrecision,
   rpeToTenths,
   tenthsToRpe,
@@ -87,5 +89,25 @@ describe('rpe', () => {
     }
     expect(() => tenthsToRpe(5)).toThrow(RangeError);
     expect(() => tenthsToRpe(85.5)).toThrow(RangeError);
+  });
+});
+
+describe('parseVolumeKilogramsToGrams', () => {
+  it('lee el volumen que devuelve la API, que no cabe en el rango de un peso', () => {
+    expect(parseVolumeKilogramsToGrams('1480.00')).toBe(1_480_000);
+    expect(parseVolumeKilogramsToGrams('0.00')).toBe(0);
+    expect(parseVolumeKilogramsToGrams('9999999.99')).toBe(9_999_999_990);
+  });
+
+  it('vuelve a la cadena original', () => {
+    for (const volume of ['0.00', '1480.00', '82.50', '123456.78']) {
+      expect(formatGramsAsVolumeKilograms(parseVolumeKilogramsToGrams(volume))).toBe(volume);
+    }
+  });
+
+  it('rechaza lo que no cabe en el formato del contrato', () => {
+    expect(() => parseVolumeKilogramsToGrams('12345678.00')).toThrow(RangeError);
+    expect(() => parseVolumeKilogramsToGrams('-1.00')).toThrow(RangeError);
+    expect(() => parseVolumeKilogramsToGrams('mucho')).toThrow(RangeError);
   });
 });

@@ -4,6 +4,7 @@ export {
   formatGramsAsKilograms,
   formatGramsAsVolumeKilograms,
   parseKilogramsToGrams,
+  parseVolumeKilogramsToGrams,
   roundGramsToApiPrecision,
   rpeToTenths,
   tenthsToRpe,

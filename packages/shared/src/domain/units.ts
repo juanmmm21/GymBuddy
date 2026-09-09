@@ -16,6 +16,8 @@ const MAX_WEIGHT_GRAMS = 9_999_999;
 const MAX_VOLUME_GRAMS = 9_999_999_999;
 
 const KILOGRAMS_PATTERN = /^(?<whole>\d{1,4})(?:\.(?<fraction>\d{1,3}))?$/;
+/** El mismo formato con el ancho de un volumen: siete cifras enteras en vez de cuatro. */
+const VOLUME_KILOGRAMS_PATTERN = /^(?<whole>\d{1,7})(?:\.(?<fraction>\d{1,3}))?$/;
 
 /** Formato en el que viaja un peso por la API: kilogramos con exactamente dos decimales. */
 export const API_WEIGHT_PATTERN = /^\d{1,4}\.\d{2}$/;
@@ -53,14 +55,33 @@ export function formatGramsAsVolumeKilograms(grams: number): string {
  * `Number('82.5') * 1000` daría 82499.99999999999 en algún valor y el error se propagaría.
  */
 export function parseKilogramsToGrams(kilograms: string): number {
-  const groups = KILOGRAMS_PATTERN.exec(kilograms)?.groups;
+  return parseToGrams(kilograms, KILOGRAMS_PATTERN, MAX_WEIGHT_GRAMS, 'Peso');
+}
+
+/**
+ * Igual, para el volumen que devuelve la API. Existe porque lo que llega calculado del
+ * Worker —el volumen de un día o de una sesión— también tiene que entrar en gramos
+ * enteros para poder formatearse: `Number(volume)` sería la coma flotante entrando por
+ * la puerta de atrás justo donde el proyecto la prohíbe.
+ */
+export function parseVolumeKilogramsToGrams(kilograms: string): number {
+  return parseToGrams(kilograms, VOLUME_KILOGRAMS_PATTERN, MAX_VOLUME_GRAMS, 'Volumen');
+}
+
+function parseToGrams(
+  kilograms: string,
+  pattern: RegExp,
+  maxGrams: number,
+  description: string,
+): number {
+  const groups = pattern.exec(kilograms)?.groups;
   if (groups?.whole === undefined) {
-    throw new RangeError(`Peso fuera del formato del contrato: "${kilograms}"`);
+    throw new RangeError(`${description} fuera del formato del contrato: "${kilograms}"`);
   }
 
   const grams =
     Number(groups.whole) * GRAMS_PER_KILOGRAM + Number((groups.fraction ?? '').padEnd(3, '0'));
-  assertStorableGrams(grams, MAX_WEIGHT_GRAMS);
+  assertStorableGrams(grams, maxGrams);
 
   return grams;
 }
