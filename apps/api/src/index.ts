@@ -11,6 +11,7 @@ import { catalogRoute } from './routes/v1/catalog';
 import { exercisesRoute } from './routes/v1/exercises';
 import { healthRoute } from './routes/v1/health';
 import { historyRoute } from './routes/v1/history';
+import { routinesRoute } from './routes/v1/routines';
 import { sessionsRoute } from './routes/v1/sessions';
 import { statsRoute } from './routes/v1/stats';
 
@@ -26,6 +27,7 @@ app.route('/api/v1', authRoute);
 app.route('/api/v1', exercisesRoute);
 app.route('/api/v1', sessionsRoute);
 app.route('/api/v1', historyRoute);
+app.route('/api/v1', routinesRoute);
 app.route('/api/v1', statsRoute);
 app.route('/api/v1', adminRoute);
 // Fuera de /api/v1: no es contrato nuestro, es el canal por el que Telegram nos habla.
