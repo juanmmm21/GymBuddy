@@ -1,3 +1,6 @@
+/** Tope del contrato para el nombre de un ejercicio propio (`trackedExerciseNameSchema`). */
+export const MAX_EXERCISE_NAME_LENGTH = 120;
+
 /** Tope del contrato para las notas de un ejercicio (`updateTrackedExerciseRequestSchema`). */
 export const MAX_EXERCISE_NOTES_LENGTH = 500;
 

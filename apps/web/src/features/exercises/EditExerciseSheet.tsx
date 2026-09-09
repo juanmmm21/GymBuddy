@@ -1,9 +1,13 @@
 import type { TrackedExercise } from '@gymbuddy/shared';
 import { useState, type FormEvent } from 'react';
 import { useUpdateTrackedExercise } from '../../api/mutations';
-import { Button, Notice, Sheet, TextArea } from '../../components/index';
+import { Button, Notice, Sheet, TextArea, TextField } from '../../components/index';
 import { describeError } from '../../lib/errors';
-import { MAX_EXERCISE_NOTES_LENGTH, normalizeNotes } from '../../lib/notes';
+import {
+  MAX_EXERCISE_NAME_LENGTH,
+  MAX_EXERCISE_NOTES_LENGTH,
+  normalizeNotes,
+} from '../../lib/notes';
 import styles from './EditExerciseSheet.module.css';
 
 export interface EditExerciseSheetProps {
@@ -13,9 +17,9 @@ export interface EditExerciseSheetProps {
 }
 
 /**
- * Editar un ejercicio seguido: sus notas y si está archivado. El formulario va dentro de
- * la hoja, que solo monta su contenido mientras está abierta: cada apertura arranca con
- * las notas guardadas y sin restos de un intento anterior.
+ * Editar un ejercicio seguido: su nombre —solo si es propio—, sus notas y si está
+ * archivado. El formulario va dentro de la hoja, que solo monta su contenido mientras está
+ * abierta: cada apertura arranca con lo guardado y sin restos de un intento anterior.
  */
 export function EditExerciseSheet({ exercise, open, onClose }: EditExerciseSheetProps) {
   return (
@@ -31,14 +35,25 @@ interface EditExerciseFormProps {
 }
 
 function EditExerciseForm({ exercise, onDone }: EditExerciseFormProps) {
+  const [name, setName] = useState(exercise.name);
   const [notes, setNotes] = useState(exercise.notes ?? '');
   const update = useUpdateTrackedExercise();
   const archived = exercise.archivedAt !== null;
+  // El nombre de uno del catálogo viene del catálogo, y el Worker rechaza cambiarlo.
+  const renamable = exercise.origin === 'custom';
+  const trimmedName = name.trim();
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
+    if (renamable && trimmedName === '') return;
+
     update.mutate(
-      { exerciseId: exercise.id, body: { notes: normalizeNotes(notes) } },
+      {
+        exerciseId: exercise.id,
+        body: renamable
+          ? { name: trimmedName, notes: normalizeNotes(notes) }
+          : { notes: normalizeNotes(notes) },
+      },
       { onSuccess: onDone },
     );
   };
@@ -52,6 +67,16 @@ function EditExerciseForm({ exercise, onDone }: EditExerciseFormProps) {
 
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
+      {renamable && (
+        <TextField
+          label="Nombre"
+          value={name}
+          onChange={setName}
+          maxLength={MAX_EXERCISE_NAME_LENGTH}
+          hint="Como lo llamas tú. Su historial y sus marcas no se mueven."
+        />
+      )}
+
       <TextArea
         label="Notas"
         value={notes}
@@ -66,7 +91,13 @@ function EditExerciseForm({ exercise, onDone }: EditExerciseFormProps) {
         </Notice>
       )}
 
-      <Button type="submit" size="lg" fullWidth loading={update.isPending}>
+      <Button
+        type="submit"
+        size="lg"
+        fullWidth
+        loading={update.isPending}
+        disabled={renamable && trimmedName === ''}
+      >
         Guardar
       </Button>
 

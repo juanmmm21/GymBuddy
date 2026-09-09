@@ -148,6 +148,85 @@ describe('mis ejercicios: ficha', () => {
     });
   });
 
+  it('renombra un ejercicio propio desde la misma hoja', async () => {
+    const user = userEvent.setup();
+    let current: TrackedExercise = customCurl;
+    const { fake } = renderApp({
+      path: `/exercises/${customCurl.id}`,
+      session,
+      setup: (fake) => {
+        fake.on('GET', '/exercises', () => jsonResponse([current]));
+        fake.on('GET', `/stats/exercise/${customCurl.id}`, () =>
+          jsonResponse({
+            trackedExerciseId: customCurl.id,
+            workingWeight: null,
+            records: [],
+            stagnation: null,
+          }),
+        );
+        fake.on('GET', `/history/exercises/${customCurl.id}`, () =>
+          jsonResponse({ trackedExerciseId: customCurl.id, sessions: [] }),
+        );
+        fake.on('PATCH', `/exercises/${customCurl.id}`, (request) => {
+          const body = request.body as { name: string; notes: string | null };
+          current = { ...current, name: body.name, notes: body.notes };
+          return jsonResponse(current);
+        });
+      },
+    });
+
+    await user.click(await screen.findByRole('button', { name: 'Editar' }));
+
+    const name = screen.getByRole('textbox', { name: 'Nombre' });
+    expect(name).toHaveValue('Curl con la barra rara');
+    await user.clear(name);
+    await user.type(name, 'Curl con barra Z');
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    expect(await screen.findByRole('heading', { name: 'Curl con barra Z' })).toBeInTheDocument();
+    expect(fake.requests.find((r) => r.method === 'PATCH')?.body).toEqual({
+      name: 'Curl con barra Z',
+      notes: null,
+    });
+  });
+
+  it('un ejercicio del catálogo no ofrece renombrarse: su nombre viene del catálogo', async () => {
+    const user = userEvent.setup();
+    renderApp({ path: DETAIL_PATH, session, setup: serveBenchPress });
+
+    await user.click(await screen.findByRole('button', { name: 'Editar' }));
+
+    expect(screen.queryByRole('textbox', { name: 'Nombre' })).not.toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Notas' })).toBeInTheDocument();
+  });
+
+  it('no deja guardar un ejercicio propio sin nombre', async () => {
+    const user = userEvent.setup();
+    renderApp({
+      path: `/exercises/${customCurl.id}`,
+      session,
+      setup: (fake) => {
+        fake.on('GET', '/exercises', () => jsonResponse([customCurl]));
+        fake.on('GET', `/stats/exercise/${customCurl.id}`, () =>
+          jsonResponse({
+            trackedExerciseId: customCurl.id,
+            workingWeight: null,
+            records: [],
+            stagnation: null,
+          }),
+        );
+        fake.on('GET', `/history/exercises/${customCurl.id}`, () =>
+          jsonResponse({ trackedExerciseId: customCurl.id, sessions: [] }),
+        );
+      },
+    });
+
+    await user.click(await screen.findByRole('button', { name: 'Editar' }));
+    await user.clear(screen.getByRole('textbox', { name: 'Nombre' }));
+
+    expect(screen.getByRole('button', { name: 'Guardar' })).toBeDisabled();
+  });
+
   it('archivar desde la hoja lo avisa en la ficha, y desde el aviso se recupera', async () => {
     const user = userEvent.setup();
     let current: TrackedExercise = benchPress;
