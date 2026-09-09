@@ -6,6 +6,8 @@ import {
   catalogSyncStepSchema,
   createRoutineRequestSchema,
   createTrackedExerciseRequestSchema,
+  routineSchema,
+  updateRoutineRequestSchema,
   exerciseHistorySchema,
   logSetRequestSchema,
   updateSetRequestSchema,
@@ -24,6 +26,8 @@ import {
 const EXERCISE_ID = '3f6c2b1a-58e6-4c65-9d0e-2b1a4c7f8d31';
 const SESSION_ID = 'a0c14d2f-9b7e-4a11-8f3c-6d5e2a9b0c74';
 const SET_ID = 'd41f7b90-3c22-4e58-9a6b-1f0c8e7d5a23';
+const ROUTINE_ID = '8b2e5c07-6a41-4d93-b7f8-0c3a1e6d9b52';
+const ROUTINE_ITEM_ID = 'c7d90a12-4e83-4b60-95af-31d2e8c74b06';
 
 describe('catálogo: muscle no es bodyPart', () => {
   it('no acepta un músculo donde va una parte del cuerpo', () => {
@@ -385,27 +389,100 @@ describe('historial de un ejercicio', () => {
 });
 
 describe('rutinas', () => {
+  const item = {
+    id: ROUTINE_ITEM_ID,
+    trackedExerciseId: EXERCISE_ID,
+    targetSets: 4,
+    targetRepsMin: 8,
+    targetRepsMax: 12,
+  };
+
   it('rechaza un rango de repeticiones invertido', () => {
     const request = {
+      id: ROUTINE_ID,
       name: 'Empuje',
-      items: [
-        { trackedExerciseId: EXERCISE_ID, targetSets: 4, targetRepsMin: 12, targetRepsMax: 8 },
-      ],
+      items: [{ ...item, targetRepsMin: 12, targetRepsMax: 8 }],
     };
 
     expect(createRoutineRequestSchema.safeParse(request).success).toBe(false);
   });
 
   it('acepta una rutina con un rango correcto', () => {
-    const request = {
-      name: 'Empuje',
-      description: null,
-      items: [
-        { trackedExerciseId: EXERCISE_ID, targetSets: 4, targetRepsMin: 8, targetRepsMax: 12 },
-      ],
-    };
+    const request = { id: ROUTINE_ID, name: 'Empuje', description: null, items: [item] };
 
     expect(createRoutineRequestSchema.safeParse(request).success).toBe(true);
+  });
+
+  it('exige el identificador de la rutina y el de cada ejercicio: los pone el cliente', () => {
+    const { id: _routineId, ...withoutRoutineId } = { id: ROUTINE_ID, name: 'Empuje', items: [] };
+    const { id: _itemId, ...withoutItemId } = item;
+
+    expect(createRoutineRequestSchema.safeParse(withoutRoutineId).success).toBe(false);
+    expect(
+      createRoutineRequestSchema.safeParse({
+        id: ROUTINE_ID,
+        name: 'Empuje',
+        items: [withoutItemId],
+      }).success,
+    ).toBe(false);
+  });
+
+  it('no acepta el orden dentro de la petición: lo da la posición en la lista', () => {
+    const request = {
+      id: ROUTINE_ID,
+      name: 'Empuje',
+      items: [{ ...item, orderIndex: 3 }],
+    };
+
+    const parsed = createRoutineRequestSchema.parse(request);
+
+    expect(parsed.items[0]).not.toHaveProperty('orderIndex');
+  });
+
+  it('recorta el nombre y rechaza el que solo tiene espacios', () => {
+    expect(
+      createRoutineRequestSchema.parse({ id: ROUTINE_ID, name: '  Empuje  ', items: [] }).name,
+    ).toBe('Empuje');
+    expect(
+      createRoutineRequestSchema.safeParse({ id: ROUTINE_ID, name: '   ', items: [] }).success,
+    ).toBe(false);
+  });
+
+  it('acepta una rutina sin ejercicios: es como nace en el editor', () => {
+    expect(
+      createRoutineRequestSchema.safeParse({ id: ROUTINE_ID, name: 'Empuje', items: [] }).success,
+    ).toBe(true);
+  });
+
+  it('no acepta más de treinta ejercicios en una rutina', () => {
+    const items = Array.from({ length: 31 }, () => item);
+
+    expect(
+      createRoutineRequestSchema.safeParse({ id: ROUTINE_ID, name: 'Empuje', items }).success,
+    ).toBe(false);
+  });
+
+  it('deja cambiar solo lo que se toca, y archivar es un campo más', () => {
+    expect(updateRoutineRequestSchema.safeParse({}).success).toBe(true);
+    expect(updateRoutineRequestSchema.safeParse({ archived: true }).success).toBe(true);
+    expect(updateRoutineRequestSchema.safeParse({ description: null }).success).toBe(true);
+    expect(
+      updateRoutineRequestSchema.safeParse({ items: [{ ...item, targetRepsMax: 1 }] }).success,
+    ).toBe(false);
+  });
+
+  it('la rutina que sale lleva el orden resuelto', () => {
+    const routine = {
+      id: ROUTINE_ID,
+      name: 'Empuje',
+      description: null,
+      createdAt: '2026-09-09T18:00:00.000Z',
+      archivedAt: null,
+      items: [{ ...item, orderIndex: 0 }],
+    };
+
+    expect(routineSchema.parse(routine).items[0]?.orderIndex).toBe(0);
+    expect(routineSchema.safeParse({ ...routine, items: [item] }).success).toBe(false);
   });
 });
 

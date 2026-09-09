@@ -93,12 +93,20 @@ export type {
 export { exerciseHistoryEntrySchema, exerciseHistorySchema } from './history';
 export type { ExerciseHistory, ExerciseHistoryEntry } from './history';
 export {
+  MAX_ROUTINE_ITEMS,
   createRoutineRequestSchema,
   routineItemSchema,
+  routineNameSchema,
   routineSchema,
   updateRoutineRequestSchema,
 } from './routine';
-export type { CreateRoutineRequest, Routine, RoutineItem, UpdateRoutineRequest } from './routine';
+export type {
+  CreateRoutineRequest,
+  Routine,
+  RoutineItem,
+  RoutineItemInput,
+  UpdateRoutineRequest,
+} from './routine';
 export { personalRecordKindSchema, personalRecordSchema } from './record';
 export type { PersonalRecord, PersonalRecordKind } from './record';
 export {
