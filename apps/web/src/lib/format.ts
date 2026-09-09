@@ -1,4 +1,9 @@
-import { parseKilogramsToGrams, type Locale, type WeightKilograms } from '@gymbuddy/shared';
+import {
+  formatGramsAsVolumeKilograms,
+  parseKilogramsToGrams,
+  type Locale,
+  type WeightKilograms,
+} from '@gymbuddy/shared';
 import { formatWeightForInput } from '../components/weight-field/weight-math';
 
 const INTL_LOCALE: Readonly<Record<Locale, string>> = { es: 'es-ES', en: 'en-GB' };
@@ -9,6 +14,15 @@ const INTL_LOCALE: Readonly<Record<Locale, string>> = { es: 'es-ES', en: 'en-GB'
  */
 export function formatWeightLabel(weight: WeightKilograms, locale: Locale): string {
   const text = formatWeightForInput(parseKilogramsToGrams(weight));
+  return `${locale === 'es' ? text.replace('.', ',') : text} kg`;
+}
+
+/**
+ * El volumen de una sesión, que no cabe en el ancho de un peso: son cuatro cifras contra
+ * siete. Sale de gramos enteros y tiene su propio formateador en el dominio por eso.
+ */
+export function formatVolumeLabel(volumeGrams: number, locale: Locale): string {
+  const text = formatGramsAsVolumeKilograms(volumeGrams).replace(/\.?0+$/, '');
   return `${locale === 'es' ? text.replace('.', ',') : text} kg`;
 }
 
@@ -45,6 +59,27 @@ export function formatDaysAgo(days: number): string {
   if (days === 0) return 'hoy';
   if (days === 1) return 'ayer';
   return `hace ${String(days)} días`;
+}
+
+const SECONDS_PER_MINUTE = 60;
+const SECONDS_PER_HOUR = 3600;
+
+/**
+ * Un cronómetro: "0:45", "12:30" y, pasada la hora, "1:05:09". Sin unidades, porque el
+ * número va debajo de su etiqueta y a mitad de una serie se lee de un vistazo.
+ */
+export function formatStopwatch(totalSeconds: number): string {
+  const seconds = Math.max(0, Math.floor(totalSeconds));
+  const hours = Math.floor(seconds / SECONDS_PER_HOUR);
+  const minutes = Math.floor((seconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE);
+  const rest = seconds % SECONDS_PER_MINUTE;
+
+  const tail = `${padTwo(minutes)}:${padTwo(rest)}`;
+  return hours > 0 ? `${String(hours)}:${tail}` : `${String(minutes)}:${padTwo(rest)}`;
+}
+
+function padTwo(value: number): string {
+  return String(value).padStart(2, '0');
 }
 
 export function pluralize(count: number, singular: string, plural: string): string {

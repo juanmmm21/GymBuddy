@@ -4,6 +4,8 @@ import {
   formatDaysAgo,
   formatRpe,
   formatSessionDate,
+  formatStopwatch,
+  formatVolumeLabel,
   formatWeightLabel,
   pluralize,
 } from '../../src/lib/format';
@@ -30,6 +32,28 @@ describe('formatRpe', () => {
     expect(formatRpe(8.5, 'es')).toBe('RPE 8,5');
     expect(formatRpe(8.5, 'en')).toBe('RPE 8.5');
     expect(formatRpe(9, 'es')).toBe('RPE 9');
+  });
+});
+
+describe('formatStopwatch', () => {
+  it('crece de minutos a horas sin perder los dos dígitos', () => {
+    expect(formatStopwatch(9)).toBe('0:09');
+    expect(formatStopwatch(90)).toBe('1:30');
+    expect(formatStopwatch(3909)).toBe('1:05:09');
+  });
+
+  it('un cronómetro no va hacia atrás ni cuenta fracciones', () => {
+    expect(formatStopwatch(-5)).toBe('0:00');
+    expect(formatStopwatch(59.9)).toBe('0:59');
+  });
+});
+
+describe('formatVolumeLabel', () => {
+  it('escribe el volumen en kilogramos sin ceros sobrantes', () => {
+    expect(formatVolumeLabel(1_320_000, 'es')).toBe('1320 kg');
+    expect(formatVolumeLabel(1_320_500, 'es')).toBe('1320,5 kg');
+    expect(formatVolumeLabel(1_320_500, 'en')).toBe('1320.5 kg');
+    expect(formatVolumeLabel(0, 'es')).toBe('0 kg');
   });
 });
 
