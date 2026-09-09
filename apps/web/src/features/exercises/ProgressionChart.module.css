@@ -1,0 +1,97 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-md);
+}
+
+.title {
+  font-size: var(--gb-type-title-size);
+  font-weight: var(--gb-type-title-weight);
+  line-height: var(--gb-type-title-line);
+  letter-spacing: var(--gb-type-title-tracking);
+}
+
+/* El SVG ocupa el ancho de la columna y conserva la proporción de su viewBox. */
+.canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.gridLine {
+  stroke: var(--gb-color-border);
+  stroke-width: var(--gb-size-border-width);
+}
+
+/* Las etiquetas de los ejes van en unidades del viewBox: escalan con la gráfica. */
+.axisLabel {
+  fill: var(--gb-color-text-muted);
+  font-size: var(--gb-type-label-size);
+}
+
+.weightLine {
+  fill: none;
+  stroke: var(--gb-color-accent);
+  stroke-width: var(--gb-space-xxs);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* El 1RM es una referencia calculada, no un peso que se haya levantado: va discontinua. */
+.oneRepMaxLine {
+  fill: none;
+  stroke: var(--gb-color-text-muted);
+  stroke-width: var(--gb-size-border-width);
+  stroke-dasharray: var(--gb-space-xs) var(--gb-space-xs);
+  stroke-linecap: round;
+}
+
+.dot {
+  fill: var(--gb-color-accent);
+}
+
+/* El borde del color de la tarjeta despega la marca de la línea sobre la que cae. */
+.mark {
+  fill: var(--gb-color-success);
+  stroke: var(--gb-color-surface);
+  stroke-width: var(--gb-size-border-width);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gb-space-sm) var(--gb-space-lg);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--gb-color-text-secondary);
+  font-size: var(--gb-type-caption-size);
+  line-height: var(--gb-type-caption-line);
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: var(--gb-space-sm);
+}
+
+.swatch {
+  display: inline-block;
+  width: var(--gb-space-lg);
+  height: var(--gb-space-xxs);
+  border-radius: var(--gb-radius-pill);
+}
+
+.weightSwatch {
+  background: var(--gb-color-accent);
+}
+
+.oneRepMaxSwatch {
+  background: var(--gb-color-text-muted);
+}
+
+.markSwatch {
+  width: var(--gb-space-sm);
+  height: var(--gb-space-sm);
+  background: var(--gb-color-success);
+}

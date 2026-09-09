@@ -31,6 +31,7 @@ import { sessionPathForExercise } from '../session/paths';
 import { EditExerciseSheet } from './EditExerciseSheet';
 import { ORIGIN_LABELS, RECORD_LABELS, RECORD_ORDER } from './labels';
 import { EXERCISES_PATH } from './paths';
+import { ProgressionChart } from './ProgressionChart';
 import styles from './TrackedExerciseScreen.module.css';
 
 const BACK_TO_EXERCISES: BackLink = { to: EXERCISES_PATH, label: 'Mis ejercicios' };
@@ -263,10 +264,12 @@ function StatsSection({ stats, locale }: StatsSectionProps) {
         </Notice>
       )}
 
+      <ProgressionChart points={stats.points} records={stats.records} locale={locale} />
+
       {records.length > 0 && (
         <Surface as="section">
           <h2 className={styles.sectionTitle}>Marcas</h2>
-          <ul className={styles.records}>
+          <ul className={styles.records} aria-label="Marcas">
             {records.map((record) => (
               <li key={record.id} className={styles.record}>
                 <span className={styles.recordLabel}>{RECORD_LABELS[record.kind]}</span>

@@ -6,6 +6,7 @@ import { errorResponse, jsonResponse, type FakeFetch } from '../fake-fetch';
 import {
   benchPress,
   benchPressHistory,
+  benchPressPoints,
   benchPressStats,
   customCurl,
   session,
@@ -73,10 +74,11 @@ describe('mis ejercicios: ficha', () => {
     expect(screen.getByText('× 8')).toBeInTheDocument();
     expect(screen.getByText(/Mediana de tus últimas 5 sesiones/)).toBeInTheDocument();
 
-    expect(screen.getByText('Peso máximo')).toBeInTheDocument();
-    expect(screen.getByText('85 kg')).toBeInTheDocument();
-    expect(screen.getByText('1RM estimado')).toBeInTheDocument();
-    expect(screen.getByText('104,5 kg')).toBeInTheDocument();
+    const records = within(screen.getByRole('list', { name: 'Marcas' }));
+    expect(records.getByText('Peso máximo')).toBeInTheDocument();
+    expect(records.getByText('85 kg')).toBeInTheDocument();
+    expect(records.getByText('1RM estimado')).toBeInTheDocument();
+    expect(records.getByText('104,5 kg')).toBeInTheDocument();
 
     expect(screen.getByText('Estancado en 82,5 kg')).toBeInTheDocument();
     expect(screen.getByText(/Prueba con 2,5 kg más/)).toBeInTheDocument();
@@ -100,7 +102,13 @@ describe('mis ejercicios: ficha', () => {
       setup: (fake) => {
         fake.on('GET', '/exercises', () => jsonResponse([{ ...benchPress, workingWeight: null }]));
         fake.on('GET', `/stats/exercise/${benchPress.id}`, () =>
-          jsonResponse({ ...benchPressStats, workingWeight: null, records: [], stalled: null }),
+          jsonResponse({
+            ...benchPressStats,
+            workingWeight: null,
+            records: [],
+            points: [],
+            stalled: null,
+          }),
         );
         fake.on('GET', `/history/exercises/${benchPress.id}`, () =>
           jsonResponse({ ...benchPressHistory, sessions: [] }),
@@ -111,6 +119,52 @@ describe('mis ejercicios: ficha', () => {
     expect(await screen.findByText('Todavía no has registrado ninguna serie')).toBeInTheDocument();
     expect(screen.queryByText('Peso habitual')).not.toBeInTheDocument();
     expect(screen.queryByText('Marcas')).not.toBeInTheDocument();
+  });
+
+  it('pinta la gráfica de progresión con las marcas encima', async () => {
+    renderApp({ path: DETAIL_PATH, session, setup: serveBenchPress });
+
+    const chart = await screen.findByRole('img', {
+      name: /^Peso y 1RM estimado en 4 sesiones:/,
+    });
+
+    // Las dos líneas comparten escala: la del peso y la del 1RM estimado.
+    const lines = chart.querySelectorAll('path');
+    expect(lines).toHaveLength(2);
+    // Arranca en el margen izquierdo del área de trazo y acaba en el derecho.
+    expect(lines[1]?.getAttribute('d')).toMatch(/^M44 \d+(\.\d+)? L.* L348 /);
+
+    // El eje se redondea a decenas de kilo: de 80 a 110 pasando por el peso máximo.
+    const axis = within(chart);
+    expect(axis.getByText('80')).toBeInTheDocument();
+    expect(axis.getByText('110')).toBeInTheDocument();
+
+    // Cada marca lleva su `title`: es el nombre que enseña el navegador al tocarla.
+    const marks = [...chart.querySelectorAll('title')].map((title) => title.textContent);
+    expect(marks).toHaveLength(2);
+    expect(marks[0]).toMatch(/^Peso máximo: 85 kg · /);
+    expect(marks[1]).toMatch(/^1RM estimado: 104,5 kg · /);
+
+    const legend = within(screen.getByRole('list', { name: 'Leyenda de la gráfica' }));
+    expect(legend.getByText('Peso en kg')).toBeInTheDocument();
+    expect(legend.getByText('1RM estimado')).toBeInTheDocument();
+    expect(legend.getByText('Marca personal')).toBeInTheDocument();
+  });
+
+  it('con una sola sesión no hay tendencia que pintar', async () => {
+    renderApp({
+      path: DETAIL_PATH,
+      session,
+      setup: (fake) => {
+        serveBenchPress(fake);
+        fake.on('GET', `/stats/exercise/${benchPress.id}`, () =>
+          jsonResponse({ ...benchPressStats, points: benchPressPoints.slice(0, 1) }),
+        );
+      },
+    });
+
+    expect(await screen.findByText('Peso habitual')).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /Peso y 1RM estimado/ })).not.toBeInTheDocument();
   });
 
   it('las notas se editan en la hoja y se guardan con un PATCH', async () => {
