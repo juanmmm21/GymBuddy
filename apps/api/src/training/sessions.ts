@@ -8,13 +8,20 @@ import {
   type PersonalRecord,
   type SetEntry,
   type StartSessionRequest,
+  type UpdateSetRequest,
   type WorkoutSession,
   type WorkoutSessionDetail,
 } from '@gymbuddy/shared';
 import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import type { Database } from '../db/client';
 import { listSetsForSession } from '../db/queries';
-import { setEntry, workoutSession, type SetEntryRow, type WorkoutSessionRow } from '../db/schema';
+import {
+  personalRecord,
+  setEntry,
+  workoutSession,
+  type SetEntryRow,
+  type WorkoutSessionRow,
+} from '../db/schema';
 import { ApiException } from '../http/errors';
 import { assertTrackedExerciseBelongsToUser } from './exercises';
 import { applyPersonalRecords } from './records';
@@ -105,11 +112,7 @@ export async function logSet(
   request: LogSetRequest,
   now: Date,
 ): Promise<{ set: SetEntry; records: PersonalRecord[]; created: boolean }> {
-  const session = await findSessionRow(db, userId, sessionId);
-  if (session === null) throw sessionNotFound(sessionId);
-  if (session.endedAt !== null) {
-    throw new ApiException('session_closed', 'Esa sesión ya está cerrada', { sessionId });
-  }
+  await requireOpenSession(db, userId, sessionId);
 
   await assertTrackedExerciseBelongsToUser(db, userId, request.trackedExerciseId);
 
@@ -163,6 +166,74 @@ export async function logSet(
   };
 }
 
+/**
+ * Corrige una serie ya registrada, y solo mientras la sesión sigue abierta: reescribir el
+ * entrenamiento de hace meses es otra cosa y no es lo que pasa tecleando entre series.
+ *
+ * Las marcas que puso la serie se borran antes de reevaluarla, porque describían lo que
+ * decía **antes** de corregirse: dejarlas convertiría un peso mal tecleado en un récord
+ * permanente. Con ellas fuera, `applyPersonalRecords` compara contra el resto del
+ * historial —la tabla si sigue completa, y si no un repaso de las series— y vuelve a
+ * escribir solo lo que la serie corregida siga mereciendo.
+ */
+export async function updateSet(
+  db: Database,
+  userId: string,
+  sessionId: string,
+  setId: string,
+  request: UpdateSetRequest,
+): Promise<{ set: SetEntry; records: PersonalRecord[] }> {
+  await requireOpenSession(db, userId, sessionId);
+
+  const stored = await findSetInSession(db, sessionId, setId);
+  if (stored === null) throw setNotFound(setId);
+
+  const changes: Partial<SetEntryRow> = {};
+  if (request.weight !== undefined) changes.weightGrams = parseWeight(request.weight);
+  if (request.reps !== undefined) changes.reps = request.reps;
+  if (request.rpe !== undefined) {
+    changes.rpeTenths = request.rpe === null ? null : rpeToTenths(request.rpe);
+  }
+  if (request.isWarmup !== undefined) changes.isWarmup = request.isWarmup;
+
+  // Sin campos no se toca nada: una corrección vacía no puede mover las marcas.
+  if (Object.keys(changes).length === 0) return { set: toSetEntry(stored), records: [] };
+
+  const [updated] = await db
+    .update(setEntry)
+    .set(changes)
+    .where(and(eq(setEntry.id, setId), eq(setEntry.sessionId, sessionId)))
+    .returning();
+
+  if (updated === undefined) throw setNotFound(setId);
+
+  await db
+    .delete(personalRecord)
+    .where(and(eq(personalRecord.userId, userId), eq(personalRecord.setEntryId, setId)));
+
+  return { set: toSetEntry(updated), records: await applyPersonalRecords(db, userId, updated) };
+}
+
+/**
+ * Borra una serie de una sesión abierta. Las marcas que puso se van con ella por la clave
+ * ajena (`on delete cascade`), así que no hay que limpiarlas a mano.
+ *
+ * Es idempotente a propósito: borrar una serie que ya no está responde igual que borrarla,
+ * porque es lo que hará la cola offline al reintentar un borrado que sí llegó. El hueco
+ * que deja en el `order_index` no se rellena: solo sirve para ordenar, y renumerar el
+ * resto convertiría un borrado en una reescritura de toda la sesión.
+ */
+export async function removeSet(
+  db: Database,
+  userId: string,
+  sessionId: string,
+  setId: string,
+): Promise<void> {
+  await requireOpenSession(db, userId, sessionId);
+
+  await db.delete(setEntry).where(and(eq(setEntry.id, setId), eq(setEntry.sessionId, sessionId)));
+}
+
 /** Cierra la sesión. Cerrar una que ya lo estaba devuelve la misma: la cola offline reenvía. */
 export async function endWorkoutSession(
   db: Database,
@@ -194,6 +265,10 @@ export async function endWorkoutSession(
 
 export function sessionNotFound(sessionId: string): ApiException {
   return new ApiException('not_found', `No existe la sesión "${sessionId}"`);
+}
+
+function setNotFound(setId: string): ApiException {
+  return new ApiException('not_found', `No existe la serie "${setId}" en esa sesión`);
 }
 
 export function toWorkoutSession(row: WorkoutSessionRow): WorkoutSession {
@@ -254,6 +329,40 @@ async function findActiveSessionRow(
     .from(workoutSession)
     .where(and(eq(workoutSession.userId, userId), isNull(workoutSession.endedAt)))
     .orderBy(desc(workoutSession.startedAt))
+    .limit(1);
+
+  return row ?? null;
+}
+
+/**
+ * La sesión sobre la que se puede escribir: existe, es de este usuario y sigue abierta.
+ * Cerrada no se toca, ni para registrar ni para corregir; es lo que ve la cola offline
+ * cuando reenvía sobre una sesión que se cerró desde el bot mientras no había red.
+ */
+async function requireOpenSession(
+  db: Database,
+  userId: string,
+  sessionId: string,
+): Promise<WorkoutSessionRow> {
+  const session = await findSessionRow(db, userId, sessionId);
+  if (session === null) throw sessionNotFound(sessionId);
+  if (session.endedAt !== null) {
+    throw new ApiException('session_closed', 'Esa sesión ya está cerrada', { sessionId });
+  }
+
+  return session;
+}
+
+/** Una serie dentro de una sesión ya comprobada: el usuario lo puso el paso anterior. */
+async function findSetInSession(
+  db: Database,
+  sessionId: string,
+  setId: string,
+): Promise<SetEntryRow | null> {
+  const [row] = await db
+    .select()
+    .from(setEntry)
+    .where(and(eq(setEntry.id, setId), eq(setEntry.sessionId, sessionId)))
     .limit(1);
 
   return row ?? null;

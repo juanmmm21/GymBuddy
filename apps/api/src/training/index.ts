@@ -14,10 +14,12 @@ export {
   findActiveSession,
   findSessionDetail,
   logSet,
+  removeSet,
   sessionNotFound,
   startWorkoutSession,
   toSetEntry,
   toWorkoutSession,
+  updateSet,
 } from './sessions';
 export { applyPersonalRecords, getCurrentRecords, toPersonalRecord } from './records';
 export { getExerciseHistory, listSessionPage } from './history';

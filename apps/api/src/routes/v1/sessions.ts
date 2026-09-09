@@ -2,6 +2,7 @@ import {
   endSessionRequestSchema,
   logSetRequestSchema,
   startSessionRequestSchema,
+  updateSetRequestSchema,
   type ActiveSessionResponse,
   type LogSetResponse,
 } from '@gymbuddy/shared';
@@ -14,8 +15,10 @@ import {
   findActiveSession,
   findSessionDetail,
   logSet,
+  removeSet,
   sessionNotFound,
   startWorkoutSession,
+  updateSet,
 } from '../../training/index';
 
 export const sessionsRoute = new Hono<AuthenticatedEnv>()
@@ -69,6 +72,37 @@ export const sessionsRoute = new Hono<AuthenticatedEnv>()
     const body: LogSetResponse = { set, records };
 
     return c.json(body, created ? 201 : 200);
+  })
+
+  /**
+   * Corregir una serie mal metida. Responde lo mismo que registrarla —la serie y las
+   * marcas— porque corregir al alza también puede batir un récord.
+   */
+  .patch('/sessions/:id/sets/:setId', async (c) => {
+    const request = await parseJsonBody(c, updateSetRequestSchema);
+
+    const { set, records } = await updateSet(
+      createDatabase(c.env.DB),
+      c.get('user').id,
+      c.req.param('id'),
+      c.req.param('setId'),
+      request,
+    );
+    const body: LogSetResponse = { set, records };
+
+    return c.json(body);
+  })
+
+  // 204 y sin cuerpo: no queda recurso que devolver, y la pantalla relee la sesión.
+  .delete('/sessions/:id/sets/:setId', async (c) => {
+    await removeSet(
+      createDatabase(c.env.DB),
+      c.get('user').id,
+      c.req.param('id'),
+      c.req.param('setId'),
+    );
+
+    return c.body(null, 204);
   })
 
   .post('/sessions/:id/end', async (c) => {
