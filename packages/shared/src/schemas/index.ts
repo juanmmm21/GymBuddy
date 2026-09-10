@@ -93,8 +93,13 @@ export type {
 export { exerciseHistoryEntrySchema, exerciseHistorySchema } from './history';
 export type { ExerciseHistory, ExerciseHistoryEntry } from './history';
 export {
+  MAX_ROUTINE_DESCRIPTION_LENGTH,
   MAX_ROUTINE_ITEMS,
+  MAX_ROUTINE_NAME_LENGTH,
+  MAX_ROUTINE_TARGET_REPS,
+  MAX_ROUTINE_TARGET_SETS,
   createRoutineRequestSchema,
+  routineItemInputSchema,
   routineItemSchema,
   routineNameSchema,
   routineSchema,

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  MAX_ROUTINE_DESCRIPTION_LENGTH,
+  MAX_ROUTINE_NAME_LENGTH,
+  MAX_ROUTINE_TARGET_REPS,
+  MAX_ROUTINE_TARGET_SETS,
+  routineItemInputSchema,
+  routineNameSchema,
   activeSessionResponseSchema,
   bodyPartSchema,
   catalogExercisePageSchema,
@@ -483,6 +489,47 @@ describe('rutinas', () => {
 
     expect(routineSchema.parse(routine).items[0]?.orderIndex).toBe(0);
     expect(routineSchema.safeParse({ ...routine, items: [item] }).success).toBe(false);
+  });
+
+  it('los topes exportados son los que aplica el esquema, ni uno más ni uno menos', () => {
+    expect(
+      routineItemInputSchema.safeParse({ ...item, targetSets: MAX_ROUTINE_TARGET_SETS }).success,
+    ).toBe(true);
+    expect(
+      routineItemInputSchema.safeParse({ ...item, targetSets: MAX_ROUTINE_TARGET_SETS + 1 })
+        .success,
+    ).toBe(false);
+    expect(
+      routineItemInputSchema.safeParse({
+        ...item,
+        targetRepsMin: MAX_ROUTINE_TARGET_REPS,
+        targetRepsMax: MAX_ROUTINE_TARGET_REPS,
+      }).success,
+    ).toBe(true);
+    expect(
+      routineItemInputSchema.safeParse({ ...item, targetRepsMax: MAX_ROUTINE_TARGET_REPS + 1 })
+        .success,
+    ).toBe(false);
+
+    const name = 'a'.repeat(MAX_ROUTINE_NAME_LENGTH);
+    expect(routineNameSchema.safeParse(name).success).toBe(true);
+    expect(routineNameSchema.safeParse(`${name}a`).success).toBe(false);
+
+    const description = 'a'.repeat(MAX_ROUTINE_DESCRIPTION_LENGTH);
+    expect(updateRoutineRequestSchema.safeParse({ description }).success).toBe(true);
+    expect(updateRoutineRequestSchema.safeParse({ description: `${description}a` }).success).toBe(
+      false,
+    );
+  });
+
+  it('el esquema de una línea suelta ya rechaza el rango invertido', () => {
+    expect(routineItemInputSchema.safeParse(item).success).toBe(true);
+    expect(
+      routineItemInputSchema.safeParse({ ...item, targetRepsMin: 9, targetRepsMax: 8 }).success,
+    ).toBe(false);
+    expect(
+      routineItemInputSchema.safeParse({ ...item, targetRepsMin: 8, targetRepsMax: 8 }).success,
+    ).toBe(true);
   });
 });
 

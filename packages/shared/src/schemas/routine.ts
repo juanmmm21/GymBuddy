@@ -1,19 +1,29 @@
 import { z } from 'zod';
 import { isoDatetimeSchema, resourceIdSchema } from './common';
 
+/*
+ * Los topes van en constantes exportadas y no escritos dentro de cada esquema: el editor
+ * de la PWA los necesita para sus campos, y copiarlos a mano allí es la forma de que un
+ * lado acabe aceptando lo que el otro rechaza.
+ */
+export const MAX_ROUTINE_NAME_LENGTH = 120;
+export const MAX_ROUTINE_DESCRIPTION_LENGTH = 1000;
+export const MAX_ROUTINE_TARGET_SETS = 20;
+export const MAX_ROUTINE_TARGET_REPS = 100;
+
 /**
  * El nombre de una rutina, con el mismo tope al crearla y al renombrarla. Se recorta al
  * entrar: un nombre de solo espacios pasaría el mínimo y dejaría la lista sin título.
  */
-export const routineNameSchema = z.string().trim().min(1).max(120);
+export const routineNameSchema = z.string().trim().min(1).max(MAX_ROUTINE_NAME_LENGTH);
 
 export const routineItemSchema = z.object({
   id: resourceIdSchema,
   trackedExerciseId: resourceIdSchema,
   orderIndex: z.int().nonnegative(),
-  targetSets: z.int().positive().max(20),
-  targetRepsMin: z.int().positive().max(100),
-  targetRepsMax: z.int().positive().max(100),
+  targetSets: z.int().positive().max(MAX_ROUTINE_TARGET_SETS),
+  targetRepsMin: z.int().positive().max(MAX_ROUTINE_TARGET_REPS),
+  targetRepsMax: z.int().positive().max(MAX_ROUTINE_TARGET_REPS),
 });
 
 export const routineSchema = z.object({
@@ -30,7 +40,7 @@ export const routineSchema = z.object({
  * —como en el resto de escrituras— para que reenviar el alta no duplique la línea; el
  * `orderIndex` no, porque lo da la posición en la lista: la PWA reordena arrastrando.
  */
-const routineItemInputSchema = routineItemSchema
+export const routineItemInputSchema = routineItemSchema
   .omit({ orderIndex: true })
   // El rango invertido es la única forma de escribir una rutina imposible de cumplir.
   .refine((item) => item.targetRepsMax >= item.targetRepsMin, {
@@ -44,7 +54,7 @@ export const MAX_ROUTINE_ITEMS = 30;
 export const createRoutineRequestSchema = z.object({
   id: resourceIdSchema,
   name: routineNameSchema,
-  description: z.string().max(1000).nullish(),
+  description: z.string().max(MAX_ROUTINE_DESCRIPTION_LENGTH).nullish(),
   items: z.array(routineItemInputSchema).max(MAX_ROUTINE_ITEMS),
 });
 
@@ -56,7 +66,7 @@ export const createRoutineRequestSchema = z.object({
 export const updateRoutineRequestSchema = z
   .object({
     name: routineNameSchema,
-    description: z.string().max(1000).nullable(),
+    description: z.string().max(MAX_ROUTINE_DESCRIPTION_LENGTH).nullable(),
     items: z.array(routineItemInputSchema).max(MAX_ROUTINE_ITEMS),
     archived: z.boolean(),
   })
