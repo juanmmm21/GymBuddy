@@ -8,7 +8,7 @@ import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { issueSessionToken } from '../src/auth/jwt';
 import type { Database } from '../src/db/client';
-import { setEntry, trackedExercise, workoutSession } from '../src/db/schema';
+import { routine, routineItem, setEntry, trackedExercise, workoutSession } from '../src/db/schema';
 import { app } from '../src/index';
 import { seedUsers } from './fixtures';
 import { envWithSecrets } from './worker-env';
@@ -79,6 +79,68 @@ async function seedExerciseHistory(
   }
 
   return exerciseId;
+}
+
+interface SeededSession {
+  readonly day: string;
+  readonly sets: readonly [number, number][];
+}
+
+/** Mismo peso tres sesiones con repeticiones que suben: sin rutina, estancado. */
+const RISING_REPS: readonly SeededSession[] = [
+  { day: '2026-08-10', sets: [[82_500, 5]] },
+  { day: '2026-08-17', sets: [[82_500, 8]] },
+  { day: '2026-08-24', sets: [[82_500, 8]] },
+];
+
+/** Mismo peso tres sesiones perdiendo una repetición cada vez: sin rutina, no lo está. */
+const FALLING_REPS: readonly SeededSession[] = [
+  { day: '2026-08-10', sets: [[82_500, 8]] },
+  { day: '2026-08-17', sets: [[82_500, 7]] },
+  { day: '2026-08-24', sets: [[82_500, 6]] },
+];
+
+interface SeededRoutineLine {
+  readonly exerciseId: string;
+  readonly orderIndex: number;
+  readonly repsMin: number;
+  readonly repsMax: number;
+}
+
+/**
+ * Una rutina escrita directamente en la base: los tests necesitan fijar su fecha de alta y
+ * su archivado, y la API pone la fecha del momento en que se crea.
+ */
+async function seedRoutine(
+  db: Database,
+  userId: string,
+  options: {
+    readonly createdAt: string;
+    readonly archivedAt?: string;
+    readonly lines: readonly SeededRoutineLine[];
+  },
+): Promise<void> {
+  const routineId = uuid();
+  await db.insert(routine).values({
+    id: routineId,
+    userId,
+    name: 'Empuje',
+    description: null,
+    createdAt: options.createdAt,
+    archivedAt: options.archivedAt ?? null,
+  });
+
+  await db.insert(routineItem).values(
+    options.lines.map((line) => ({
+      id: uuid(),
+      routineId,
+      trackedExerciseId: line.exerciseId,
+      orderIndex: line.orderIndex,
+      targetSets: 3,
+      targetRepsMin: line.repsMin,
+      targetRepsMax: line.repsMax,
+    })),
+  );
 }
 
 describe('estadísticas de un ejercicio', () => {
@@ -241,6 +303,123 @@ describe('señales de entrenamiento', () => {
 
     const signals = trainingSignalsSchema.parse(await (await get('/stats/signals', token)).json());
 
+    expect(signals.stalled).toStrictEqual([]);
+  });
+});
+
+describe('estancamiento con el rango de las rutinas', () => {
+  let db: Database;
+  let userId: string;
+  let otherUserId: string;
+  let token: string;
+
+  beforeEach(async () => {
+    ({ db, userId, otherUserId } = await seedUsers(env.DB));
+    token = await bearer(userId);
+  });
+
+  async function stalledOf(exerciseId: string): Promise<unknown> {
+    const response = await get(`/stats/exercise/${exerciseId}`, token);
+    expect(response.status).toBe(200);
+    return exerciseStatsSchema.parse(await response.json()).stalled;
+  }
+
+  it('sin llegar al mínimo de la rutina no hay estancamiento, aunque las repeticiones suban', async () => {
+    const exerciseId = await seedExerciseHistory(db, userId, RISING_REPS);
+    await seedRoutine(db, userId, {
+      createdAt: '2026-08-01T10:00:00.000Z',
+      lines: [{ exerciseId, orderIndex: 0, repsMin: 6, repsMax: 8 }],
+    });
+
+    expect(await stalledOf(exerciseId)).toBeNull();
+  });
+
+  it('dentro del rango de la rutina está estancado aunque pierda alguna repetición', async () => {
+    const exerciseId = await seedExerciseHistory(db, userId, FALLING_REPS);
+    await seedRoutine(db, userId, {
+      createdAt: '2026-08-01T10:00:00.000Z',
+      lines: [{ exerciseId, orderIndex: 0, repsMin: 5, repsMax: 6 }],
+    });
+
+    expect(await stalledOf(exerciseId)).toStrictEqual({
+      trackedExerciseId: exerciseId,
+      weight: '82.50',
+      sessions: 3,
+      suggestedIncrement: '2.50',
+    });
+  });
+
+  it('una rutina archivada no fija el rango', async () => {
+    const exerciseId = await seedExerciseHistory(db, userId, FALLING_REPS);
+    await seedRoutine(db, userId, {
+      createdAt: '2026-08-01T10:00:00.000Z',
+      archivedAt: '2026-08-20T10:00:00.000Z',
+      lines: [{ exerciseId, orderIndex: 0, repsMin: 5, repsMax: 6 }],
+    });
+
+    expect(await stalledOf(exerciseId)).toBeNull();
+  });
+
+  it('con el ejercicio en varias rutinas manda la activa creada más recientemente', async () => {
+    const exerciseId = await seedExerciseHistory(db, userId, FALLING_REPS);
+    await seedRoutine(db, userId, {
+      createdAt: '2026-08-01T10:00:00.000Z',
+      lines: [{ exerciseId, orderIndex: 0, repsMin: 8, repsMax: 10 }],
+    });
+    await seedRoutine(db, userId, {
+      createdAt: '2026-09-01T10:00:00.000Z',
+      lines: [{ exerciseId, orderIndex: 0, repsMin: 5, repsMax: 6 }],
+    });
+
+    expect(await stalledOf(exerciseId)).not.toBeNull();
+  });
+
+  it('con el ejercicio dos veces en la misma rutina manda su primera línea', async () => {
+    const exerciseId = await seedExerciseHistory(db, userId, FALLING_REPS);
+    // Se insertan al revés a propósito: lo que decide es el orden de la rutina, no el de la tabla.
+    await seedRoutine(db, userId, {
+      createdAt: '2026-08-01T10:00:00.000Z',
+      lines: [
+        { exerciseId, orderIndex: 1, repsMin: 8, repsMax: 10 },
+        { exerciseId, orderIndex: 0, repsMin: 5, repsMax: 6 },
+      ],
+    });
+
+    expect(await stalledOf(exerciseId)).not.toBeNull();
+  });
+
+  it('las señales aplican el rango de cada ejercicio', async () => {
+    const fallingId = await seedExerciseHistory(db, userId, FALLING_REPS);
+    const risingId = await seedExerciseHistory(db, userId, RISING_REPS);
+    await seedRoutine(db, userId, {
+      createdAt: '2026-08-01T10:00:00.000Z',
+      lines: [
+        { exerciseId: fallingId, orderIndex: 0, repsMin: 5, repsMax: 6 },
+        { exerciseId: risingId, orderIndex: 1, repsMin: 6, repsMax: 8 },
+      ],
+    });
+
+    const signals = trainingSignalsSchema.parse(await (await get('/stats/signals', token)).json());
+
+    expect(signals.stalled).toStrictEqual([
+      {
+        trackedExerciseId: fallingId,
+        weight: '82.50',
+        sessions: 3,
+        suggestedIncrement: '2.50',
+      },
+    ]);
+  });
+
+  it('la rutina de otro usuario no fija el rango de nadie más', async () => {
+    const exerciseId = await seedExerciseHistory(db, userId, FALLING_REPS);
+    await seedRoutine(db, otherUserId, {
+      createdAt: '2026-08-01T10:00:00.000Z',
+      lines: [{ exerciseId, orderIndex: 0, repsMin: 5, repsMax: 6 }],
+    });
+
+    expect(await stalledOf(exerciseId)).toBeNull();
+    const signals = trainingSignalsSchema.parse(await (await get('/stats/signals', token)).json());
     expect(signals.stalled).toStrictEqual([]);
   });
 });
