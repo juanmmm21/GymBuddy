@@ -7,6 +7,8 @@ import { TrackedExerciseScreen } from '../features/exercises/TrackedExerciseScre
 import { HistoryScreen } from '../features/history/HistoryScreen';
 import { SessionDetailScreen } from '../features/history/SessionDetailScreen';
 import { HomeScreen } from '../features/home/HomeScreen';
+import { RoutineScreen } from '../features/routines/RoutineScreen';
+import { RoutinesScreen } from '../features/routines/RoutinesScreen';
 import { SessionScreen } from '../features/session/SessionScreen';
 import { LoginRoute } from './LoginRoute';
 import { RequireSession } from './RequireSession';
@@ -26,6 +28,10 @@ export const routes: RouteObject[] = [
           { path: 'session', element: <SessionScreen /> },
           { path: 'exercises', element: <ExercisesScreen /> },
           { path: 'exercises/:id', element: <TrackedExerciseScreen /> },
+          // Las rutinas no tienen pestaña propia: cuelgan de "Mis ejercicios", que es de lo
+          // que están hechas, y una quinta pestaña no cabe cómoda bajo el pulgar.
+          { path: 'routines', element: <RoutinesScreen /> },
+          { path: 'routines/:id', element: <RoutineScreen /> },
           { path: 'catalog', element: <CatalogScreen /> },
           // Un segmento es una parte del cuerpo; dos, "{muscle}/{slug}", la ficha. Son
           // profundidades distintas, así que `chest` y `pectorals/...` no se confunden.

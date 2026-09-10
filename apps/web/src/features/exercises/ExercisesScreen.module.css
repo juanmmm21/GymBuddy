@@ -1,3 +1,22 @@
+/* Enlace con aspecto de botón fantasma: es navegación, así que va como `a` y no como `button`. */
+.headerLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--gb-size-control-height);
+  padding: 0 var(--gb-space-lg);
+  border-radius: var(--gb-radius-md);
+  color: var(--gb-color-accent);
+  font-size: var(--gb-type-body-strong-size);
+  font-weight: var(--gb-type-body-strong-weight);
+  line-height: var(--gb-type-body-strong-line);
+  text-decoration: none;
+  transition: background-color var(--gb-duration-fast) var(--gb-ease-standard);
+}
+
+.headerLink:hover {
+  background: var(--gb-color-accent-soft);
+}
+
 .groups {
   display: flex;
   flex-direction: column;

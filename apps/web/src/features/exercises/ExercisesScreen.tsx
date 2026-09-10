@@ -9,6 +9,7 @@ import { Badge, Notice, Surface } from '../../components/index';
 import { formatWeightLabel } from '../../lib/format';
 import { MUSCLE_LABELS } from '../catalog/labels';
 import { CATALOG_PATH } from '../catalog/paths';
+import { ROUTINES_PATH } from '../routines/paths';
 import { groupExercisesByBodyPart, type ExerciseGroup } from './grouping';
 import { ORIGIN_LABELS } from './labels';
 import { trackedExercisePath } from './paths';
@@ -25,6 +26,11 @@ export function ExercisesScreen() {
       <ScreenHeader
         title="Mis ejercicios"
         subtitle="Lo que haces de verdad, con tu peso habitual"
+        action={
+          <Link to={ROUTINES_PATH} className={styles.headerLink}>
+            Rutinas
+          </Link>
+        }
       />
       <AsyncContent query={exercises}>
         {(items) =>
