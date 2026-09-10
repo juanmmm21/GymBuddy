@@ -6,7 +6,7 @@ import {
   type TrackedExercise,
 } from '@gymbuddy/shared';
 import { useState } from 'react';
-import { useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { useUpdateRoutine } from '../../api/mutations';
 import { useRoutines, useTrackedExercises } from '../../api/queries';
 import { ScreenHeader, type BackLink } from '../../app/ScreenHeader';
@@ -14,6 +14,7 @@ import { AsyncContent } from '../../components/async-content/AsyncContent';
 import { Badge, Button, Notice, Surface } from '../../components/index';
 import { describeError } from '../../lib/errors';
 import { parseResourceId } from '../../lib/ids';
+import { sessionPathForRoutine } from '../session/paths';
 import { EditRoutineSheet } from './EditRoutineSheet';
 import {
   describeRoutineSize,
@@ -120,6 +121,7 @@ interface RoutineBodyProps {
 }
 
 function RoutineBody({ routine, exercises }: RoutineBodyProps) {
+  const navigate = useNavigate();
   const reorder = useUpdateRoutine();
   const [sheetTarget, setSheetTarget] = useState<ItemSheetTarget | null>(null);
 
@@ -142,6 +144,18 @@ function RoutineBody({ routine, exercises }: RoutineBodyProps) {
       {routine.archivedAt !== null && <ArchivedNotice routine={routine} />}
 
       {routine.description !== null && <p className={styles.description}>{routine.description}</p>}
+
+      {/* Empezar no crea nada aquí: la sesión se abre, o se guía la que ya lo esté, allí. */}
+      <Button
+        size="lg"
+        fullWidth
+        disabled={routine.items.length === 0}
+        onClick={() => {
+          void navigate(sessionPathForRoutine(routine.id));
+        }}
+      >
+        Empezar esta rutina
+      </Button>
 
       {shown.length === 0 ? (
         <Notice title="Esta rutina todavía no tiene ejercicios">

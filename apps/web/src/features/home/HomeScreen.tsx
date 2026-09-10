@@ -8,6 +8,7 @@ import { Badge, Button, Notice, Surface } from '../../components/index';
 import { formatDaysAgo, formatWeightLabel, pluralize } from '../../lib/format';
 import { RECORD_LABELS } from '../exercises/labels';
 import { SESSION_PATH } from '../session/paths';
+import { RoutineShortcuts } from './RoutineShortcuts';
 import { WeekCalendar } from './WeekCalendar';
 import styles from './HomeScreen.module.css';
 
@@ -50,6 +51,7 @@ function SignalsSummary({ signals, locale }: SignalsSummaryProps) {
         <Link to={SESSION_PATH} className={styles.cta}>
           Empezar a entrenar
         </Link>
+        <RoutineShortcuts />
       </div>
     );
   }
@@ -57,9 +59,12 @@ function SignalsSummary({ signals, locale }: SignalsSummaryProps) {
   return (
     <div className={styles.stack}>
       {signals.activeSessionId === null ? (
-        <Link to={SESSION_PATH} className={styles.cta}>
-          Empezar a entrenar
-        </Link>
+        <>
+          <Link to={SESSION_PATH} className={styles.cta}>
+            Empezar a entrenar
+          </Link>
+          <RoutineShortcuts />
+        </>
       ) : (
         <Surface className={styles.active}>
           <Badge tone="accent">Sesión en curso</Badge>
