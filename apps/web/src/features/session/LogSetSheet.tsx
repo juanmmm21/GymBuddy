@@ -12,15 +12,21 @@ import { Button, Notice, Select, Sheet } from '../../components/index';
 import { describeError } from '../../lib/errors';
 import { newResourceId } from '../../lib/ids';
 import { exerciseSelectOptions } from '../exercises/grouping';
+import { describeNextSet, lineForNextSet, type RoutineProgress } from './routine-progress';
 import styles from './LogSetSheet.module.css';
 import { isCompleteSet, SetFields, type SetValues } from './SetFields';
 
 export interface LogSetSheetProps {
   readonly sessionId: ResourceId;
-  /** Entre los que se elige: los que el usuario sigue y no ha archivado. */
+  /**
+   * Entre los que se elige: los que el usuario sigue y no ha archivado, más los archivados
+   * que nombre la rutina que guía la sesión (el Worker acepta series de un archivado).
+   */
   readonly exercises: readonly TrackedExercise[];
-  /** El que trae la URL al llegar desde su ficha; si no está, se abre con el primero. */
+  /** El de la ficha de la que se llega o el de la línea de la rutina; si no, el primero. */
   readonly defaultExerciseId: ResourceId | null;
+  /** El reparto de la rutina que guía la sesión, para decir bajo las repeticiones qué toca. */
+  readonly routineProgress: RoutineProgress | null;
   readonly locale: Locale;
   readonly open: boolean;
   readonly onClose: () => void;
@@ -36,6 +42,7 @@ export function LogSetSheet({
   sessionId,
   exercises,
   defaultExerciseId,
+  routineProgress,
   locale,
   open,
   onClose,
@@ -54,6 +61,7 @@ export function LogSetSheet({
           sessionId={sessionId}
           exercises={exercises}
           initialExercise={initial}
+          routineProgress={routineProgress}
           locale={locale}
           onLogged={onLogged}
         />
@@ -66,14 +74,25 @@ interface LogSetFormProps {
   readonly sessionId: ResourceId;
   readonly exercises: readonly TrackedExercise[];
   readonly initialExercise: TrackedExercise;
+  readonly routineProgress: RoutineProgress | null;
   readonly locale: Locale;
   readonly onLogged: (response: LogSetResponse) => void;
 }
 
-function LogSetForm({ sessionId, exercises, initialExercise, locale, onLogged }: LogSetFormProps) {
+function LogSetForm({
+  sessionId,
+  exercises,
+  initialExercise,
+  routineProgress,
+  locale,
+  onLogged,
+}: LogSetFormProps) {
   const [exercise, setExercise] = useState(initialExercise);
   const [values, setValues] = useState<SetValues>(() => proposalFor(initialExercise));
   const log = useLogSet();
+  // Sale del ejercicio elegido: cambiarlo en el selector cambia también el objetivo que se lee.
+  const routineLine =
+    routineProgress === null ? null : lineForNextSet(routineProgress, exercise.id);
 
   // Cambiar de ejercicio recarga lo que se propone: cada uno tiene su peso habitual, y
   // dejar el del anterior es la forma más fácil de registrar una serie equivocada.
@@ -124,6 +143,7 @@ function LogSetForm({ sessionId, exercises, initialExercise, locale, onLogged }:
             ? 'Es tu primera serie de este ejercicio: todavía no hay peso habitual.'
             : 'Tu peso habitual, con las repeticiones de la última vez.'
         }
+        repsHint={routineLine === null ? undefined : describeNextSet(routineLine)}
       />
 
       {log.isError && (

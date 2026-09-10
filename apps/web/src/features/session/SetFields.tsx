@@ -32,6 +32,8 @@ export interface SetFieldsProps {
   readonly locale: Locale;
   /** Lo que se explica bajo el peso: de dónde sale el que viene puesto. */
   readonly weightHint: string;
+  /** Lo que se explica bajo las repeticiones: el objetivo de la rutina, si la sesión sigue una. */
+  readonly repsHint?: string | undefined;
 }
 
 /**
@@ -39,7 +41,7 @@ export interface SetFieldsProps {
  * el mismo dato, y tener dos formularios parecidos acabaría con uno de los dos aceptando
  * algo que el otro no.
  */
-export function SetFields({ values, onChange, locale, weightHint }: SetFieldsProps) {
+export function SetFields({ values, onChange, locale, weightHint, repsHint }: SetFieldsProps) {
   return (
     <>
       <WeightField
@@ -59,6 +61,7 @@ export function SetFields({ values, onChange, locale, weightHint }: SetFieldsPro
         }}
         min={1}
         max={MAX_REPS}
+        {...(repsHint === undefined ? {} : { hint: repsHint })}
       />
 
       <div className={styles.row}>

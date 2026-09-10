@@ -118,16 +118,26 @@ export function useTrackedExercises(
   });
 }
 
+/** Si la consulta se lanza: una pantalla que solo a veces necesita el dato lo dice aquí. */
+export interface QueryToggle {
+  readonly enabled?: boolean;
+}
+
 /**
  * Las rutinas del usuario. El editor no usa `GET /routines/{id}`: saca la suya de este
  * listado con los archivados, igual que la ficha de un ejercicio, para que no haya una
- * segunda copia de la misma rutina en caché que invalidar aparte.
+ * segunda copia de la misma rutina en caché que invalidar aparte. La sesión las pide solo
+ * cuando una rutina la guía; desactivada, la consulta se queda pendiente sin pedir nada.
  */
-export function useRoutines(options: ListRoutinesOptions = {}): UseQueryResult<Routine[]> {
+export function useRoutines(
+  options: ListRoutinesOptions = {},
+  { enabled = true }: QueryToggle = {},
+): UseQueryResult<Routine[]> {
   const client = useApiClient();
   return useQuery({
     queryKey: queryKeys.routines.list(options),
     queryFn: () => listRoutines(client, options),
+    enabled,
     retry: shouldRetryRequest,
   });
 }

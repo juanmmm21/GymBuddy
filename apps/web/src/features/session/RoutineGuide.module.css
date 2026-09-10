@@ -1,0 +1,114 @@
+.guide {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-sm);
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--gb-space-md);
+  padding: 0 var(--gb-space-xs);
+}
+
+.title {
+  font-size: var(--gb-type-title-size);
+  font-weight: var(--gb-type-title-weight);
+  line-height: var(--gb-type-title-line);
+  letter-spacing: var(--gb-type-title-tracking);
+  overflow-wrap: anywhere;
+}
+
+.count,
+.empty {
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-caption-size);
+  line-height: var(--gb-type-caption-line);
+}
+
+.count {
+  white-space: nowrap;
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.line {
+  display: flex;
+  overflow: hidden;
+  border: var(--gb-size-border-width) solid transparent;
+}
+
+/* La línea que toca se distingue por el borde y no solo por la etiqueta: se ve sin leer. */
+.current {
+  border-color: var(--gb-color-accent);
+}
+
+.lineMain {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--gb-space-md);
+  min-width: 0;
+  min-height: var(--gb-size-touch-target);
+  padding: var(--gb-space-md) var(--gb-space-lg);
+  border: none;
+  background: none;
+  color: inherit;
+  text-align: left;
+  transition: background-color var(--gb-duration-fast) var(--gb-ease-standard);
+}
+
+.lineMain:active:not(:disabled) {
+  background: var(--gb-color-surface-sunken);
+}
+
+.lineMain:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.position {
+  min-width: var(--gb-space-xl);
+  color: var(--gb-color-text-muted);
+  font-family: var(--gb-font-mono);
+  font-size: var(--gb-type-caption-size);
+}
+
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--gb-space-xxs);
+  min-width: 0;
+}
+
+.name {
+  font-weight: var(--gb-type-body-strong-weight);
+  overflow-wrap: anywhere;
+}
+
+.target {
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-caption-size);
+  line-height: var(--gb-type-caption-line);
+}
+
+.progress {
+  font-family: var(--gb-font-mono);
+  font-size: var(--gb-type-body-strong-size);
+  font-weight: var(--gb-type-body-strong-weight);
+  line-height: var(--gb-type-body-strong-line);
+  white-space: nowrap;
+}
+
+.done {
+  color: var(--gb-color-success);
+}
