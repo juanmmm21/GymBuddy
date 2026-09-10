@@ -15,12 +15,14 @@ export interface RenderedApp {
 export function renderApp(options: {
   readonly path: string;
   readonly session?: Session;
+  /** Lo que ya estaba guardado en el dispositivo al abrir la app, aparte de la sesión. */
+  readonly stored?: Readonly<Record<string, string>>;
   readonly setup?: (fake: FakeFetch) => void;
 }): RenderedApp {
   const fake = createFakeFetch();
   options.setup?.(fake);
 
-  const data = new Map<string, string>();
+  const data = new Map<string, string>(Object.entries(options.stored ?? {}));
   if (options.session !== undefined) data.set(SESSION_STORAGE_KEY, JSON.stringify(options.session));
   const storage = {
     data,
