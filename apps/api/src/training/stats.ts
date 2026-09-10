@@ -35,6 +35,7 @@ import {
   requireTrackedExerciseFacts,
 } from './exercises';
 import { getCurrentRecords, toPersonalRecord } from './records';
+import { listRoutineRepRanges } from './routines';
 
 /**
  * Ventana de la que salen la racha y las sesiones de la semana. Un año cubre cualquier
@@ -64,9 +65,10 @@ export async function getExerciseStats(
   // Va primero: un ejercicio ajeno tiene que responder 404 antes de leer nada suyo.
   const facts = await requireTrackedExerciseFacts(db, userId, trackedExerciseId);
 
-  const [history, records] = await Promise.all([
+  const [history, records, repRanges] = await Promise.all([
     listExerciseHistory(db, userId, trackedExerciseId, sessionLimit),
     getCurrentRecords(db, userId, trackedExerciseId),
+    listRoutineRepRanges(db, userId, trackedExerciseId),
   ]);
 
   const sessions: ProgressionSession[] = history.map((entry) => ({
@@ -77,7 +79,11 @@ export async function getExerciseStats(
 
   const topSets = topSetsBySession(sessions);
   const summary = summarizeWorkingWeight(topSets, WORKING_WEIGHT_SESSIONS);
-  const stagnation = detectStagnation(topSets, facts.bodyPart);
+  const stagnation = detectStagnation(
+    topSets,
+    facts.bodyPart,
+    repRanges.get(trackedExerciseId) ?? null,
+  );
 
   return {
     trackedExerciseId,
@@ -220,9 +226,16 @@ export async function getWeeklyCalendar(
  * Los ejercicios atascados en el mismo peso. El estancamiento se detecta sin la parte del
  * cuerpo y solo después se buscan las de los pocos que salgan: pedirla para todos obligaría
  * a un join que casi nunca hace falta. Los archivados no cuentan: ya no se hacen.
+ *
+ * Los rangos de las rutinas, en cambio, se leen antes de detectar y para todos: un rango
+ * puede hacer saltar un estancamiento que sin él no salía, así que no basta con pedirlos
+ * para los candidatos.
  */
 async function findStalledExercises(db: Database, userId: string): Promise<StalledExercise[]> {
-  const rows = await listTopSetsPerSession(db, userId, WORKING_WEIGHT_SESSIONS);
+  const [rows, repRanges] = await Promise.all([
+    listTopSetsPerSession(db, userId, WORKING_WEIGHT_SESSIONS),
+    listRoutineRepRanges(db, userId),
+  ]);
 
   const topSetsByExercise = new Map<string, SessionTopSet[]>();
   for (const row of rows) {
@@ -243,7 +256,7 @@ async function findStalledExercises(db: Database, userId: string): Promise<Stall
 
   const candidates = new Map<string, { weightGrams: number; sessions: number }>();
   for (const [trackedExerciseId, topSets] of topSetsByExercise) {
-    const signal = detectStagnation(topSets, null);
+    const signal = detectStagnation(topSets, null, repRanges.get(trackedExerciseId) ?? null);
     if (signal !== null) {
       candidates.set(trackedExerciseId, {
         weightGrams: signal.weightGrams,

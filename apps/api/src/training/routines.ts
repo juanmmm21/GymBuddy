@@ -1,11 +1,12 @@
 import type {
   CreateRoutineRequest,
+  RepRange,
   Routine,
   RoutineItem,
   RoutineItemInput,
   UpdateRoutineRequest,
 } from '@gymbuddy/shared';
-import { and, asc, eq, getTableColumns, isNull } from 'drizzle-orm';
+import { and, asc, desc, eq, getTableColumns, isNull } from 'drizzle-orm';
 import type { Database } from '../db/client';
 import {
   routine,
@@ -190,6 +191,51 @@ export async function updateRoutine(
   if (updated === null) throw routineNotFound(routineId);
 
   return updated;
+}
+
+/**
+ * El rango de repeticiones objetivo de cada ejercicio según las rutinas del usuario: es lo
+ * que afina el estancamiento. Un ejercicio puede estar en varias rutinas y dos veces en la
+ * misma, así que hace falta una regla, y la decidió Juan el 2026-09-10: manda la rutina no
+ * archivada creada más recientemente —la que refleja cómo entrena ahora— y, dentro de ella,
+ * su primera línea. Sin ninguna rutina activa que lo nombre, el ejercicio no tiene rango.
+ *
+ * Se leen todas las líneas de las rutinas activas en una consulta: son pocas (treinta por
+ * rutina como mucho) y el orden de la sentencia deja el reparto en quedarse con la primera.
+ */
+export async function listRoutineRepRanges(
+  db: Database,
+  userId: string,
+  trackedExerciseId?: string,
+): Promise<Map<string, RepRange>> {
+  const rows = await db
+    .select({
+      trackedExerciseId: routineItem.trackedExerciseId,
+      targetRepsMin: routineItem.targetRepsMin,
+      targetRepsMax: routineItem.targetRepsMax,
+    })
+    .from(routineItem)
+    .innerJoin(routine, eq(routine.id, routineItem.routineId))
+    .where(
+      and(
+        eq(routine.userId, userId),
+        isNull(routine.archivedAt),
+        trackedExerciseId === undefined
+          ? undefined
+          : eq(routineItem.trackedExerciseId, trackedExerciseId),
+      ),
+    )
+    // El id desempata dos rutinas creadas en el mismo instante: sin él, el rango de un
+    // ejercicio podría cambiar entre dos consultas idénticas.
+    .orderBy(desc(routine.createdAt), asc(routine.id), asc(routineItem.orderIndex));
+
+  const ranges = new Map<string, RepRange>();
+  for (const row of rows) {
+    if (ranges.has(row.trackedExerciseId)) continue;
+    ranges.set(row.trackedExerciseId, { min: row.targetRepsMin, max: row.targetRepsMax });
+  }
+
+  return ranges;
 }
 
 export function routineNotFound(routineId: string): ApiException {
