@@ -8,7 +8,9 @@ import {
 import {
   SESSION_EXERCISE_PARAM,
   SESSION_PATH,
+  SESSION_ROUTINE_PARAM,
   sessionPathForExercise,
+  sessionPathForRoutine,
 } from '../../src/features/session/paths';
 import {
   groupSetsByExercise,
@@ -16,7 +18,7 @@ import {
   summarizeSession,
   UNKNOWN_EXERCISE_NAME,
 } from '../../src/features/session/summary';
-import { benchPress, customCurl, squat } from '../fixtures';
+import { benchPress, customCurl, pushRoutine, squat } from '../fixtures';
 
 function setOf(
   overrides: Partial<SetEntry> & Pick<SetEntry, 'id' | 'trackedExerciseId'>,
@@ -163,6 +165,12 @@ describe('rutas de la sesión', () => {
   it('el ejercicio elegido viaja en la query', () => {
     expect(sessionPathForExercise(benchPress.id)).toBe(
       `${SESSION_PATH}?${SESSION_EXERCISE_PARAM}=${benchPress.id}`,
+    );
+  });
+
+  it('la rutina que guía la sesión también viaja en la query', () => {
+    expect(sessionPathForRoutine(pushRoutine.id)).toBe(
+      `${SESSION_PATH}?${SESSION_ROUTINE_PARAM}=${pushRoutine.id}`,
     );
   });
 });
