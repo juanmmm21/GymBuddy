@@ -7,6 +7,7 @@ import type {
   ExerciseStats,
   PersonalRecord,
   ProgressionPointView,
+  Routine,
   Session,
   TrackedExercise,
   TrainingSignals,
@@ -486,4 +487,44 @@ export const benchPressHistory: ExerciseHistory = {
       ],
     },
   ],
+};
+
+/**
+ * Una rutina de empuje con dos líneas —press de banca y sentadilla—, ya ordenadas como las
+ * devuelve el Worker.
+ */
+export const pushRoutine: Routine = {
+  id: '5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d',
+  name: 'Empuje',
+  description: 'Lunes y jueves.',
+  createdAt: '2026-09-09T18:00:00.000Z',
+  archivedAt: null,
+  items: [
+    {
+      id: '6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d9e',
+      trackedExerciseId: benchPress.id,
+      orderIndex: 0,
+      targetSets: 4,
+      targetRepsMin: 6,
+      targetRepsMax: 8,
+    },
+    {
+      id: '7c8d9e0f-1a2b-4c3d-8e4f-5a6b7c8d9e0f',
+      trackedExerciseId: squat.id,
+      orderIndex: 1,
+      targetSets: 3,
+      targetRepsMin: 5,
+      targetRepsMax: 5,
+    },
+  ],
+};
+
+/** Una rutina que se dejó de hacer, sin líneas: sale al final del listado. */
+export const archivedLegRoutine: Routine = {
+  id: '8d9e0f1a-2b3c-4d4e-9f5a-6b7c8d9e0f1a',
+  name: 'Pierna vieja',
+  description: null,
+  createdAt: '2026-08-01T18:00:00.000Z',
+  archivedAt: '2026-09-01T10:00:00.000Z',
+  items: [],
 };
