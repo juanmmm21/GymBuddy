@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { groupExercisesByBodyPart, UNGROUPED_LABEL } from '../../src/features/exercises/grouping';
+import {
+  exerciseSelectOptions,
+  groupExercisesByBodyPart,
+  UNGROUPED_LABEL,
+} from '../../src/features/exercises/grouping';
 import { normalizeNotes } from '../../src/lib/notes';
 import { trackedExercisePath } from '../../src/features/exercises/paths';
 import { benchPress, customCurl, squat } from '../fixtures';
@@ -31,6 +35,18 @@ describe('groupExercisesByBodyPart', () => {
 
   it('sin ejercicios no hay grupos', () => {
     expect(groupExercisesByBodyPart([])).toEqual([]);
+  });
+});
+
+describe('exerciseSelectOptions', () => {
+  it('agrupa las opciones como "mis ejercicios" y marca el archivado', () => {
+    const archivedSquat = { ...squat, archivedAt: '2026-09-08T12:00:00.000Z' };
+
+    expect(exerciseSelectOptions([customCurl, archivedSquat, benchPress])).toEqual([
+      { value: benchPress.id, label: 'Press de banca', group: 'Pecho' },
+      { value: squat.id, label: 'Sentadilla con barra (archivado)', group: 'Piernas' },
+      { value: customCurl.id, label: 'Curl con la barra rara', group: 'Brazos' },
+    ]);
   });
 });
 

@@ -8,10 +8,10 @@ import {
 } from '@gymbuddy/shared';
 import { useState, type FormEvent } from 'react';
 import { useLogSet } from '../../api/mutations';
-import { Button, Notice, Select, Sheet, type SelectOption } from '../../components/index';
+import { Button, Notice, Select, Sheet } from '../../components/index';
 import { describeError } from '../../lib/errors';
 import { newResourceId } from '../../lib/ids';
-import { groupExercisesByBodyPart } from '../exercises/grouping';
+import { exerciseSelectOptions } from '../exercises/grouping';
 import styles from './LogSetSheet.module.css';
 import { isCompleteSet, SetFields, type SetValues } from './SetFields';
 
@@ -112,7 +112,7 @@ function LogSetForm({ sessionId, exercises, initialExercise, locale, onLogged }:
         label="Ejercicio"
         value={exercise.id}
         onChange={selectExercise}
-        options={exerciseOptions(exercises)}
+        options={exerciseSelectOptions(exercises)}
       />
 
       <SetFields
@@ -155,15 +155,4 @@ function proposalFor(exercise: TrackedExercise): SetValues {
     rpe: null,
     isWarmup: false,
   };
-}
-
-/** Las mismas agrupaciones que "mis ejercicios": se busca donde uno está acostumbrado. */
-function exerciseOptions(exercises: readonly TrackedExercise[]): SelectOption[] {
-  return groupExercisesByBodyPart(exercises).flatMap((group) =>
-    group.items.map((exercise) => ({
-      value: exercise.id,
-      label: exercise.name,
-      group: group.label,
-    })),
-  );
 }

@@ -1,4 +1,5 @@
 import type { BodyPart, TrackedExercise } from '@gymbuddy/shared';
+import type { SelectOption } from '../../components/index';
 import { BODY_PART_LABELS, BODY_PART_ORDER } from '../catalog/labels';
 
 export interface ExerciseGroup {
@@ -45,4 +46,19 @@ export function groupExercisesByBodyPart(
     groups.push({ bodyPart: null, label: UNGROUPED_LABEL, items: ungrouped });
   }
   return groups;
+}
+
+/**
+ * Las opciones de un selector de ejercicios, con las mismas agrupaciones que "mis
+ * ejercicios": se busca donde uno está acostumbrado. Un archivado solo llega aquí cuando
+ * ya estaba elegido —una rutina puede nombrarlo— y se marca para que no parezca activo.
+ */
+export function exerciseSelectOptions(exercises: readonly TrackedExercise[]): SelectOption[] {
+  return groupExercisesByBodyPart(exercises).flatMap((group) =>
+    group.items.map((exercise) => ({
+      value: exercise.id,
+      label: exercise.archivedAt === null ? exercise.name : `${exercise.name} (archivado)`,
+      group: group.label,
+    })),
+  );
 }
