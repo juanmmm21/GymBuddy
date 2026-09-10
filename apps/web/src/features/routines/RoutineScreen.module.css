@@ -1,0 +1,118 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-lg);
+}
+
+.description {
+  color: var(--gb-color-text-secondary);
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.itemMain {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--gb-space-md);
+  min-width: 0;
+  min-height: var(--gb-size-touch-target);
+  padding: var(--gb-space-md) var(--gb-space-lg);
+  border: none;
+  background: none;
+  color: inherit;
+  text-align: left;
+  transition: background-color var(--gb-duration-fast) var(--gb-ease-standard);
+}
+
+.itemMain:active:not(:disabled) {
+  background: var(--gb-color-surface-sunken);
+}
+
+.itemMain:disabled {
+  cursor: default;
+}
+
+.position {
+  min-width: var(--gb-space-xl);
+  color: var(--gb-color-text-muted);
+  font-family: var(--gb-font-mono);
+  font-size: var(--gb-type-caption-size);
+}
+
+.itemText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--gb-space-xxs);
+  min-width: 0;
+}
+
+.itemName {
+  font-weight: var(--gb-type-body-strong-weight);
+  overflow-wrap: anywhere;
+}
+
+.itemTarget {
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-caption-size);
+  line-height: var(--gb-type-caption-line);
+}
+
+.moves {
+  display: flex;
+  border-left: var(--gb-size-border-width) solid var(--gb-color-border);
+}
+
+.move {
+  min-width: var(--gb-size-touch-target);
+  min-height: var(--gb-size-touch-target);
+  border: none;
+  background: none;
+  color: var(--gb-color-accent);
+  font-size: var(--gb-type-title-size);
+  font-weight: var(--gb-type-title-weight);
+  transition: background-color var(--gb-duration-fast) var(--gb-ease-standard);
+}
+
+.move + .move {
+  border-left: var(--gb-size-border-width) solid var(--gb-color-border);
+}
+
+.move:active:not(:disabled) {
+  background: var(--gb-color-accent-soft);
+}
+
+.move:disabled {
+  cursor: default;
+  color: var(--gb-color-text-muted);
+  opacity: 0.4;
+}
+
+.add {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-sm);
+}
+
+.hint {
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-caption-size);
+  line-height: var(--gb-type-caption-line);
+  text-align: center;
+}
