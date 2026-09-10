@@ -1,11 +1,7 @@
 import type { Session } from '@gymbuddy/shared';
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
-import {
-  clearStoredSession,
-  loadStoredSession,
-  saveStoredSession,
-  type SessionStorageLike,
-} from './session-store';
+import type { StorageLike } from '../lib/storage';
+import { clearStoredSession, loadStoredSession, saveStoredSession } from './session-store';
 
 export interface SessionContextValue {
   readonly session: Session | null;
@@ -16,7 +12,7 @@ export interface SessionContextValue {
 const SessionContext = createContext<SessionContextValue | null>(null);
 
 export interface SessionProviderProps {
-  readonly storage: SessionStorageLike;
+  readonly storage: StorageLike;
   readonly children: ReactNode;
   /** Sesión inicial para los tests; en la app sale del almacenamiento. */
   readonly initialSession?: Session | null;

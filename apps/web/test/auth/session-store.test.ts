@@ -4,13 +4,13 @@ import {
   loadStoredSession,
   saveStoredSession,
   SESSION_STORAGE_KEY,
-  type SessionStorageLike,
 } from '../../src/auth/session-store';
+import type { StorageLike } from '../../src/lib/storage';
 import { session } from '../fixtures';
 
 function memoryStorage(
   initial: Record<string, string> = {},
-): SessionStorageLike & { data: Map<string, string> } {
+): StorageLike & { data: Map<string, string> } {
   const data = new Map(Object.entries(initial));
   return {
     data,
@@ -54,7 +54,7 @@ describe('session-store', () => {
 
   it('un almacenamiento que lanza no rompe la app', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    const broken: SessionStorageLike = {
+    const broken: StorageLike = {
       getItem: () => {
         throw new Error('QuotaExceededError');
       },

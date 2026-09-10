@@ -4,12 +4,13 @@ import { RouterProvider, type createMemoryRouter } from 'react-router';
 import { ApiClient } from '../api/client';
 import { ApiClientProvider } from '../api/provider';
 import { SessionProvider, useSession } from '../auth/SessionProvider';
-import type { SessionStorageLike } from '../auth/session-store';
+import type { StorageLike } from '../lib/storage';
 import { createAppRouter } from './router';
+import { StorageProvider } from './StorageProvider';
 
 export interface AppProps {
   readonly apiBaseUrl: string;
-  readonly storage: SessionStorageLike;
+  readonly storage: StorageLike;
   /** Los tests inyectan un router en memoria y un `fetch` falso; la app usa los reales. */
   readonly router?: ReturnType<typeof createMemoryRouter>;
   readonly fetchImpl?: typeof fetch;
@@ -26,11 +27,13 @@ export function App({ apiBaseUrl, storage, router, fetchImpl }: AppProps) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SessionProvider storage={storage}>
-        <ApiBoundary apiBaseUrl={apiBaseUrl} fetchImpl={fetchImpl} queryClient={queryClient}>
-          <RouterProvider router={appRouter} />
-        </ApiBoundary>
-      </SessionProvider>
+      <StorageProvider storage={storage}>
+        <SessionProvider storage={storage}>
+          <ApiBoundary apiBaseUrl={apiBaseUrl} fetchImpl={fetchImpl} queryClient={queryClient}>
+            <RouterProvider router={appRouter} />
+          </ApiBoundary>
+        </SessionProvider>
+      </StorageProvider>
     </QueryClientProvider>
   );
 }

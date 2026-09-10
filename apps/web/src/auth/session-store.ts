@@ -1,21 +1,15 @@
 import { sessionSchema, type Session } from '@gymbuddy/shared';
+import type { StorageLike } from '../lib/storage';
 
 /** Clave única en `localStorage`; cambiarla equivale a cerrar la sesión de todo el mundo. */
 export const SESSION_STORAGE_KEY = 'gymbuddy.session';
-
-/** Subconjunto de `Storage` que se usa: lo justo para sustituirlo en los tests. */
-export interface SessionStorageLike {
-  getItem(key: string): string | null;
-  setItem(key: string, value: string): void;
-  removeItem(key: string): void;
-}
 
 /**
  * Recupera la sesión guardada, o `null` si no la hay, no cumple el contrato o ya caducó.
  * Lo que hay en `localStorage` lo escribió otra versión de la PWA, así que se valida con
  * el mismo esquema que una respuesta del Worker y no se confía en su forma.
  */
-export function loadStoredSession(storage: SessionStorageLike, now: Date): Session | null {
+export function loadStoredSession(storage: StorageLike, now: Date): Session | null {
   let raw: string | null;
   try {
     raw = storage.getItem(SESSION_STORAGE_KEY);
@@ -43,7 +37,7 @@ export function loadStoredSession(storage: SessionStorageLike, now: Date): Sessi
   return parsed.data;
 }
 
-export function saveStoredSession(storage: SessionStorageLike, session: Session): void {
+export function saveStoredSession(storage: StorageLike, session: Session): void {
   try {
     storage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
   } catch (error) {
@@ -52,7 +46,7 @@ export function saveStoredSession(storage: SessionStorageLike, session: Session)
   }
 }
 
-export function clearStoredSession(storage: SessionStorageLike): void {
+export function clearStoredSession(storage: StorageLike): void {
   try {
     storage.removeItem(SESSION_STORAGE_KEY);
   } catch (error) {
