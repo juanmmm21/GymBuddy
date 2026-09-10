@@ -195,7 +195,9 @@ describe('rutinas: alta', () => {
     await user.click(screen.getByRole('button', { name: 'Crear rutina' }));
 
     expect(await screen.findByRole('heading', { name: 'Pierna' })).toBeInTheDocument();
-    expect(screen.getByText('Esta rutina todavía no tiene ejercicios')).toBeInTheDocument();
+    // La cabecera sale del listado de rutinas y el cuerpo espera además a los ejercicios:
+    // con la suite cargada, el título llega antes que el aviso y leerlo sin esperar falla.
+    expect(await screen.findByText('Esta rutina todavía no tiene ejercicios')).toBeInTheDocument();
     expect(screen.getByText('Los martes.')).toBeInTheDocument();
 
     const body = fake.requests.find((request) => request.method === 'POST')
