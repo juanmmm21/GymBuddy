@@ -16,6 +16,7 @@ import type {
   ExerciseHistory,
   ExerciseStats,
   ResourceId,
+  Routine,
   TrackedExercise,
   TrainingSignals,
   User,
@@ -36,9 +37,11 @@ import {
   fetchWeeklyCalendar,
   listBodyParts,
   listCatalogExercises,
+  listRoutines,
   listSessionHistory,
   listTrackedExercises,
   searchCatalog,
+  type ListRoutinesOptions,
   type ListTrackedExercisesOptions,
   type SessionHistoryOptions,
 } from './endpoints';
@@ -54,6 +57,10 @@ export const queryKeys = {
     all: ['exercises'] as const,
     list: (options: ListTrackedExercisesOptions) => ['exercises', 'list', options] as const,
     history: (exerciseId: ResourceId) => ['exercises', 'history', exerciseId] as const,
+  },
+  routines: {
+    all: ['routines'] as const,
+    list: (options: ListRoutinesOptions) => ['routines', 'list', options] as const,
   },
   sessions: {
     all: ['sessions'] as const,
@@ -107,6 +114,20 @@ export function useTrackedExercises(
   return useQuery({
     queryKey: queryKeys.exercises.list(options),
     queryFn: () => listTrackedExercises(client, options),
+    retry: shouldRetryRequest,
+  });
+}
+
+/**
+ * Las rutinas del usuario. El editor no usa `GET /routines/{id}`: saca la suya de este
+ * listado con los archivados, igual que la ficha de un ejercicio, para que no haya una
+ * segunda copia de la misma rutina en caché que invalidar aparte.
+ */
+export function useRoutines(options: ListRoutinesOptions = {}): UseQueryResult<Routine[]> {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: queryKeys.routines.list(options),
+    queryFn: () => listRoutines(client, options),
     retry: shouldRetryRequest,
   });
 }

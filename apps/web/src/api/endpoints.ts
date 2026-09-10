@@ -10,6 +10,7 @@ import {
   loginNonceSchema,
   logSetResponseSchema,
   noContentSchema,
+  routineSchema,
   trackedExerciseSchema,
   trainingSignalsSchema,
   userSchema,
@@ -25,6 +26,7 @@ import {
   type CatalogExerciseSummary,
   type ClaimSessionRequest,
   type ClaimSessionResponse,
+  type CreateRoutineRequest,
   type CreateTrackedExerciseRequest,
   type EndSessionRequest,
   type ExerciseHistory,
@@ -34,7 +36,9 @@ import {
   type LogSetRequest,
   type LogSetResponse,
   type Muscle,
+  type Routine,
   type StartSessionRequest,
+  type UpdateRoutineRequest,
   type UpdateSetRequest,
   type TrackedExercise,
   type TrainingSignals,
@@ -54,6 +58,7 @@ import type { ApiClient } from './client';
  */
 
 const trackedExerciseListSchema = z.array(trackedExerciseSchema);
+const routineListSchema = z.array(routineSchema);
 const bodyPartListSchema = z.array(bodyPartSummarySchema);
 const catalogSummaryListSchema = z.array(catalogExerciseSummarySchema);
 
@@ -115,6 +120,45 @@ export function updateTrackedExercise(
     method: 'PATCH',
     path: `/exercises/${encodeURIComponent(exerciseId)}`,
     schema: trackedExerciseSchema,
+    body,
+  });
+}
+
+export interface ListRoutinesOptions {
+  readonly includeArchived?: boolean;
+}
+
+/** Las rutinas con sus ejercicios ya ordenados: cada línea trae su `orderIndex` resuelto. */
+export function listRoutines(
+  client: ApiClient,
+  options: ListRoutinesOptions = {},
+): Promise<Routine[]> {
+  return client.request({
+    method: 'GET',
+    path: '/routines',
+    schema: routineListSchema,
+    query: { includeArchived: options.includeArchived },
+  });
+}
+
+/** Da de alta una rutina. Reenviar el mismo identificador responde la que ya existe. */
+export function createRoutine(client: ApiClient, body: CreateRoutineRequest): Promise<Routine> {
+  return client.request({ method: 'POST', path: '/routines', schema: routineSchema, body });
+}
+
+/**
+ * Cambia una rutina. Si lleva `items`, la lista se reemplaza entera y el Worker la
+ * renumera; sin `items`, las líneas no se tocan. Archivar es `{ archived: true }`.
+ */
+export function updateRoutine(
+  client: ApiClient,
+  routineId: string,
+  body: UpdateRoutineRequest,
+): Promise<Routine> {
+  return client.request({
+    method: 'PATCH',
+    path: `/routines/${encodeURIComponent(routineId)}`,
+    schema: routineSchema,
     body,
   });
 }

@@ -1,11 +1,14 @@
 import type {
+  CreateRoutineRequest,
   CreateTrackedExerciseRequest,
   EndSessionRequest,
   LogSetRequest,
   LogSetResponse,
   ResourceId,
+  Routine,
   StartSessionRequest,
   TrackedExercise,
+  UpdateRoutineRequest,
   UpdateSetRequest,
   UpdateTrackedExerciseRequest,
   WorkoutSession,
@@ -18,12 +21,14 @@ import {
 } from '@tanstack/react-query';
 import { ApiRequestError, type ApiClient } from './client';
 import {
+  createRoutine,
   createTrackedExercise,
   endSession,
   listTrackedExercises,
   logSet,
   removeSet,
   startSession,
+  updateRoutine,
   updateSet,
   updateTrackedExercise,
 } from './endpoints';
@@ -69,6 +74,41 @@ export function useCreateTrackedExercise(): UseMutationResult<
   return useMutation({
     mutationFn: (body: CreateTrackedExerciseRequest) => trackExercise(client, body),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.exercises.all }),
+  });
+}
+
+/**
+ * Da de alta una rutina. El identificador lo trae la petición: el formulario lo fija al
+ * abrirse, así que reintentar tras un corte devuelve la que ya se creó en vez de duplicarla.
+ */
+export function useCreateRoutine(): UseMutationResult<Routine, Error, CreateRoutineRequest> {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (body: CreateRoutineRequest) => createRoutine(client, body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.routines.all }),
+  });
+}
+
+export interface UpdateRoutineVariables {
+  readonly routineId: ResourceId;
+  readonly body: UpdateRoutineRequest;
+}
+
+/**
+ * Cambia una rutina: nombre, descripción, archivado o la lista entera de ejercicios. La
+ * mutación no termina hasta que el listado se ha vuelto a pedir, así que mientras está
+ * pendiente la pantalla puede pintar lo que se mandó sin que la lista salte al acabar.
+ */
+export function useUpdateRoutine(): UseMutationResult<Routine, Error, UpdateRoutineVariables> {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ routineId, body }: UpdateRoutineVariables) =>
+      updateRoutine(client, routineId, body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.routines.all }),
   });
 }
 
