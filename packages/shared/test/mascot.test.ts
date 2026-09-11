@@ -4,6 +4,7 @@ import {
   NO_DEVICE_SIGNALS,
   NUDGE_AFTER_DAYS,
   SLEEPY_AFTER_DAYS,
+  STALE_SESSION_HOURS,
   mascotState,
   type MascotDeviceSignals,
   type MascotTrainingSignals,
@@ -229,6 +230,91 @@ describe('mascotState — sleepy', () => {
     };
 
     expect(mascotState(back, NO_DEVICE_SIGNALS, NOW).mood).toBe('cheering');
+  });
+});
+
+describe('mascotState — sesión olvidada', () => {
+  const staleSeconds = STALE_SESSION_HOURS * 3600;
+
+  /** Una sesión que se abrió hace `seconds` y nadie ha cerrado. */
+  const openFor = (seconds: number): MascotTrainingSignals => ({
+    ...onTrack,
+    lastSessionAt: secondsBefore(seconds),
+    activeSessionId: SESSION_ID,
+  });
+
+  it('cheering → nudging cuando la sesión abierta lleva las horas justas sin moverse', () => {
+    expect(mascotState(openFor(staleSeconds - 1), NO_DEVICE_SIGNALS, NOW)).toStrictEqual({
+      mood: 'cheering',
+      reason: 'session_started',
+    });
+    expect(mascotState(openFor(staleSeconds), NO_DEVICE_SIGNALS, NOW)).toStrictEqual({
+      mood: 'nudging',
+      reason: 'forgotten_session',
+      openedAt: secondsBefore(staleSeconds),
+    });
+  });
+
+  it('una serie reciente la mantiene viva aunque se abriera hace más horas', () => {
+    const longDay = openFor(staleSeconds * 2);
+
+    expect(mascotState(longDay, restingFor(staleSeconds - 1), NOW)).toStrictEqual({
+      mood: 'cheering',
+      reason: 'rest_over',
+    });
+    expect(mascotState(longDay, restingFor(staleSeconds), NOW)).toStrictEqual({
+      mood: 'nudging',
+      reason: 'forgotten_session',
+      openedAt: secondsBefore(staleSeconds * 2),
+    });
+  });
+
+  it('nudging → cheering al registrar una serie en ella: se ha vuelto a entrenar', () => {
+    expect(mascotState(openFor(3 * 86_400), restingFor(200), NOW)).toStrictEqual({
+      mood: 'cheering',
+      reason: 'rest_over',
+    });
+  });
+
+  it('gana al sueño y al estancamiento: cerrarla es lo primero que se puede hacer', () => {
+    const forgottenForAWeek: MascotTrainingSignals = {
+      ...openFor(SLEEPY_AFTER_DAYS * 86_400),
+      stalled: [{ trackedExerciseId: BENCH_ID }],
+    };
+
+    expect(mascotState(forgottenForAWeek, NO_DEVICE_SIGNALS, NOW)).toStrictEqual({
+      mood: 'nudging',
+      reason: 'forgotten_session',
+      openedAt: daysBefore(SLEEPY_AFTER_DAYS),
+    });
+  });
+
+  it('una marca recién batida se celebra aunque la sesión parezca olvidada', () => {
+    const recordInOldSession: MascotTrainingSignals = {
+      ...openFor(staleSeconds * 3),
+      latestRecord: { achievedAt: secondsBefore(10) },
+    };
+
+    expect(mascotState(recordInOldSession, NO_DEVICE_SIGNALS, NOW).mood).toBe('celebrating');
+  });
+
+  it('sin ninguna fecha legible no se da por olvidada', () => {
+    const unreadable: MascotTrainingSignals = { ...openFor(0), lastSessionAt: 'no-es-una-fecha' };
+
+    expect(mascotState(unreadable, NO_DEVICE_SIGNALS, NOW)).toStrictEqual({
+      mood: 'cheering',
+      reason: 'session_started',
+    });
+  });
+
+  it('sin sesión abierta no hay nada olvidado, por viejo que sea lo último', () => {
+    const closedLongAgo: MascotTrainingSignals = { ...onTrack, lastSessionAt: daysBefore(5) };
+
+    expect(mascotState(closedLongAgo, NO_DEVICE_SIGNALS, NOW)).toStrictEqual({
+      mood: 'nudging',
+      reason: 'absence',
+      daysSinceLastSession: 5,
+    });
   });
 });
 
