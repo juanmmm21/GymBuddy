@@ -5,7 +5,14 @@ import type {
   TrackedExercise,
   WeightKilograms,
 } from '@gymbuddy/shared';
-import { formatDaysAgo, formatStopwatch, formatWeightLabel, pluralize } from '../../lib/format';
+import {
+  formatDaysAgo,
+  formatSessionDate,
+  formatStopwatch,
+  formatTime,
+  formatWeightLabel,
+  pluralize,
+} from '../../lib/format';
 
 /** Lo que dice la mascota: una frase corta que se lee de un vistazo y su explicación. */
 export interface MascotMessage {
@@ -21,6 +28,8 @@ export interface StalledExerciseMention {
 
 export interface MascotMessageContext {
   readonly locale: Locale;
+  /** El mismo instante con el que se resolvió el estado: decide si una fecha lleva el año. */
+  readonly now: Date;
   /**
    * Los estancados del estado, en su orden y con nombre. Puede traer menos de los que dice
    * el estado —los nombres llegan en otra consulta—, y entonces se habla de ellos sin nombrarlos.
@@ -64,12 +73,7 @@ export function mascotMessage(state: MascotState, context: MascotMessageContext)
         body: `${pluralize(state.daysSinceLastSession, 'día', 'días')} sin vernos y me he quedado frito. Con una sesión suave me despiertas.`,
       };
     case 'nudging':
-      return state.reason === 'absence'
-        ? {
-            title: '¿Hoy toca?',
-            body: `La última fue ${formatDaysAgo(state.daysSinceLastSession)}. Aunque sea algo corto, que cuenta igual.`,
-          }
-        : stagnationMessage(state.stalledExerciseIds.length, context);
+      return nudgingMessage(state, context);
     case 'idle':
       return state.reason === 'never_trained'
         ? {
@@ -77,6 +81,25 @@ export function mascotMessage(state: MascotState, context: MascotMessageContext)
             body: 'Cuando registres tu primera sesión, te voy contando cómo vas.',
           }
         : { title: 'Todo en orden', body: 'Llevas buen ritmo. Cuando toque, aquí me tienes.' };
+  }
+}
+
+type NudgingState = Extract<MascotState, { readonly mood: 'nudging' }>;
+
+function nudgingMessage(state: NudgingState, context: MascotMessageContext): MascotMessage {
+  switch (state.reason) {
+    case 'forgotten_session':
+      return {
+        title: 'Te dejaste la sesión abierta',
+        body: `La abriste el ${formatSessionDate(state.openedAt, context.locale, context.now)} a las ${formatTime(state.openedAt, context.locale)}. Si ya acabaste, ciérrala con «Terminar sesión»; si sigues, registra una serie y listo.`,
+      };
+    case 'absence':
+      return {
+        title: '¿Hoy toca?',
+        body: `La última fue ${formatDaysAgo(state.daysSinceLastSession)}. Aunque sea algo corto, que cuenta igual.`,
+      };
+    case 'stagnation':
+      return stagnationMessage(state.stalledExerciseIds.length, context);
   }
 }
 

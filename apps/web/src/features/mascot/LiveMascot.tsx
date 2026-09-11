@@ -16,8 +16,8 @@ export interface LiveMascotProps {
  * una vez por segundo, y así lo que se repinta es la tarjeta, no Hoy entero ni la sesión.
  */
 export function LiveMascot({ signals, device, locale }: LiveMascotProps) {
-  const now = useNow();
-  const state = mascotState(signals, device, new Date(now));
+  const now = new Date(useNow());
+  const state = mascotState(signals, device, now);
   const stalledIds =
     state.mood === 'nudging' && state.reason === 'stagnation' ? state.stalledExerciseIds : [];
 
@@ -29,5 +29,5 @@ export function LiveMascot({ signals, device, locale }: LiveMascotProps) {
   );
   const stalled = stalledMentions(stalledIds, signals.stalled, exercises.data ?? []);
 
-  return <Mascot state={state} message={mascotMessage(state, { locale, stalled })} />;
+  return <Mascot state={state} message={mascotMessage(state, { locale, now, stalled })} />;
 }
