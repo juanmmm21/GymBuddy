@@ -1,19 +1,23 @@
 import { z } from 'zod';
 import { isoDatetimeSchema, localeSchema, resourceIdSchema, unitSystemSchema } from './common';
 
+export const MAX_DISPLAY_NAME_LENGTH = 40;
+
+/**
+ * El nombre con el que la app saluda y con el que el móvil etiqueta la llave de acceso. Lo
+ * elige cada uno al registrarse; no es un identificador y dos personas pueden llamarse igual.
+ */
+export const displayNameSchema = z.string().trim().min(1).max(MAX_DISPLAY_NAME_LENGTH);
+
 export const userSchema = z.object({
   id: resourceIdSchema,
-  // Llega de Telegram y excede los 32 bits en cuentas nuevas, pero cabe de sobra en un entero seguro.
-  telegramUserId: z.int().positive(),
-  firstName: z.string().min(1),
-  username: z.string().min(1).nullable(),
-  photoUrl: z.url().nullable(),
+  displayName: displayNameSchema,
   locale: localeSchema,
   unitSystem: unitSystemSchema,
   createdAt: isoDatetimeSchema,
 });
 
-/** Lo único que el usuario puede cambiar de su perfil: su nombre y su foto son de Telegram. */
+/** Las preferencias del perfil que el usuario puede cambiar. */
 export const updateUserRequestSchema = z
   .object({
     locale: localeSchema,

@@ -1,21 +1,27 @@
 import { z } from 'zod';
-import { isoDatetimeSchema } from './common';
-import { userSchema } from './user';
+import { compactInvitationCode, INVITATION_CODE_PATTERN } from '../domain/invitation-code';
+import { isoDatetimeSchema, localeSchema, resourceIdSchema } from './common';
+import {
+  authenticationCredentialSchema,
+  loginOptionsSchema,
+  registrationCredentialSchema,
+  registrationOptionsSchema,
+} from './passkey';
+import { displayNameSchema, userSchema } from './user';
 
 /**
- * Lo que devuelve `POST /auth/nonce`. `telegramLink` viene armado por el Worker en vez de
- * componerlo la PWA: así el nombre del bot vive en un único sitio (la configuración del
- * Worker) y cambiarlo no obliga a desplegar también el frontend.
+ * Un código de invitación tal y como lo teclea alguien: se acepta en minúsculas, con guiones o
+ * espacios y con una O por un cero, y sale ya en su forma canónica.
  */
-export const loginNonceSchema = z.object({
-  nonce: z.string().min(1),
-  expiresAt: isoDatetimeSchema,
-  telegramLink: z.url(),
-});
-
-export const claimSessionRequestSchema = z.object({
-  nonce: z.string().min(1),
-});
+export const invitationCodeSchema = z
+  .string()
+  .max(64)
+  .transform(compactInvitationCode)
+  .pipe(
+    z.string().regex(INVITATION_CODE_PATTERN, {
+      message: 'El código de invitación tiene doce letras y cifras',
+    }),
+  );
 
 export const sessionSchema = z.object({
   token: z.string().min(1),
@@ -23,18 +29,47 @@ export const sessionSchema = z.object({
   user: userSchema,
 });
 
-/**
- * El canje del nonce no es un sí o un no: entre que la PWA abre el enlace y el usuario
- * pulsa *Start* en Telegram pasan segundos, y ese hueco es funcionamiento normal, no un
- * error. Por eso "todavía nadie ha pulsado" viaja como un estado y no como un 4xx: la PWA
- * reintenta con backoff mientras sea `pending` y se rinde cuando el nonce caduca.
- */
-export const claimSessionResponseSchema = z.discriminatedUnion('status', [
-  z.object({ status: z.literal('pending') }),
-  z.object({ status: z.literal('ready'), session: sessionSchema }),
-]);
+/** Primer paso del registro: con qué invitación, con qué nombre y en qué idioma. */
+export const registrationOptionsRequestSchema = z.object({
+  invitationCode: invitationCodeSchema,
+  displayName: displayNameSchema,
+  locale: localeSchema,
+});
 
-export type LoginNonce = z.infer<typeof loginNonceSchema>;
-export type ClaimSessionRequest = z.infer<typeof claimSessionRequestSchema>;
+/**
+ * Las opciones van con el identificador del reto que el Worker guardó. Viaja aparte de las
+ * opciones porque la verificación lo necesita para encontrar el reto antes de mirar la firma.
+ */
+export const registrationOptionsResponseSchema = z.object({
+  challengeId: resourceIdSchema,
+  options: registrationOptionsSchema,
+});
+
+export const registrationVerifyRequestSchema = z.object({
+  challengeId: resourceIdSchema,
+  credential: registrationCredentialSchema,
+});
+
+export const loginOptionsResponseSchema = z.object({
+  challengeId: resourceIdSchema,
+  options: loginOptionsSchema,
+});
+
+export const loginVerifyRequestSchema = z.object({
+  challengeId: resourceIdSchema,
+  credential: authenticationCredentialSchema,
+});
+
+/** Una invitación recién creada. Es la única vez que el código viaja en claro. */
+export const invitationSchema = z.object({
+  code: z.string().regex(INVITATION_CODE_PATTERN),
+  expiresAt: isoDatetimeSchema,
+});
+
 export type Session = z.infer<typeof sessionSchema>;
-export type ClaimSessionResponse = z.infer<typeof claimSessionResponseSchema>;
+export type RegistrationOptionsRequest = z.infer<typeof registrationOptionsRequestSchema>;
+export type RegistrationOptionsResponse = z.infer<typeof registrationOptionsResponseSchema>;
+export type RegistrationVerifyRequest = z.infer<typeof registrationVerifyRequestSchema>;
+export type LoginOptionsResponse = z.infer<typeof loginOptionsResponseSchema>;
+export type LoginVerifyRequest = z.infer<typeof loginVerifyRequestSchema>;
+export type Invitation = z.infer<typeof invitationSchema>;

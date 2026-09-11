@@ -547,13 +547,10 @@ describe('récords y usuario', () => {
     expect(parsed.success).toBe(true);
   });
 
-  it('acepta un usuario sin alias ni foto de Telegram', () => {
+  it('acepta el perfil de un usuario con su nombre visible', () => {
     const parsed = userSchema.safeParse({
       id: EXERCISE_ID,
-      telegramUserId: 123456789,
-      firstName: 'Juan',
-      username: null,
-      photoUrl: null,
+      displayName: 'Juan',
       locale: 'es',
       unitSystem: 'metric',
       createdAt: '2026-09-07T18:00:00.000Z',

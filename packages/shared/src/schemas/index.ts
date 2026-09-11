@@ -43,13 +43,43 @@ export type {
   Muscle,
 } from './catalog';
 export {
-  claimSessionRequestSchema,
-  claimSessionResponseSchema,
-  loginNonceSchema,
+  invitationCodeSchema,
+  invitationSchema,
+  loginOptionsResponseSchema,
+  loginVerifyRequestSchema,
+  registrationOptionsRequestSchema,
+  registrationOptionsResponseSchema,
+  registrationVerifyRequestSchema,
   sessionSchema,
 } from './auth';
-export type { ClaimSessionRequest, ClaimSessionResponse, LoginNonce, Session } from './auth';
-export { updateUserRequestSchema, userSchema } from './user';
+export type {
+  Invitation,
+  LoginOptionsResponse,
+  LoginVerifyRequest,
+  RegistrationOptionsRequest,
+  RegistrationOptionsResponse,
+  RegistrationVerifyRequest,
+  Session,
+} from './auth';
+export {
+  authenticationCredentialSchema,
+  credentialIdSchema,
+  loginOptionsSchema,
+  registrationCredentialSchema,
+  registrationOptionsSchema,
+} from './passkey';
+export type {
+  AuthenticationCredential,
+  LoginOptions,
+  RegistrationCredential,
+  RegistrationOptions,
+} from './passkey';
+export {
+  MAX_DISPLAY_NAME_LENGTH,
+  displayNameSchema,
+  updateUserRequestSchema,
+  userSchema,
+} from './user';
 export type { UpdateUserRequest, User } from './user';
 export {
   createTrackedExerciseRequestSchema,

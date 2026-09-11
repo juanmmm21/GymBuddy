@@ -33,6 +33,14 @@ export type {
   WorkingWeightSummary,
 } from './progression';
 export {
+  INVITATION_CODE_ALPHABET,
+  INVITATION_CODE_LENGTH,
+  INVITATION_CODE_PATTERN,
+  compactInvitationCode,
+  formatInvitationCode,
+  isInvitationCode,
+} from './invitation-code';
+export {
   CELEBRATION_WINDOW_SECONDS,
   MASCOT_MOODS,
   NO_DEVICE_SIGNALS,

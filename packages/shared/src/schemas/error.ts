@@ -10,9 +10,13 @@ export const apiErrorCodeSchema = z.enum([
   'not_found',
   // Sin sesión válida: falta el JWT, está caducado o no lo firmamos nosotros.
   'unauthorized',
-  // El nonce del enlace de Telegram no sirve: no existe, caducó o ya se canjeó. Los tres
-  // casos comparten código a propósito, para no confirmarle a nadie que un nonce existió.
-  'nonce_invalid',
+  // El código de invitación no sirve: no existe, caducó o ya se usó. Los tres casos comparten
+  // código a propósito, para no confirmarle a nadie que un código existió.
+  'invitation_invalid',
+  // La passkey no se pudo comprobar: el reto caducó o ya se usó, la firma no cuadra o la llave
+  // no es de ninguna cuenta. Es un 400 y no un 401: quien intenta entrar no tiene sesión que
+  // cerrar, y la PWA cierra la sesión ante cualquier 401.
+  'passkey_invalid',
   // El catálogo externo no respondió y el snapshot no puede refrescarse: es un fallo
   // del origen, no nuestro, y la PWA debe poder distinguirlo para reintentar más tarde.
   'catalog_unavailable',
