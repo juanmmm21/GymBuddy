@@ -18,7 +18,10 @@ import { openSessionSignals, sessionDeviceSignals } from '../../src/features/mas
 import { MASCOT_POSES } from '../../src/features/mascot/poses';
 import { activeSession, benchPress, customCurl, newMaxWeightRecord, squat } from '../fixtures';
 
-const NO_STALLED: MascotMessageContext = { locale: 'es', stalled: [] };
+/** Viernes 11 de septiembre de 2026 por la noche: las fechas de los mensajes cuelgan de aquí. */
+const NOW = new Date('2026-09-11T20:00:00.000Z');
+
+const NO_STALLED: MascotMessageContext = { locale: 'es', now: NOW, stalled: [] };
 
 const benchMention: StalledExerciseMention = { name: 'Press de banca', suggestedIncrement: '2.50' };
 const squatMention: StalledExerciseMention = { name: 'Sentadilla', suggestedIncrement: '5.00' };
@@ -77,6 +80,17 @@ describe('mascotMessage', () => {
     expect(message.body).toContain('La última fue hace 5 días.');
   });
 
+  it('la sesión olvidada dice cuándo se abrió y cómo cerrarla', () => {
+    const message = mascotMessage(
+      { mood: 'nudging', reason: 'forgotten_session', openedAt: '2026-09-08T16:30:00.000Z' },
+      NO_STALLED,
+    );
+
+    expect(message.title).toBe('Te dejaste la sesión abierta');
+    expect(message.body).toMatch(/^La abriste el mar, 8 sept a las \d\d:30\./);
+    expect(message.body).toContain('«Terminar sesión»');
+  });
+
   it('distingue a quien no ha entrenado nunca de quien va al día', () => {
     expect(mascotMessage({ mood: 'idle', reason: 'never_trained' }, NO_STALLED).body).toContain(
       'primera sesión',
@@ -94,6 +108,7 @@ describe('mascotMessage', () => {
       { mood: 'cheering', reason: 'rest_over' },
       { mood: 'sleepy', daysSinceLastSession: 7 },
       { mood: 'nudging', reason: 'absence', daysSinceLastSession: 4 },
+      { mood: 'nudging', reason: 'forgotten_session', openedAt: '2026-09-08T18:00:00.000Z' },
       stagnation(1),
       { mood: 'idle', reason: 'never_trained' },
       { mood: 'idle', reason: 'on_track' },
@@ -109,20 +124,29 @@ describe('mascotMessage', () => {
 
 describe('mascotMessage: estancamiento', () => {
   it('con uno solo lo nombra y sugiere su incremento con la coma del idioma', () => {
-    const message = mascotMessage(stagnation(1), { locale: 'es', stalled: [benchMention] });
+    const message = mascotMessage(stagnation(1), {
+      locale: 'es',
+      now: NOW,
+      stalled: [benchMention],
+    });
 
     expect(message.title).toBe('Toca subir en Press de banca');
     expect(message.body).toContain('Prueba con +2,5 kg');
   });
 
   it('en inglés el incremento lleva punto', () => {
-    const message = mascotMessage(stagnation(1), { locale: 'en', stalled: [benchMention] });
+    const message = mascotMessage(stagnation(1), {
+      locale: 'en',
+      now: NOW,
+      stalled: [benchMention],
+    });
     expect(message.body).toContain('+2.5 kg');
   });
 
   it('con dos los enumera con su incremento', () => {
     const message = mascotMessage(stagnation(2), {
       locale: 'es',
+      now: NOW,
       stalled: [benchMention, squatMention],
     });
 
@@ -133,6 +157,7 @@ describe('mascotMessage: estancamiento', () => {
   it(`nombra como mucho ${String(MAX_NAMED_STALLED_EXERCISES)} y cuenta el resto`, () => {
     const message = mascotMessage(stagnation(4), {
       locale: 'es',
+      now: NOW,
       stalled: [benchMention, squatMention, curlMention],
     });
 
@@ -150,7 +175,11 @@ describe('mascotMessage: estancamiento', () => {
   });
 
   it('con un nombre de dos estancados no finge que solo hay uno', () => {
-    const message = mascotMessage(stagnation(2), { locale: 'es', stalled: [benchMention] });
+    const message = mascotMessage(stagnation(2), {
+      locale: 'es',
+      now: NOW,
+      stalled: [benchMention],
+    });
 
     expect(message.title).toBe('Toca subir peso');
     expect(message.body).toMatch(/^Press de banca \(\+2,5 kg\) y 1 más te lo/);

@@ -6,17 +6,20 @@ import { Mascot } from '../../src/features/mascot/Mascot';
 import { mascotMessage } from '../../src/features/mascot/messages';
 import { MASCOT_POSES } from '../../src/features/mascot/poses';
 
+const NOW = new Date('2026-09-11T20:00:00.000Z');
+
 const STATES: readonly MascotState[] = [
   { mood: 'idle', reason: 'on_track' },
   { mood: 'resting', remainingSeconds: 42 },
   { mood: 'cheering', reason: 'rest_over' },
   { mood: 'celebrating', recordAchievedAt: '2026-09-11T10:00:00.000Z' },
   { mood: 'nudging', reason: 'absence', daysSinceLastSession: 5 },
+  { mood: 'nudging', reason: 'forgotten_session', openedAt: '2026-09-08T18:00:00.000Z' },
   { mood: 'sleepy', daysSinceLastSession: 8 },
 ];
 
 function renderMascot(state: MascotState) {
-  const message = mascotMessage(state, { locale: 'es', stalled: [] });
+  const message = mascotMessage(state, { locale: 'es', now: NOW, stalled: [] });
   const view = render(<Mascot state={state} message={message} />);
   return { ...view, message };
 }
@@ -49,7 +52,12 @@ describe('Mascot', () => {
     expect(container.querySelector('g[transform^="rotate(12 "]')).not.toBeNull();
 
     const idle: MascotState = { mood: 'idle', reason: 'on_track' };
-    rerender(<Mascot state={idle} message={mascotMessage(idle, { locale: 'es', stalled: [] })} />);
+    rerender(
+      <Mascot
+        state={idle}
+        message={mascotMessage(idle, { locale: 'es', now: NOW, stalled: [] })}
+      />,
+    );
     expect(container.querySelector('g[transform^="rotate(0 "]')).not.toBeNull();
     expect(screen.getByRole('img', { name: MASCOT_MOOD_LABELS.idle })).toBeInTheDocument();
   });

@@ -25,6 +25,25 @@ function daysAgo(days: number): string {
   return new Date(Date.now() - days * DAY_MS).toISOString();
 }
 
+function minutesAgo(minutes: number): string {
+  return new Date(Date.now() - minutes * 60_000).toISOString();
+}
+
+/**
+ * La sesión de las fixtures con fechas de hace un rato: la de siempre se abrió el 8 de
+ * septiembre y, vista con el reloj real, es una sesión olvidada.
+ */
+function recentSession(): WorkoutSessionDetail {
+  const [firstSet] = activeSession.sets;
+  if (firstSet === undefined) throw new Error('La sesión de las fixtures trae una serie');
+
+  return {
+    ...activeSession,
+    startedAt: minutesAgo(30),
+    sets: [{ ...firstSet, completedAt: minutesAgo(10) }],
+  };
+}
+
 const benchStalled: TrainingSignals['stalled'] = [
   { trackedExerciseId: benchPress.id, weight: '82.50', sessions: 3, suggestedIncrement: '2.50' },
 ];
@@ -96,6 +115,27 @@ describe('la mascota en Hoy', () => {
     expect(mascotCard().getByText(/^8 días sin vernos/)).toBeInTheDocument();
   });
 
+  it('una sesión abierta hace horas y sin tocar pide cerrarla, y la tarjeta dice desde cuándo', async () => {
+    renderApp({
+      path: '/',
+      session,
+      setup: (fake) => {
+        serveHome(fake, {
+          ...signals,
+          lastSessionAt: '2026-09-08T18:00:00.000Z',
+          activeSessionId: activeSession.id,
+          latestRecord: null,
+        });
+      },
+    });
+
+    expect(await screen.findByText('Te dejaste la sesión abierta')).toBeInTheDocument();
+    expect(mascotCard().getByText(/«Terminar sesión»/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/^Tienes una sesión abierta desde el mar, 8 sept a las/),
+    ).toBeInTheDocument();
+  });
+
   it('sin haber entrenado nunca saluda y no reprocha nada', async () => {
     renderApp({
       path: '/',
@@ -128,7 +168,7 @@ describe('la mascota en la sesión', () => {
       path: '/session',
       session,
       setup: (fake) => {
-        serveSession(fake, { ...activeSession, sets: [] });
+        serveSession(fake, { ...activeSession, startedAt: minutesAgo(2), sets: [] });
       },
     });
 
@@ -143,11 +183,49 @@ describe('la mascota en la sesión', () => {
       path: '/session',
       session,
       setup: (fake) => {
-        serveSession(fake, activeSession);
+        serveSession(fake, recentSession());
       },
     });
 
     expect(await screen.findByText('¿Seguimos?')).toBeInTheDocument();
+  });
+
+  it('una sesión de hace días sin tocar pide cerrarla, y una serie nueva la reactiva', async () => {
+    const user = userEvent.setup();
+    let current = activeSession;
+    renderApp({
+      path: '/session',
+      session,
+      setup: (fake) => {
+        fake.on('GET', '/sessions/active', () => jsonResponse({ session: current }));
+        fake.on('GET', '/exercises', () => jsonResponse([benchPress, squat]));
+        fake.on('POST', `/sessions/${activeSession.id}/sets`, (request) => {
+          const body = request.body as LogSetRequest;
+          const entry = {
+            id: body.id,
+            trackedExerciseId: body.trackedExerciseId,
+            orderIndex: current.sets.length,
+            weight: body.weight,
+            reps: body.reps,
+            rpe: body.rpe ?? null,
+            isWarmup: body.isWarmup ?? false,
+            completedAt: new Date().toISOString(),
+            source: body.source,
+          };
+          current = { ...current, sets: [...current.sets, entry] };
+          return jsonResponse({ set: entry, records: [] });
+        });
+      },
+    });
+
+    expect(await screen.findByText('Te dejaste la sesión abierta')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Registrar serie' }));
+    await user.click(screen.getAllByRole('button', { name: 'Registrar serie' })[1] as HTMLElement);
+
+    expect(
+      await screen.findByRole('img', { name: MASCOT_MOOD_LABELS.resting }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Te dejaste la sesión abierta')).not.toBeInTheDocument();
   });
 
   it('una serie recién registrada la pone a descansar con lo que queda', async () => {
@@ -173,7 +251,7 @@ describe('la mascota en la sesión', () => {
 
   it('una marca en la respuesta del registro la pone a celebrar', async () => {
     const user = userEvent.setup();
-    let current = activeSession;
+    let current = recentSession();
     renderApp({
       path: '/session',
       session,
