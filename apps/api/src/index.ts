@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { purgeExpiredChallenges } from './auth/challenges';
 import { CatalogSourceError } from './catalog/client';
 import { recordCatalogSyncFailure, runCatalogSyncStep } from './catalog/index';
 import { createDatabase } from './db/client';
@@ -37,6 +38,16 @@ app.route('/api/v1', adminRoute);
  */
 async function scheduled(_event: ScheduledController, env: Env): Promise<void> {
   const db = createDatabase(env.DB);
+
+  // Se barren aquí los retos de passkey caducados: cada intento de entrada deja una fila, y la
+  // de quien cerró la app a mitad no se va sola. Va antes del catálogo porque es barato y no
+  // debe quedarse sin hacer si el origen está caído.
+  try {
+    const purged = await purgeExpiredChallenges(db, new Date());
+    if (purged > 0) console.log(`Retos de passkey caducados retirados: ${String(purged)}`);
+  } catch (error) {
+    console.error('No se pudieron retirar los retos de passkey caducados', error);
+  }
 
   try {
     const step = await runCatalogSyncStep(db);
