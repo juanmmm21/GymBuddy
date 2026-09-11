@@ -107,13 +107,19 @@ export function useCurrentUser(): UseQueryResult<User> {
   });
 }
 
+/**
+ * Los ejercicios del usuario. La mascota de Hoy solo necesita sus nombres cuando va a
+ * nombrar uno estancado, y desactivada la consulta no pide nada.
+ */
 export function useTrackedExercises(
   options: ListTrackedExercisesOptions = {},
+  { enabled = true }: QueryToggle = {},
 ): UseQueryResult<TrackedExercise[]> {
   const client = useApiClient();
   return useQuery({
     queryKey: queryKeys.exercises.list(options),
     queryFn: () => listTrackedExercises(client, options),
+    enabled,
     retry: shouldRetryRequest,
   });
 }
