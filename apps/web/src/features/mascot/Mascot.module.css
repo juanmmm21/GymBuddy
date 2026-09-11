@@ -1,0 +1,171 @@
+.card {
+  display: flex;
+  align-items: center;
+  gap: var(--gb-space-lg);
+}
+
+/* El muñeco no encoge: es el texto el que se reparte el ancho que queda. */
+.figure {
+  flex: none;
+  width: calc(var(--gb-space-xxxl) + var(--gb-space-xl));
+  height: auto;
+  overflow: visible;
+}
+
+.speech {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-xs);
+  min-width: 0;
+}
+
+.title {
+  font-size: var(--gb-type-body-strong-size);
+  font-weight: var(--gb-type-body-strong-weight);
+  line-height: var(--gb-type-body-strong-line);
+}
+
+.body {
+  color: var(--gb-color-text-secondary);
+  font-size: var(--gb-type-caption-size);
+  line-height: var(--gb-type-caption-line);
+}
+
+/* Trazo simple y sin rellenos. Las medidas son unidades del viewBox: escalan con el muñeco. */
+.line {
+  fill: none;
+  stroke: var(--gb-color-text);
+  stroke-width: var(--gb-space-xs);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.thin {
+  stroke-width: calc(var(--gb-space-xxs) * 1.5);
+}
+
+.accent {
+  stroke: var(--gb-color-accent);
+}
+
+.success {
+  stroke: var(--gb-color-success);
+}
+
+.muted {
+  stroke: var(--gb-color-text-muted);
+}
+
+/* Cada pose entra con un pequeño salto de escala desde los pies. */
+.pose {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: mascot-enter var(--gb-duration-slow) var(--gb-ease-enter) both;
+}
+
+.motion {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
+
+/* El brazo que saluda gira sobre el hombro, que es la esquina inferior izquierda de su trazo. */
+.wave {
+  transform-box: fill-box;
+  transform-origin: left bottom;
+}
+
+@keyframes mascot-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Los bucles solo corren si nadie ha pedido menos movimiento. */
+@media (prefers-reduced-motion: no-preference) {
+  .bob {
+    animation: mascot-bob var(--gb-duration-ambient) var(--gb-ease-standard) infinite;
+  }
+
+  .breathe {
+    animation: mascot-breathe var(--gb-duration-ambient) var(--gb-ease-standard) infinite;
+  }
+
+  .bounce {
+    animation: mascot-bounce calc(var(--gb-duration-slow) * 3) var(--gb-ease-standard) infinite;
+  }
+
+  .jump {
+    animation: mascot-jump calc(var(--gb-duration-slow) * 2) var(--gb-ease-standard) infinite;
+  }
+
+  .wave {
+    animation: mascot-wave calc(var(--gb-duration-slow) * 3) var(--gb-ease-standard) infinite;
+  }
+
+  .twinkle {
+    animation: mascot-twinkle calc(var(--gb-duration-slow) * 2) var(--gb-ease-standard) infinite;
+  }
+
+  .drift {
+    animation: mascot-drift var(--gb-duration-ambient) var(--gb-ease-standard) infinite;
+  }
+}
+
+@keyframes mascot-bob {
+  50% {
+    transform: translateY(calc(var(--gb-space-xxs) * -1));
+  }
+}
+
+@keyframes mascot-breathe {
+  50% {
+    transform: scaleY(1.03);
+  }
+}
+
+@keyframes mascot-bounce {
+  50% {
+    transform: translateY(calc(var(--gb-space-xs) * -1));
+  }
+}
+
+@keyframes mascot-jump {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  40% {
+    transform: translateY(calc(var(--gb-space-sm) * -1));
+  }
+}
+
+@keyframes mascot-wave {
+  50% {
+    transform: rotate(-14deg);
+  }
+}
+
+@keyframes mascot-twinkle {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes mascot-drift {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(calc(var(--gb-space-sm) * -1));
+  }
+}
