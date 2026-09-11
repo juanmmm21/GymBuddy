@@ -144,7 +144,7 @@ describe('pantallas del shell', () => {
       },
     });
 
-    expect(await screen.findByRole('button', { name: 'Entrar con Telegram' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Entrar' })).toBeInTheDocument();
     expect(storage.data.has(SESSION_STORAGE_KEY)).toBe(false);
   });
 
@@ -160,7 +160,7 @@ describe('pantallas del shell', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Salir' }));
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Entrar con Telegram' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Entrar' })).toBeInTheDocument();
     });
     expect(storage.data.has(SESSION_STORAGE_KEY)).toBe(false);
   });

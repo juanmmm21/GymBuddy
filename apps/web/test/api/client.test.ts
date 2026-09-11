@@ -79,7 +79,7 @@ describe('ApiClient', () => {
 
   it('una respuesta que no cumple el contrato es un error de contrato, no un dato', async () => {
     const fake = createFakeFetch();
-    fake.on('GET', '/auth/me', () => jsonResponse({ ...user, telegramUserId: 'no-es-numero' }));
+    fake.on('GET', '/auth/me', () => jsonResponse({ ...user, displayName: 42 }));
     const { client } = createClient(fake.fetch);
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
 

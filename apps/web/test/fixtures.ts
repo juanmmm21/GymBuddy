@@ -20,10 +20,7 @@ import type {
 
 export const user: User = {
   id: '4d2a6d9c-5c2e-4a7e-9b1d-3f6c8a2b1e01',
-  telegramUserId: 123456789,
-  firstName: 'Juan',
-  username: 'juanmmm21',
-  photoUrl: null,
+  displayName: 'Juan',
   locale: 'es',
   unitSystem: 'metric',
   createdAt: '2026-09-01T10:00:00.000Z',
