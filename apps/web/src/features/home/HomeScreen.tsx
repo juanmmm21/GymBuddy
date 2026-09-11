@@ -5,7 +5,13 @@ import { useSession } from '../../auth/SessionProvider';
 import { ScreenHeader } from '../../app/ScreenHeader';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
 import { Badge, Button, Notice, Surface } from '../../components/index';
-import { formatDaysAgo, formatWeightLabel, pluralize } from '../../lib/format';
+import {
+  formatDaysAgo,
+  formatSessionDate,
+  formatTime,
+  formatWeightLabel,
+  pluralize,
+} from '../../lib/format';
 import { RECORD_LABELS } from '../exercises/labels';
 import { LiveMascot } from '../mascot/LiveMascot';
 import { SESSION_PATH } from '../session/paths';
@@ -43,7 +49,9 @@ interface SignalsSummaryProps {
 }
 
 function SignalsSummary({ signals, locale }: SignalsSummaryProps) {
-  if (signals.lastSessionAt === null) {
+  // En una constante: el estrechamiento a «no es null» tiene que sobrevivir hasta el JSX.
+  const { lastSessionAt } = signals;
+  if (lastSessionAt === null) {
     return (
       <div className={styles.stack}>
         <LiveMascot signals={signals} device={NO_DEVICE_SIGNALS} locale={locale} />
@@ -72,7 +80,11 @@ function SignalsSummary({ signals, locale }: SignalsSummaryProps) {
       ) : (
         <Surface className={styles.active}>
           <Badge tone="accent">Sesión en curso</Badge>
-          <p className={styles.activeText}>Tienes una sesión abierta.</p>
+          <p className={styles.activeText}>
+            {/* Con una sola sesión abierta a la vez, la última que empezó es la abierta. */}
+            Tienes una sesión abierta desde el {formatSessionDate(lastSessionAt, locale)} a las{' '}
+            {formatTime(lastSessionAt, locale)}.
+          </p>
           <Link to={SESSION_PATH}>Seguir</Link>
         </Surface>
       )}
