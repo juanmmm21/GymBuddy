@@ -29,6 +29,8 @@ import {
 import { newResourceId, parseResourceId } from '../../lib/ids';
 import { elapsedSecondsSince } from '../../lib/time';
 import { RECORD_LABELS } from '../exercises/labels';
+import { LiveMascot } from '../mascot/LiveMascot';
+import { openSessionSignals, sessionDeviceSignals } from '../mascot/mascot-signals';
 import { describeRoutineSize } from '../routines/items';
 import { EditSetSheet } from './EditSetSheet';
 import { EndSessionSheet } from './EndSessionSheet';
@@ -296,6 +298,12 @@ function ActiveSession({
   return (
     <div className={styles.stack}>
       <SessionClock session={session} locale={locale} />
+
+      <LiveMascot
+        signals={openSessionSignals(session)}
+        device={sessionDeviceSignals(lastSetAt, restTarget, records)}
+        locale={locale}
+      />
 
       {lastSetAt !== null && (
         <RestTimer lastSetAt={lastSetAt} target={restTarget} onTargetChange={onRestTargetChange} />

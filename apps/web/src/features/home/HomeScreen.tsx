@@ -1,4 +1,4 @@
-import type { Locale, TrainingSignals } from '@gymbuddy/shared';
+import { NO_DEVICE_SIGNALS, type Locale, type TrainingSignals } from '@gymbuddy/shared';
 import { Link } from 'react-router';
 import { useTrainingSignals } from '../../api/queries';
 import { useSession } from '../../auth/SessionProvider';
@@ -7,6 +7,7 @@ import { AsyncContent } from '../../components/async-content/AsyncContent';
 import { Badge, Button, Notice, Surface } from '../../components/index';
 import { formatDaysAgo, formatWeightLabel, pluralize } from '../../lib/format';
 import { RECORD_LABELS } from '../exercises/labels';
+import { LiveMascot } from '../mascot/LiveMascot';
 import { SESSION_PATH } from '../session/paths';
 import { RoutineShortcuts } from './RoutineShortcuts';
 import { WeekCalendar } from './WeekCalendar';
@@ -45,6 +46,7 @@ function SignalsSummary({ signals, locale }: SignalsSummaryProps) {
   if (signals.lastSessionAt === null) {
     return (
       <div className={styles.stack}>
+        <LiveMascot signals={signals} device={NO_DEVICE_SIGNALS} locale={locale} />
         <Notice title="Todavía no has entrenado">
           Cuando registres tu primera sesión, aquí verás tu racha y tus últimas marcas.
         </Notice>
@@ -58,6 +60,8 @@ function SignalsSummary({ signals, locale }: SignalsSummaryProps) {
 
   return (
     <div className={styles.stack}>
+      <LiveMascot signals={signals} device={NO_DEVICE_SIGNALS} locale={locale} />
+
       {signals.activeSessionId === null ? (
         <>
           <Link to={SESSION_PATH} className={styles.cta}>
