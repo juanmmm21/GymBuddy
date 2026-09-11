@@ -13,43 +13,107 @@ const isoTimestamp = (name: string) => text(name);
  */
 const rowId = (name: string) => text(name);
 
-export const user = sqliteTable(
-  'user',
-  {
-    id: rowId('id').primaryKey(),
-    // Telegram es la identidad entera del sistema: sin cuentas propias, esta es la clave real.
-    telegramUserId: integer('telegram_user_id').notNull(),
-    firstName: text('first_name').notNull(),
-    username: text('username'),
-    photoUrl: text('photo_url'),
-    locale: text('locale', { enum: ['es', 'en'] })
-      .notNull()
-      .default('es'),
-    unitSystem: text('unit_system', { enum: ['metric', 'imperial'] })
-      .notNull()
-      .default('metric'),
-    createdAt: isoTimestamp('created_at').notNull(),
-  },
-  (table) => [uniqueIndex('user_telegram_user_id_unique').on(table.telegramUserId)],
-);
+/**
+ * La cuenta. No guarda nada que identifique a la persona fuera de la app: se entra con las
+ * passkeys de `passkey_credential` y el nombre solo sirve para saludar (ADR 0005).
+ */
+export const user = sqliteTable('user', {
+  id: rowId('id').primaryKey(),
+  // Lo elige cada uno al registrarse. No identifica a nadie: dos personas pueden llamarse igual.
+  displayName: text('display_name').notNull(),
+  locale: text('locale', { enum: ['es', 'en'] })
+    .notNull()
+    .default('es'),
+  unitSystem: text('unit_system', { enum: ['metric', 'imperial'] })
+    .notNull()
+    .default('metric'),
+  createdAt: isoTimestamp('created_at').notNull(),
+});
 
-export const loginNonce = sqliteTable(
-  'login_nonce',
+/**
+ * Código de invitación para registrarse. Se guarda el digest SHA-256 del código y no el código:
+ * mientras no se usa, un código es una llave para crear una cuenta, y una copia de seguridad de
+ * la base no debe contener llaves utilizables. El original solo existe en el mensaje que se envía.
+ */
+export const invitation = sqliteTable(
+  'invitation',
   {
-    // Se guarda el digest SHA-256, no el nonce: durante sus minutos de vida un nonce sin
-    // reclamar es una llave de sesión, y una copia de seguridad de la base no debe contener
-    // llaves utilizables. El original solo existe en el enlace que abre el usuario.
-    nonceHash: text('nonce_hash').primaryKey(),
-    // Nulo hasta que alguien abre el enlace en Telegram: ahí se sabe de quién era.
-    userId: rowId('user_id').references(() => user.id, { onDelete: 'cascade' }),
+    codeHash: text('code_hash').primaryKey(),
+    // Quién la generó desde la app; nulo en las que se crean con el secreto de administración.
+    createdByUserId: rowId('created_by_user_id').references(() => user.id, {
+      onDelete: 'set null',
+    }),
     createdAt: isoTimestamp('created_at').notNull(),
     expiresAt: isoTimestamp('expires_at').notNull(),
-    // Se sella al canjear el nonce por el JWT, y es lo que lo convierte en un solo uso.
-    claimedAt: isoTimestamp('claimed_at'),
+    // Se sella al consumirla con un UPDATE condicionado a que siga nulo: es lo que la hace de un
+    // solo uso aunque lleguen dos registros a la vez.
+    usedAt: isoTimestamp('used_at'),
+    usedByUserId: rowId('used_by_user_id').references(() => user.id, { onDelete: 'set null' }),
   },
-  // Los nonces caducados se barren por esta columna: sin el índice, la limpieza recorrería
-  // la tabla entera y D1 cobra por filas leídas.
-  (table) => [index('login_nonce_expires_at_idx').on(table.expiresAt)],
+  // Los topes de invitaciones por usuario se cuentan por esta columna.
+  (table) => [index('invitation_created_by_idx').on(table.createdByUserId)],
+);
+
+/**
+ * Una passkey registrada. Un usuario puede tener varias: las de Apple y las de Google no se
+ * sincronizan entre sí, así que quien entra desde los dos mundos necesita una en cada uno.
+ */
+export const passkeyCredential = sqliteTable(
+  'passkey_credential',
+  {
+    // El identificador que da el autenticador, en base64url: es lo que llega al entrar.
+    id: text('id').primaryKey(),
+    userId: rowId('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    // Clave pública COSE en base64url, tal y como la extrajo la verificación del registro.
+    publicKey: text('public_key').notNull(),
+    // Contador de firmas. Las passkeys sincronizadas lo dejan siempre en cero; un autenticador
+    // que sí lo sube delata con él una llave clonada, porque el clon se quedaría atrás.
+    counter: integer('counter').notNull().default(0),
+    transports: text('transports', { mode: 'json' }).$type<string[]>(),
+    // Si la llave está copiada en la nube del móvil. Una que no lo está se pierde con el móvil.
+    backedUp: integer('backed_up', { mode: 'boolean' }).notNull(),
+    createdAt: isoTimestamp('created_at').notNull(),
+    lastUsedAt: isoTimestamp('last_used_at'),
+  },
+  (table) => [
+    index('passkey_credential_user_id_idx').on(table.userId),
+    check('passkey_credential_counter_non_negative', sql`${table.counter} >= 0`),
+  ],
+);
+
+/**
+ * El reto de una ceremonia de WebAuthn a medias. Vive minutos y se borra al leerlo: es lo que
+ * impide presentar dos veces la misma respuesta firmada.
+ */
+export const authChallenge = sqliteTable(
+  'auth_challenge',
+  {
+    id: rowId('id').primaryKey(),
+    kind: text('kind', { enum: ['registration', 'authentication'] }).notNull(),
+    // Va en claro, a diferencia del código de invitación: no es una llave, porque firmarlo exige
+    // la clave privada que solo tiene el móvil.
+    challenge: text('challenge').notNull(),
+    createdAt: isoTimestamp('created_at').notNull(),
+    expiresAt: isoTimestamp('expires_at').notNull(),
+    // Solo en el registro: la cuenta que se creará si la passkey verifica. Todavía no existe,
+    // así que no puede llevar clave ajena.
+    pendingUserId: rowId('pending_user_id'),
+    displayName: text('display_name'),
+    locale: text('locale', { enum: ['es', 'en'] }),
+    invitationHash: text('invitation_hash').references(() => invitation.codeHash, {
+      onDelete: 'cascade',
+    }),
+  },
+  (table) => [
+    // Los retos caducados se barren por esta columna desde el Cron Trigger.
+    index('auth_challenge_expires_at_idx').on(table.expiresAt),
+    check(
+      'auth_challenge_registration_complete',
+      sql`${table.kind} = 'authentication' or (${table.pendingUserId} is not null and ${table.displayName} is not null and ${table.locale} is not null and ${table.invitationHash} is not null)`,
+    ),
+  ],
 );
 
 export const catalogExercise = sqliteTable(
@@ -253,8 +317,12 @@ export const personalRecord = sqliteTable(
 
 export type UserRow = typeof user.$inferSelect;
 export type NewUserRow = typeof user.$inferInsert;
-export type LoginNonceRow = typeof loginNonce.$inferSelect;
-export type NewLoginNonceRow = typeof loginNonce.$inferInsert;
+export type InvitationRow = typeof invitation.$inferSelect;
+export type NewInvitationRow = typeof invitation.$inferInsert;
+export type PasskeyCredentialRow = typeof passkeyCredential.$inferSelect;
+export type NewPasskeyCredentialRow = typeof passkeyCredential.$inferInsert;
+export type AuthChallengeRow = typeof authChallenge.$inferSelect;
+export type NewAuthChallengeRow = typeof authChallenge.$inferInsert;
 export type CatalogExerciseRow = typeof catalogExercise.$inferSelect;
 export type NewCatalogExerciseRow = typeof catalogExercise.$inferInsert;
 export type CatalogSyncStateRow = typeof catalogSyncState.$inferSelect;

@@ -22,8 +22,7 @@ const bearer = (token: string): RequestInit => ({
 async function seedUser(db: Database): Promise<void> {
   await db.insert(user).values({
     id: USER_ID,
-    telegramUserId: 100_001,
-    firstName: 'Juan',
+    displayName: 'Juan',
     createdAt: '2026-09-01T10:00:00.000Z',
   });
 }

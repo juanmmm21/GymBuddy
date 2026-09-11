@@ -1,6 +1,14 @@
 import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { catalogExercise, setEntry, trackedExercise, user } from '../src/db/schema';
+import { eq } from 'drizzle-orm';
+import {
+  authChallenge,
+  catalogExercise,
+  passkeyCredential,
+  setEntry,
+  trackedExercise,
+  user,
+} from '../src/db/schema';
 import { seedTrainingScenario, type TrainingScenario } from './fixtures';
 
 let scenario: TrainingScenario;
@@ -122,17 +130,34 @@ describe('restricciones de tracked_exercise', () => {
   });
 });
 
-describe('restricciones de user', () => {
-  it('no deja registrar dos veces la misma cuenta de Telegram', async () => {
+describe('restricciones de identidad', () => {
+  it('no guarda un reto de registro sin la cuenta pendiente ni la invitación', async () => {
     const { db } = scenario;
 
     await expect(
-      db.insert(user).values({
+      db.insert(authChallenge).values({
         id: crypto.randomUUID(),
-        telegramUserId: 100_001,
-        firstName: 'Duplicado',
-        createdAt: '2026-09-01T10:00:00.000Z',
+        kind: 'registration',
+        challenge: 'q7s9fW2l0sTg1mD8Yb3cXw',
+        createdAt: '2026-09-11T10:00:00.000Z',
+        expiresAt: '2026-09-11T10:05:00.000Z',
       }),
     ).rejects.toThrow();
+  });
+
+  it('borra las passkeys de un usuario junto con el usuario', async () => {
+    const { db, userId } = scenario;
+
+    await db.insert(passkeyCredential).values({
+      id: 'AQIDBAUGBwg',
+      userId,
+      publicKey: 'pQECAyYgASFYIA',
+      transports: ['internal'],
+      backedUp: true,
+      createdAt: '2026-09-11T10:00:00.000Z',
+    });
+    await db.delete(user).where(eq(user.id, userId));
+
+    expect(await db.select().from(passkeyCredential)).toEqual([]);
   });
 });

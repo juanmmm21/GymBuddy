@@ -13,10 +13,7 @@ export async function findUserById(db: Database, userId: string): Promise<UserRo
 export function toUser(row: UserRow): User {
   return {
     id: row.id,
-    telegramUserId: row.telegramUserId,
-    firstName: row.firstName,
-    username: row.username,
-    photoUrl: row.photoUrl,
+    displayName: row.displayName,
     locale: row.locale,
     unitSystem: row.unitSystem,
     createdAt: row.createdAt,

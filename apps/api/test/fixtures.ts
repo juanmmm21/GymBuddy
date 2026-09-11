@@ -1,6 +1,5 @@
 import { createDatabase, type Database } from '../src/db/client';
 import {
-  loginNonce,
   personalRecord,
   routine,
   routineItem,
@@ -52,20 +51,14 @@ export async function seedTrainingScenario(binding: D1Database): Promise<Trainin
   await db.insert(user).values([
     {
       id: userId,
-      telegramUserId: 100_001,
-      firstName: 'Juan',
-      username: 'juanmmm21',
-      photoUrl: null,
+      displayName: 'Juan',
       locale: 'es',
       unitSystem: 'metric',
       createdAt: day('2026-08-01', '08:00:00'),
     },
     {
       id: otherUserId,
-      telegramUserId: 100_002,
-      firstName: 'Otra',
-      username: null,
-      photoUrl: null,
+      displayName: 'Otra',
       locale: 'en',
       unitSystem: 'metric',
       createdAt: day('2026-08-01', '09:00:00'),
@@ -179,20 +172,14 @@ export async function seedUsers(binding: D1Database): Promise<SeededUsers> {
   await db.insert(user).values([
     {
       id: userId,
-      telegramUserId: 100_001,
-      firstName: 'Juan',
-      username: 'juanmmm21',
-      photoUrl: null,
+      displayName: 'Juan',
       locale: 'es',
       unitSystem: 'metric',
       createdAt: day('2026-08-01', '08:00:00'),
     },
     {
       id: otherUserId,
-      telegramUserId: 100_002,
-      firstName: 'Otra',
-      username: null,
-      photoUrl: null,
+      displayName: 'Otra',
       locale: 'en',
       unitSystem: 'metric',
       createdAt: day('2026-08-01', '09:00:00'),
@@ -204,8 +191,8 @@ export async function seedUsers(binding: D1Database): Promise<SeededUsers> {
 
 /**
  * Vacía los datos de usuario antes de sembrar. El pool comparte la base entre los tests
- * de un mismo fichero, así que sin esto la segunda siembra choca con la clave única de
- * Telegram. El catálogo no se toca: lo llena su propia sincronización.
+ * de un mismo fichero, así que sin esto la segunda siembra arrastraría los datos de la
+ * primera. El catálogo no se toca: lo llena su propia sincronización.
  */
 export async function resetTrainingTables(db: Database): Promise<void> {
   // En orden inverso a las dependencias: D1 aplica las claves ajenas.
@@ -215,7 +202,6 @@ export async function resetTrainingTables(db: Database): Promise<void> {
   await db.delete(setEntry);
   await db.delete(workoutSession);
   await db.delete(trackedExercise);
-  await db.delete(loginNonce);
   await db.delete(user);
 }
 
