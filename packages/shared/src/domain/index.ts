@@ -32,6 +32,15 @@ export type {
   SessionTopSet,
   WorkingWeightSummary,
 } from './progression';
+export {
+  CELEBRATION_WINDOW_SECONDS,
+  MASCOT_MOODS,
+  NO_DEVICE_SIGNALS,
+  NUDGE_AFTER_DAYS,
+  SLEEPY_AFTER_DAYS,
+  mascotState,
+} from './mascot';
+export type { MascotDeviceSignals, MascotMood, MascotState, MascotTrainingSignals } from './mascot';
 export { NO_PERSONAL_RECORDS, detectPersonalRecords } from './records';
 export type { DetectedRecord, PersonalRecordBests } from './records';
 export {
