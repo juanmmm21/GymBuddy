@@ -143,6 +143,11 @@ export const motionDuration = {
   fast: 120,
   base: 200,
   slow: 320,
+  /**
+   * Un ciclo de algo que se mueve solo y sin fin, como respirar: más rápido se lee como
+   * nervio y distrae del cronómetro que tiene al lado.
+   */
+  ambient: 2400,
 } as const;
 
 export const motionEasing = {
