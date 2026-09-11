@@ -68,3 +68,16 @@ Lo que decidió es el coste de instalar, no el de desarrollar:
 **Consecuencia:** la fricción de iOS se ataca donde está, con una **pantalla de instalación guiada**
 en la propia PWA —detecta la plataforma y el navegador interno de un chat, y enseña los pasos— en
 lugar de con un segundo canal de distribución.
+
+## Revisión — 2026-09-11
+
+**El bot de Telegram se retira** y la identidad pasa a ser propia, con passkeys e invitación
+([`0005`](0005-identidad-propia-con-passkeys.md)). **La decisión se mantiene**: la PWA sigue siendo la
+superficie, y ahora la única.
+
+*   La razón 2 de arriba deja de valer tal cual —ya no hay bot que obligue a tener backend—, pero el
+    backend sigue haciendo falta por la razón 3: el mismo historial en varios móviles y para varias
+    personas no cabe en un almacenamiento local.
+*   La **Telegram Mini App** sigue descartada, y ahora con más motivo: no queda nada de Telegram.
+*   La fricción de la identidad que señalaba la revisión anterior desaparece: para entrar ya no hay
+    que instalar nada más que la propia app.

@@ -43,4 +43,13 @@ Se descarta el backend en Python (FastAPI + SQLModel + aiogram): Workers no lo e
 *   Se pierde el ecosistema Python (Pandas, NumPy) para análisis. GymBuddy no lo necesitaba: la matemática de progresión es aritmética de enteros.
 *   `Decimal` no existe en TypeScript, pero **deja de hacer falta**: los pesos se guardan como enteros de gramos y toda la aritmética es entera y exacta. Donde una fórmula produce fracción (el 1RM de Epley), se redondea a gramos de forma explícita.
 *   No hay `docker compose`: el desarrollo local es `wrangler dev`, que ejecuta el Worker y una D1 local de verdad.
+*   Se depende de un único proveedor.
+
 *   Se depende de un único proveedor. Es asumible: Drizzle habla SQLite estándar y Hono corre en Node, Bun y Deno, así que una mudanza sería cambiar el adaptador y el despliegue, no reescribir el dominio.
+
+## Revisión — 2026-09-11
+
+**grammY sale del stack** junto con el bot ([`0005`](0005-identidad-propia-con-passkeys.md)): el
+Worker ya no recibe el webhook de Telegram. Entra `@simplewebauthn/server` para verificar las
+passkeys. El resto de la decisión —Workers, D1, Pages, Hono, Drizzle y Zod, todo en TypeScript— no
+cambia.

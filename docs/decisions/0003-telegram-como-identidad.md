@@ -1,7 +1,7 @@
 # 0003 — Telegram es el sistema de identidad; se entra por enlace del bot
 
 **Fecha:** 2026-09-07
-**Estado:** aceptada
+**Estado:** sustituida el 2026-09-11 por [`0005`](0005-identidad-propia-con-passkeys.md): el bot se retira y se entra con passkeys e invitación. Se conserva como registro de por qué se empezó así.
 **Revisada** el mismo día tras la decisión [`0004`](0004-cloudflare-y-backend-typescript.md): el mecanismo pasa del Login Widget a un enlace de un solo uso del bot. La decisión de fondo —la identidad es Telegram— no cambia.
 
 ## Contexto
