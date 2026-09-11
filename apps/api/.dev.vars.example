@@ -5,7 +5,7 @@
 # Clave para firmar los JWT de sesión de la PWA. Cadena aleatoria larga.
 JWT_SECRET=""
 
-# Secreto de las rutas /api/v1/admin/*, que disparan la sincronización del catálogo.
-# Sin él configurado esas rutas responden 404: una sincronización abierta al mundo
-# permitiría agotar las 100.000 escrituras diarias de D1.
+# Secreto de las rutas /api/v1/admin/*, que disparan la sincronización del catálogo y crean
+# invitaciones (así se registra la primera cuenta). Sin él configurado esas rutas responden
+# 404: abiertas al mundo permitirían agotar las 100.000 escrituras diarias de D1.
 ADMIN_TOKEN=""

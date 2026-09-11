@@ -1,5 +1,7 @@
+import type { Invitation } from '@gymbuddy/shared';
 import { Hono } from 'hono';
 import { z } from 'zod';
+import { issueInvitation } from '../../auth/invitations';
 import { CatalogSourceError } from '../../catalog/client';
 import {
   readCatalogSyncStatus,
@@ -55,12 +57,28 @@ export const adminRoute = new Hono<{ Bindings: Env }>()
     }
 
     return c.json(status);
+  })
+
+  /**
+   * Crea una invitación para registrarse. Es como entra la primera cuenta, que no tiene a
+   * nadie que la invite. El código solo viaja en esta respuesta: en la base queda su digest.
+   */
+  .post('/admin/invitations', async (c) => {
+    await assertAdmin(c.req.header(ADMIN_TOKEN_HEADER), readSecret(c.env, 'ADMIN_TOKEN'));
+
+    const created: Invitation = await issueInvitation(createDatabase(c.env.DB), {
+      createdByUserId: null,
+      now: new Date(),
+    });
+
+    return c.json(created, 201);
   });
 
 /**
  * Protege las rutas de administración con un secreto propio. Sin él configurado responden
- * `not_found`: dejar abierta la sincronización permitiría que cualquiera consumiese las
- * 100.000 escrituras diarias de D1, y un olvido de configuración no puede abrir el agujero.
+ * `not_found`: dejar abiertas la sincronización o las invitaciones permitiría que cualquiera
+ * consumiese las 100.000 escrituras diarias de D1, y un olvido de configuración no puede abrir
+ * el agujero.
  * Los usuarios no tienen roles: administrar es de quien tiene este secreto.
  */
 async function assertAdmin(
