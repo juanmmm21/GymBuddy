@@ -38,6 +38,7 @@ export {
   NO_DEVICE_SIGNALS,
   NUDGE_AFTER_DAYS,
   SLEEPY_AFTER_DAYS,
+  STALE_SESSION_HOURS,
   mascotState,
 } from './mascot';
 export type { MascotDeviceSignals, MascotMood, MascotState, MascotTrainingSignals } from './mascot';

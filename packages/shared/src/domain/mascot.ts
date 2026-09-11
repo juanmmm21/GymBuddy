@@ -11,6 +11,7 @@
 import { daysSinceLastSession } from './signals';
 
 const MILLISECONDS_PER_SECOND = 1000;
+const SECONDS_PER_HOUR = 3600;
 
 /**
  * Lo que dura la celebración de una marca. Es el rato de dejar la barra y mirar el móvil:
@@ -28,6 +29,14 @@ export const NUDGE_AFTER_DAYS = 4;
 
 /** Una semana entera sin aparecer: la mascota se ha dormido esperando. */
 export const SLEEPY_AFTER_DAYS = 7;
+
+/**
+ * Horas sin actividad a partir de las cuales una sesión abierta ya no es «estar en el
+ * gimnasio», sino una sesión que se quedó sin cerrar. Una sesión real no pasa de tres
+ * horas; con el doble de margen, una tarde larga no salta, y una sesión de la mañana que
+ * sigue abierta por la noche ya es otro entrenamiento.
+ */
+export const STALE_SESSION_HOURS = 6;
 
 /** Los seis estados. El orden en el que se resuelven cuando coinciden está en `RULES`. */
 export const MASCOT_MOODS = [
@@ -79,6 +88,12 @@ export type MascotState =
   | { readonly mood: 'resting'; readonly remainingSeconds: number }
   | { readonly mood: 'cheering'; readonly reason: 'session_started' | 'rest_over' }
   | { readonly mood: 'sleepy'; readonly daysSinceLastSession: number }
+  | {
+      readonly mood: 'nudging';
+      readonly reason: 'forgotten_session';
+      /** Cuándo se abrió la sesión que sigue sin cerrar. */
+      readonly openedAt: string;
+    }
   | {
       readonly mood: 'nudging';
       readonly reason: 'absence';
@@ -147,11 +162,44 @@ const resting: MascotRule = ({ signals, device, now }) => {
   return remainingSeconds > 0 ? { mood: 'resting', remainingSeconds } : null;
 };
 
+/**
+ * Una sesión abierta que lleva `STALE_SESSION_HOURS` sin moverse. La actividad es lo último
+ * que se sabe de ella: su comienzo —con una sola sesión abierta a la vez, `lastSessionAt` es
+ * el de la abierta— o la última serie, si la pantalla la conoce. Sin ninguna fecha legible
+ * no se puede decir que esté olvidada, y se sigue tratando como abierta.
+ *
+ * El Worker no la cierra solo a propósito: una hora de cierre inventada sería un dato falso
+ * en el historial, y la cola offline podría llegar después con series para ella.
+ */
+function isStaleOpenSession({ signals, device, now }: MascotContext): boolean {
+  if (signals.activeSessionId === null) return false;
+
+  const activity = [signals.lastSessionAt, device.rest?.lastSetAt ?? null]
+    .map((iso) => (iso === null ? Number.NaN : Date.parse(iso)))
+    .filter((timestamp) => !Number.isNaN(timestamp));
+  if (activity.length === 0) return false;
+
+  const idleMilliseconds = now.getTime() - Math.max(...activity);
+  return idleMilliseconds >= STALE_SESSION_HOURS * SECONDS_PER_HOUR * MILLISECONDS_PER_SECOND;
+}
+
 /** En el gimnasio y sin descansar: la primera serie o la siguiente, toca animar. */
-const cheering: MascotRule = ({ signals, device }) => {
-  if (signals.activeSessionId === null) return null;
+const cheering: MascotRule = (context) => {
+  const { signals, device } = context;
+  if (signals.activeSessionId === null || isStaleOpenSession(context)) return null;
 
   return { mood: 'cheering', reason: device.rest === null ? 'session_started' : 'rest_over' };
+};
+
+/**
+ * La sesión que se quedó abierta. Va antes que el sueño y la ausencia porque es lo único que
+ * se arregla de un toque, y mientras siga abierta la sesión siguiente no se puede empezar.
+ */
+const forgottenSession: MascotRule = (context) => {
+  const { lastSessionAt } = context.signals;
+  if (lastSessionAt === null || !isStaleOpenSession(context)) return null;
+
+  return { mood: 'nudging', reason: 'forgotten_session', openedAt: lastSessionAt };
 };
 
 const sleepy: MascotRule = ({ signals, now }) => {
@@ -189,14 +237,24 @@ const nudging: MascotRule = ({ signals, now }) => {
  * 1. `celebrating` — una marca recién batida. Dura un minuto: si perdiera contra otro
  *    estado, no llegaría a verse nunca.
  * 2. `resting` — sesión abierta y descanso sin cumplir.
- * 3. `cheering` — sesión abierta sin descanso pendiente. Con la sesión abierta se está en
- *    el gimnasio, así que nada de lo que sigue (ausencia, estancamiento) viene a cuento.
- * 4. `sleepy` — una semana o más sin entrenar. Gana a `nudging` por el mismo motivo por el
- *    que la ausencia gana al estancamiento: primero hay que volver.
- * 5. `nudging` — días sin venir o ejercicios estancados, por ese orden.
- * 6. `idle` — lo que queda: no hay nada que decir, o todavía no ha entrenado nunca.
+ * 3. `cheering` — sesión abierta, con actividad reciente y sin descanso pendiente. Con la
+ *    sesión abierta se está en el gimnasio, así que la ausencia o el estancamiento no vienen
+ *    a cuento.
+ * 4. `nudging` por `forgotten_session` — sesión abierta sin actividad desde hace
+ *    `STALE_SESSION_HOURS`: no se está en el gimnasio, se olvidó cerrarla.
+ * 5. `sleepy` — una semana o más sin entrenar. Gana a la ausencia por el mismo motivo por
+ *    el que la ausencia gana al estancamiento: primero hay que volver.
+ * 6. `nudging` — días sin venir o ejercicios estancados, por ese orden.
+ * 7. `idle` — lo que queda: no hay nada que decir, o todavía no ha entrenado nunca.
  */
-const RULES: readonly MascotRule[] = [celebrating, resting, cheering, sleepy, nudging];
+const RULES: readonly MascotRule[] = [
+  celebrating,
+  resting,
+  cheering,
+  forgottenSession,
+  sleepy,
+  nudging,
+];
 
 /**
  * El estado de la mascota en el instante `now`. Quien entrena por primera vez queda en
