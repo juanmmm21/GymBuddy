@@ -23,13 +23,13 @@ import styles from './HomeScreen.module.css';
 export function HomeScreen() {
   const { session, signOut } = useSession();
   const signals = useTrainingSignals();
-  const firstName = session?.user.firstName ?? '';
+  const displayName = session?.user.displayName ?? '';
   const locale = session?.user.locale ?? 'es';
 
   return (
     <>
       <ScreenHeader
-        title={`Hola, ${firstName}`}
+        title={`Hola, ${displayName}`}
         action={
           <Button variant="ghost" onClick={signOut}>
             Salir

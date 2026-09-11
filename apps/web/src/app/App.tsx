@@ -3,6 +3,11 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { RouterProvider, type createMemoryRouter } from 'react-router';
 import { ApiClient } from '../api/client';
 import { ApiClientProvider } from '../api/provider';
+import { AuthenticatorProvider } from '../auth/AuthenticatorProvider';
+import {
+  browserPasskeyAuthenticator,
+  type PasskeyAuthenticator,
+} from '../auth/passkey-authenticator';
 import { SessionProvider, useSession } from '../auth/SessionProvider';
 import type { StorageLike } from '../lib/storage';
 import { createAppRouter } from './router';
@@ -14,12 +19,20 @@ export interface AppProps {
   /** Los tests inyectan un router en memoria y un `fetch` falso; la app usa los reales. */
   readonly router?: ReturnType<typeof createMemoryRouter>;
   readonly fetchImpl?: typeof fetch;
+  /** Igual con las passkeys: jsdom no tiene WebAuthn. */
+  readonly authenticator?: PasskeyAuthenticator;
 }
 
 /** Medio minuto sin volver a pedir lo mismo: entre pantalla y pantalla no cambia nada. */
 const STALE_TIME_MS = 30_000;
 
-export function App({ apiBaseUrl, storage, router, fetchImpl }: AppProps) {
+export function App({
+  apiBaseUrl,
+  storage,
+  router,
+  fetchImpl,
+  authenticator = browserPasskeyAuthenticator,
+}: AppProps) {
   const [queryClient] = useState(
     () => new QueryClient({ defaultOptions: { queries: { staleTime: STALE_TIME_MS } } }),
   );
@@ -30,7 +43,9 @@ export function App({ apiBaseUrl, storage, router, fetchImpl }: AppProps) {
       <StorageProvider storage={storage}>
         <SessionProvider storage={storage}>
           <ApiBoundary apiBaseUrl={apiBaseUrl} fetchImpl={fetchImpl} queryClient={queryClient}>
-            <RouterProvider router={appRouter} />
+            <AuthenticatorProvider authenticator={authenticator}>
+              <RouterProvider router={appRouter} />
+            </AuthenticatorProvider>
           </ApiBoundary>
         </SessionProvider>
       </StorageProvider>

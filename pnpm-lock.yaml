@@ -170,6 +170,9 @@ importers:
       '@gymbuddy/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@simplewebauthn/browser':
+        specifier: 14.0.0
+        version: 14.0.0
       '@tanstack/react-query':
         specifier: ^5.102.8
         version: 5.102.8(react@19.2.8)
@@ -1981,6 +1984,9 @@ packages:
     resolution: {integrity: sha512-at8QVep6S3h5Y6gSbdGU06bRY5WJkf6WUduM9YtvYMbYhB1MOFfUgc6kehitQXzOtMSaT70q7f9ydPhpqu821w==}
     cpu: [x64]
     os: [win32]
+
+  '@simplewebauthn/browser@14.0.0':
+    resolution: {integrity: sha512-1odWVqeEBTl7lJ9zMKLEsmTlnyrDO5iRcTvfMKKk1WThUnp/i8JJdffdj2icP+tty159s4PgwE3BiMoEW9NFow==}
 
   '@simplewebauthn/server@14.0.1':
     resolution: {integrity: sha512-kjWgcm9NdSv+Tobo4Swxd1WnEawsBogpYFMjg9pKsVLPN3FdCmR6BipkL+DcPDgmQ7UKbbBZqRqn3E3YaA7NBw==}
@@ -5451,6 +5457,8 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.63.1':
     optional: true
+
+  '@simplewebauthn/browser@14.0.0': {}
 
   '@simplewebauthn/server@14.0.1':
     dependencies:

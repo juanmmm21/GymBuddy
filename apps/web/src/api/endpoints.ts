@@ -4,13 +4,14 @@ import {
   catalogExercisePageSchema,
   catalogExerciseSchema,
   catalogExerciseSummarySchema,
-  claimSessionResponseSchema,
   exerciseHistorySchema,
   exerciseStatsSchema,
-  loginNonceSchema,
+  loginOptionsResponseSchema,
   logSetResponseSchema,
   noContentSchema,
+  registrationOptionsResponseSchema,
   routineSchema,
+  sessionSchema,
   trackedExerciseSchema,
   trainingSignalsSchema,
   userSchema,
@@ -24,19 +25,22 @@ import {
   type CatalogExercise,
   type CatalogExercisePage,
   type CatalogExerciseSummary,
-  type ClaimSessionRequest,
-  type ClaimSessionResponse,
   type CreateRoutineRequest,
   type CreateTrackedExerciseRequest,
   type EndSessionRequest,
   type ExerciseHistory,
   type ExerciseStats,
   type Locale,
-  type LoginNonce,
+  type LoginOptionsResponse,
+  type LoginVerifyRequest,
   type LogSetRequest,
   type LogSetResponse,
   type Muscle,
+  type RegistrationOptionsRequest,
+  type RegistrationOptionsResponse,
+  type RegistrationVerifyRequest,
   type Routine,
+  type Session,
   type StartSessionRequest,
   type UpdateRoutineRequest,
   type UpdateSetRequest,
@@ -62,18 +66,47 @@ const routineListSchema = z.array(routineSchema);
 const bodyPartListSchema = z.array(bodyPartSummarySchema);
 const catalogSummaryListSchema = z.array(catalogExerciseSummarySchema);
 
-export function requestLoginNonce(client: ApiClient): Promise<LoginNonce> {
-  return client.request({ method: 'POST', path: '/auth/nonce', schema: loginNonceSchema });
-}
-
-export function claimSession(
+/** Registro, paso 1. La invitación se comprueba, pero no se gasta hasta el paso 2. */
+export function requestRegistrationOptions(
   client: ApiClient,
-  body: ClaimSessionRequest,
-): Promise<ClaimSessionResponse> {
+  body: RegistrationOptionsRequest,
+): Promise<RegistrationOptionsResponse> {
   return client.request({
     method: 'POST',
-    path: '/auth/claim',
-    schema: claimSessionResponseSchema,
+    path: '/auth/registration/options',
+    schema: registrationOptionsResponseSchema,
+    body,
+  });
+}
+
+/** Registro, paso 2: la llave recién creada a cambio de la cuenta y su sesión. */
+export function verifyRegistration(
+  client: ApiClient,
+  body: RegistrationVerifyRequest,
+): Promise<Session> {
+  return client.request({
+    method: 'POST',
+    path: '/auth/registration/verify',
+    schema: sessionSchema,
+    body,
+  });
+}
+
+/** Entrada, paso 1. Sin cuerpo: quién entra lo dice la llave, no la petición. */
+export function requestLoginOptions(client: ApiClient): Promise<LoginOptionsResponse> {
+  return client.request({
+    method: 'POST',
+    path: '/auth/login/options',
+    schema: loginOptionsResponseSchema,
+  });
+}
+
+/** Entrada, paso 2: la firma del móvil a cambio de la sesión. */
+export function verifyLogin(client: ApiClient, body: LoginVerifyRequest): Promise<Session> {
+  return client.request({
+    method: 'POST',
+    path: '/auth/login/verify',
+    schema: sessionSchema,
     body,
   });
 }

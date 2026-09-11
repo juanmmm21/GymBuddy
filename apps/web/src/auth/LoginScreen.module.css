@@ -34,7 +34,25 @@
 .card {
   display: flex;
   flex-direction: column;
+  gap: var(--gb-space-xl);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
   gap: var(--gb-space-lg);
+}
+
+.section + .section {
+  padding-top: var(--gb-space-xl);
+  border-top: var(--gb-size-border-width) solid var(--gb-color-border);
+}
+
+.heading {
+  color: var(--gb-color-text);
+  font-size: var(--gb-type-title-size);
+  font-weight: var(--gb-type-title-weight);
+  line-height: var(--gb-type-title-line);
 }
 
 .explain {
@@ -42,35 +60,11 @@
   line-height: var(--gb-type-body-line);
 }
 
-.waiting {
+.steps {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  gap: var(--gb-space-lg);
-}
-
-.telegramLink {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: var(--gb-size-touch-target);
-  border-radius: var(--gb-radius-md);
-  background: var(--gb-color-accent);
-  color: var(--gb-color-on-accent);
-  font-size: var(--gb-type-title-size);
-  font-weight: var(--gb-type-title-weight);
-  text-decoration: none;
-  transition: background-color var(--gb-duration-fast) var(--gb-ease-standard);
-}
-
-.telegramLink:hover {
-  background: var(--gb-color-accent-strong);
-}
-
-.pending {
-  display: flex;
-  align-items: center;
-  gap: var(--gb-space-sm);
-  color: var(--gb-color-text-muted);
-  font-size: var(--gb-type-caption-size);
+  gap: var(--gb-space-xs);
+  padding-left: var(--gb-space-xl);
+  color: var(--gb-color-text-secondary);
+  line-height: var(--gb-type-body-line);
 }
