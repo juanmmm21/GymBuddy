@@ -3,11 +3,13 @@ import {
   logSetRequestSchema,
   parseKilogramsToGrams,
   roundGramsToApiPrecision,
+  rpeToTenths,
 } from '@gymbuddy/shared';
 import { normalizeSearchText } from '../catalog/snapshot';
 
 /**
- * Una serie tal y como la teclea alguien entre series: `banca 80x8`, `press militar 40 x 10`.
+ * Una serie tal y como la teclea alguien entre series: `banca 80x8`, `press militar 40 x 10`,
+ * `sentadilla 100x5 rpe8`, `cal banca 40x10`.
  * El parser no sabe nada de ejercicios seguidos ni del catálogo: devuelve el nombre escrito y
  * los números ya validados, y resolver ese nombre contra los ejercicios del usuario es cosa
  * del handler. Así la gramática se prueba entera sin base de datos.
@@ -19,6 +21,9 @@ export interface ParsedSet {
   readonly exerciseQuery: string;
   readonly weightGrams: number;
   readonly reps: number;
+  /** En décimas, como `set_entry.rpe_tenths`: 85 es RPE 8,5. */
+  readonly rpeTenths: number | null;
+  readonly isWarmup: boolean;
 }
 
 /**
@@ -35,7 +40,9 @@ export type SetParseFailure =
   | { readonly reason: 'multiple_sets' }
   | { readonly reason: 'invalid_weight'; readonly text: string }
   | { readonly reason: 'invalid_reps'; readonly text: string }
-  /** Texto que sobra alrededor de la serie y que no se sabe leer. */
+  /** Fuera de 1 a 10, sin paso de media unidad o sin número: `rpe 11`, `rpe 8,3`, `rpe`. */
+  | { readonly reason: 'invalid_rpe'; readonly text: string }
+  /** Texto que sobra alrededor de la serie y que no es un RPE ni una marca de calentamiento. */
   | { readonly reason: 'unexpected_text'; readonly text: string };
 
 export type SetMessageParse =
@@ -67,13 +74,27 @@ const SET_BLOCK = new RegExp(
 );
 
 /**
- * Un peso con su unidad que se queda en el nombre. Pasa con `banca 60kg 3x10`, que es la
- * notación de series × repeticiones: sin esta comprobación se registrarían 3 kg × 10 en un
- * ejercicio llamado «banca 60kg». Mejor rechazarlo que guardar un dato falso.
+ * Datos de la serie que se quedan en el nombre. Un peso con su unidad pasa con
+ * `banca 60kg 3x10`, que es la notación de series × repeticiones: sin esta comprobación se
+ * registrarían 3 kg × 10 en un ejercicio llamado «banca 60kg». Un RPE delante de la serie
+ * acabaría igual dentro del nombre. Mejor rechazarlo que guardar un dato falso.
  */
-const STRAY_WEIGHT = new RegExp(String.raw`(?<![\p{L}\p{N}])${NUMBER}\s*${UNIT}(?!\p{L})`, 'iu');
+const STRAY_SET_DATA = new RegExp(
+  String.raw`(?<![\p{L}\p{N}])(?:${NUMBER}\s*${UNIT}(?!\p{L})|(?:rpe|@)\s*${NUMBER})`,
+  'iu',
+);
 
-const TRAILING_PUNCTUATION = /[.!?¡¿]+$/u;
+/** `rpe8`, `rpe8,5` y `@8` en una palabra; `rpe 8` llega en dos y se junta al leerlo. */
+const RPE_WORD = new RegExp(String.raw`^(?:rpe|@)(?<value>${NUMBER})?$`, 'iu');
+const RPE_VALUE = new RegExp(String.raw`^${NUMBER}$`, 'u');
+
+/**
+ * La marca de calentamiento es una palabra suelta, delante o detrás de la serie. Va por
+ * palabra entera para que un nombre que la contenga («calf raise») no se lea como tal.
+ */
+const WARMUP_WORD = /^(?:cal|calent|calentamiento|warm-?up)$/iu;
+
+const TRAILING_PUNCTUATION = /[.!?]+$/u;
 const EDGE_PUNCTUATION = /^[\s:;,.\-–—]+|[\s:;,.\-–—]+$/gu;
 
 export function parseSetMessage(text: string): SetMessageParse {
@@ -94,10 +115,8 @@ export function parseSetMessage(text: string): SetMessageParse {
   const reps = parseReps(numbers.reps);
   if (reps === null) return rejected({ reason: 'invalid_reps', text: numbers.reps });
 
-  const trailing = message.slice(block.index + block[0].length).replace(EDGE_PUNCTUATION, '');
-  if (trailing !== '') {
-    return rejected({ reason: 'unexpected_text', text: firstWord(trailing) });
-  }
+  const modifiers = parseModifiers(message.slice(block.index + block[0].length));
+  if (!modifiers.ok) return { kind: 'rejected', failure: modifiers.failure };
 
   // El nombre se comprueba lo último: con los números ya válidos, un `80x8` sin ejercicio es
   // exactamente «faltó el nombre», que es lo que el handler puede querer tratar aparte.
@@ -106,7 +125,14 @@ export function parseSetMessage(text: string): SetMessageParse {
 
   return {
     kind: 'set',
-    set: { exerciseText: name.value.text, exerciseQuery: name.value.query, weightGrams, reps },
+    set: {
+      exerciseText: name.value.text,
+      exerciseQuery: name.value.query,
+      weightGrams,
+      reps,
+      rpeTenths: modifiers.value.rpeTenths,
+      isWarmup: name.value.isWarmup || modifiers.value.isWarmup,
+    },
   };
 }
 
@@ -152,15 +178,74 @@ function parseReps(text: string): number | null {
   return logSetRequestSchema.shape.reps.safeParse(reps).success ? reps : null;
 }
 
+/**
+ * `rpeToTenths` es la misma regla que el `CHECK` de `set_entry`: de 1 a 10 en pasos de media
+ * unidad. Pasar por `Number` es seguro aquí porque rechaza todo lo que no sea un medio punto
+ * exacto, así que ningún residuo de coma flotante llega a guardarse.
+ */
+function parseRpeTenths(text: string): number | null {
+  try {
+    return rpeToTenths(Number(text.replace(',', '.')));
+  } catch (error) {
+    if (error instanceof RangeError) return null;
+    throw error;
+  }
+}
+
+interface Modifiers {
+  readonly rpeTenths: number | null;
+  readonly isWarmup: boolean;
+}
+
+/** Lo que va tras la serie: un RPE como mucho y la marca de calentamiento, en cualquier orden. */
+function parseModifiers(trailing: string): Step<Modifiers> {
+  const pending = trailing
+    .split(' ')
+    .map(trimPunctuation)
+    .filter((word) => word !== '');
+  let rpeTenths: number | null = null;
+  let isWarmup = false;
+
+  for (let word = pending.shift(); word !== undefined; word = pending.shift()) {
+    if (WARMUP_WORD.test(word)) {
+      isWarmup = true;
+      continue;
+    }
+
+    const rpe = RPE_WORD.exec(word);
+    if (rpe === null || rpeTenths !== null) {
+      return { ok: false, failure: { reason: 'unexpected_text', text: word } };
+    }
+
+    let value = rpe.groups?.value;
+    let text = word;
+    const next = pending[0];
+    if (value === undefined && next !== undefined && RPE_VALUE.test(next)) {
+      value = next;
+      text = `${word} ${next}`;
+      pending.shift();
+    }
+
+    const tenths = value === undefined ? null : parseRpeTenths(value);
+    if (tenths === null) return { ok: false, failure: { reason: 'invalid_rpe', text } };
+    rpeTenths = tenths;
+  }
+
+  return { ok: true, value: { rpeTenths, isWarmup } };
+}
+
 interface ExerciseName {
   readonly text: string;
   readonly query: string;
+  readonly isWarmup: boolean;
 }
 
 function parseExerciseName(namePart: string): Step<ExerciseName> {
-  const text = namePart.replace(EDGE_PUNCTUATION, '');
+  const words = namePart.split(' ');
+  const kept = words.filter((word) => !WARMUP_WORD.test(trimPunctuation(word)));
+  const text = trimPunctuation(kept.join(' '));
 
-  const stray = STRAY_WEIGHT.exec(text);
+  const stray = STRAY_SET_DATA.exec(text);
   if (stray !== null) {
     return { ok: false, failure: { reason: 'unexpected_text', text: stray[0] } };
   }
@@ -168,11 +253,11 @@ function parseExerciseName(namePart: string): Step<ExerciseName> {
   const query = normalizeSearchText(text);
   if (query === '') return { ok: false, failure: { reason: 'missing_exercise' } };
 
-  return { ok: true, value: { text, query } };
+  return { ok: true, value: { text, query, isWarmup: kept.length !== words.length } };
 }
 
-function firstWord(text: string): string {
-  return text.split(' ')[0] ?? text;
+function trimPunctuation(text: string): string {
+  return text.replace(EDGE_PUNCTUATION, '');
 }
 
 function rejected(failure: SetParseFailure): SetMessageParse {
