@@ -9,16 +9,18 @@ import { normalizeSearchText } from '../catalog/snapshot';
 
 /**
  * Una serie tal y como la teclea alguien entre series: `banca 80x8`, `press militar 40 x 10`,
- * `sentadilla 100x5 rpe8`, `cal banca 40x10`.
+ * `sentadilla 100x5 rpe8`, `cal banca 40x10`, o solo `80x8` para repetir ejercicio.
  * El parser no sabe nada de ejercicios seguidos ni del catálogo: devuelve el nombre escrito y
  * los números ya validados, y resolver ese nombre contra los ejercicios del usuario es cosa
  * del handler. Así la gramática se prueba entera sin base de datos.
  */
 export interface ParsedSet {
-  /** El nombre como se escribió, sin espacios de sobra: para contestar con sus palabras. */
-  readonly exerciseText: string;
-  /** El mismo nombre normalizado igual que `search_text` (minúsculas, sin acentos): para buscar. */
-  readonly exerciseQuery: string;
+  /**
+   * Nulo en `80x8`: sin nombre, la serie es del último ejercicio de la sesión abierta. Lo
+   * decidió Juan, y por eso no es un rechazo sino una serie a la que le toca al handler
+   * poner ejercicio.
+   */
+  readonly exercise: ParsedExerciseName | null;
   readonly weightGrams: number;
   readonly reps: number;
   /** En décimas, como `set_entry.rpe_tenths`: 85 es RPE 8,5. */
@@ -30,12 +32,18 @@ export interface ParsedSet {
  * Por qué un mensaje no es una serie. Cada motivo existe para poder contestar algo útil: no
  * es lo mismo un «hola» que un `banca 80` al que le faltan las repeticiones.
  */
+export interface ParsedExerciseName {
+  /** El nombre como se escribió, sin espacios de sobra: para contestar con sus palabras. */
+  readonly text: string;
+  /** El mismo nombre normalizado igual que `search_text` (minúsculas, sin acentos): para buscar. */
+  readonly query: string;
+}
+
 export type SetParseFailure =
   /** Ni una cifra: es conversación, no un intento de serie. */
   | { readonly reason: 'not_a_set' }
   /** Hay números, pero no la forma peso × repeticiones: `banca 80`, `banca 80 8`. */
   | { readonly reason: 'incomplete_set' }
-  | { readonly reason: 'missing_exercise' }
   /** Más de un bloque peso × repeticiones: el bot registra una serie por mensaje. */
   | { readonly reason: 'multiple_sets' }
   | { readonly reason: 'invalid_weight'; readonly text: string }
@@ -118,16 +126,13 @@ export function parseSetMessage(text: string): SetMessageParse {
   const modifiers = parseModifiers(message.slice(block.index + block[0].length));
   if (!modifiers.ok) return { kind: 'rejected', failure: modifiers.failure };
 
-  // El nombre se comprueba lo último: con los números ya válidos, un `80x8` sin ejercicio es
-  // exactamente «faltó el nombre», que es lo que el handler puede querer tratar aparte.
   const name = parseExerciseName(message.slice(0, block.index));
   if (!name.ok) return { kind: 'rejected', failure: name.failure };
 
   return {
     kind: 'set',
     set: {
-      exerciseText: name.value.text,
-      exerciseQuery: name.value.query,
+      exercise: name.value.exercise,
       weightGrams,
       reps,
       rpeTenths: modifiers.value.rpeTenths,
@@ -235,8 +240,7 @@ function parseModifiers(trailing: string): Step<Modifiers> {
 }
 
 interface ExerciseName {
-  readonly text: string;
-  readonly query: string;
+  readonly exercise: ParsedExerciseName | null;
   readonly isWarmup: boolean;
 }
 
@@ -250,10 +254,11 @@ function parseExerciseName(namePart: string): Step<ExerciseName> {
     return { ok: false, failure: { reason: 'unexpected_text', text: stray[0] } };
   }
 
+  // Un nombre que se queda en nada al normalizar (`- 80x8`) es lo mismo que no escribirlo.
   const query = normalizeSearchText(text);
-  if (query === '') return { ok: false, failure: { reason: 'missing_exercise' } };
+  const exercise = query === '' ? null : { text, query };
 
-  return { ok: true, value: { text, query, isWarmup: kept.length !== words.length } };
+  return { ok: true, value: { exercise, isWarmup: kept.length !== words.length } };
 }
 
 function trimPunctuation(text: string): string {

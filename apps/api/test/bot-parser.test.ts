@@ -25,8 +25,7 @@ function failure(text: string): SetParseFailure {
 describe('parseSetMessage: la gramática corta', () => {
   it('lee `banca 80x8`', () => {
     expect(parsedSet('banca 80x8')).toEqual({
-      exerciseText: 'banca',
-      exerciseQuery: 'banca',
+      exercise: { text: 'banca', query: 'banca' },
       weightGrams: 80_000,
       reps: 8,
       rpeTenths: null,
@@ -36,8 +35,7 @@ describe('parseSetMessage: la gramática corta', () => {
 
   it('lee `sentadilla 100x5 rpe8`', () => {
     expect(parsedSet('sentadilla 100x5 rpe8')).toEqual({
-      exerciseText: 'sentadilla',
-      exerciseQuery: 'sentadilla',
+      exercise: { text: 'sentadilla', query: 'sentadilla' },
       weightGrams: 100_000,
       reps: 5,
       rpeTenths: 80,
@@ -47,8 +45,7 @@ describe('parseSetMessage: la gramática corta', () => {
 
   it('lee un nombre de varias palabras con espacios alrededor del separador', () => {
     expect(parsedSet('press militar 40 x 10')).toMatchObject({
-      exerciseText: 'press militar',
-      exerciseQuery: 'press militar',
+      exercise: { text: 'press militar', query: 'press militar' },
       weightGrams: 40_000,
       reps: 10,
     });
@@ -63,7 +60,7 @@ describe('parseSetMessage: la gramática corta', () => {
 
   it('acepta «por», que es lo que escribe el dictado del móvil', () => {
     expect(parsedSet('banca 80 por 8')).toMatchObject({
-      exerciseText: 'banca',
+      exercise: { text: 'banca' },
       weightGrams: 80_000,
       reps: 8,
     });
@@ -71,7 +68,7 @@ describe('parseSetMessage: la gramática corta', () => {
 
   it('no confunde un «por» del nombre con el separador', () => {
     expect(parsedSet('press por detrás 30x10')).toMatchObject({
-      exerciseText: 'press por detrás',
+      exercise: { text: 'press por detrás' },
       weightGrams: 30_000,
       reps: 10,
     });
@@ -97,7 +94,11 @@ describe('parseSetMessage: el peso', () => {
     'banca 80kgs x 8',
     'banca 80 kilos por 8',
   ])('acepta la unidad pegada o suelta en «%s»', (text) => {
-    expect(parsedSet(text)).toMatchObject({ exerciseText: 'banca', weightGrams: 80_000, reps: 8 });
+    expect(parsedSet(text)).toMatchObject({
+      exercise: { text: 'banca' },
+      weightGrams: 80_000,
+      reps: 8,
+    });
   });
 
   it.each(['banca 8x80kg', 'banca 80x8kg', 'banca 80x8 kg', 'banca 80kg x 8kg'])(
@@ -114,8 +115,7 @@ describe('parseSetMessage: el peso', () => {
 
   it('sin peso es peso corporal: `dominadas x10` son 0 g', () => {
     expect(parsedSet('dominadas x10')).toEqual({
-      exerciseText: 'dominadas',
-      exerciseQuery: 'dominadas',
+      exercise: { text: 'dominadas', query: 'dominadas' },
       weightGrams: 0,
       reps: 10,
       rpeTenths: null,
@@ -200,8 +200,7 @@ describe('parseSetMessage: el calentamiento', () => {
     'Calentamiento: sentadilla 60x10',
   ])('«%s» es calentamiento', (text) => {
     expect(parsedSet(text)).toMatchObject({
-      exerciseText: 'sentadilla',
-      exerciseQuery: 'sentadilla',
+      exercise: { text: 'sentadilla', query: 'sentadilla' },
       weightGrams: 60_000,
       reps: 10,
       isWarmup: true,
@@ -218,7 +217,7 @@ describe('parseSetMessage: el calentamiento', () => {
 
   it('no lee como calentamiento una palabra que solo empieza igual', () => {
     expect(parsedSet('calf raise 40x15')).toMatchObject({
-      exerciseText: 'calf raise',
+      exercise: { text: 'calf raise' },
       isWarmup: false,
     });
     expect(failure('sentadilla 60x10 calentando')).toEqual({
@@ -228,26 +227,23 @@ describe('parseSetMessage: el calentamiento', () => {
   });
 
   it('una marca de calentamiento sola no es un ejercicio', () => {
-    expect(failure('cal 60x10')).toEqual({ reason: 'missing_exercise' });
+    expect(parsedSet('cal 60x10')).toMatchObject({ exercise: null, isWarmup: true });
   });
 });
 
 describe('parseSetMessage: el nombre', () => {
   it('conserva cómo se escribió y normaliza la consulta como `search_text`', () => {
     expect(parsedSet('Press de Banca Inclinado 60x8')).toMatchObject({
-      exerciseText: 'Press de Banca Inclinado',
-      exerciseQuery: 'press de banca inclinado',
+      exercise: { text: 'Press de Banca Inclinado', query: 'press de banca inclinado' },
     });
     expect(parsedSet('Elevación de TALÓN 50x15')).toMatchObject({
-      exerciseText: 'Elevación de TALÓN',
-      exerciseQuery: 'elevacion de talon',
+      exercise: { text: 'Elevación de TALÓN', query: 'elevacion de talon' },
     });
   });
 
   it('quita espacios de sobra, saltos de línea y la puntuación de los bordes', () => {
     expect(parsedSet('  press   militar:\n40x10.  ')).toMatchObject({
-      exerciseText: 'press militar',
-      exerciseQuery: 'press militar',
+      exercise: { text: 'press militar', query: 'press militar' },
       weightGrams: 40_000,
       reps: 10,
     });
@@ -255,13 +251,12 @@ describe('parseSetMessage: el nombre', () => {
 
   it('admite cifras dentro del nombre: se queda con el último bloque', () => {
     expect(parsedSet('prensa 45 grados 120x10')).toMatchObject({
-      exerciseText: 'prensa 45 grados',
-      exerciseQuery: 'prensa 45 grados',
+      exercise: { text: 'prensa 45 grados', query: 'prensa 45 grados' },
       weightGrams: 120_000,
       reps: 10,
     });
     expect(parsedSet('sentadilla a 1 pierna x8')).toMatchObject({
-      exerciseText: 'sentadilla a 1 pierna',
+      exercise: { text: 'sentadilla a 1 pierna' },
       weightGrams: 0,
       reps: 8,
     });
@@ -269,15 +264,22 @@ describe('parseSetMessage: el nombre', () => {
 
   it('una unidad en el nombre es un peso fuera de sitio, no parte del ejercicio', () => {
     expect(parsedSet('swing con kettlebell 16kg x 15')).toMatchObject({
-      exerciseText: 'swing con kettlebell',
+      exercise: { text: 'swing con kettlebell' },
       weightGrams: 16_000,
       reps: 15,
     });
   });
 
-  it('rechaza la serie sin ejercicio', () => {
-    expect(failure('80x8')).toEqual({ reason: 'missing_exercise' });
-    expect(failure('- 80x8')).toEqual({ reason: 'missing_exercise' });
+  it('sin nombre es una serie sin ejercicio, que el bot pone al último de la sesión', () => {
+    expect(parsedSet('80x8')).toEqual({
+      exercise: null,
+      weightGrams: 80_000,
+      reps: 8,
+      rpeTenths: null,
+      isWarmup: false,
+    });
+    expect(parsedSet('- 82,5x6 rpe9')).toMatchObject({ exercise: null, rpeTenths: 90 });
+    expect(parsedSet('x12')).toMatchObject({ exercise: null, weightGrams: 0, reps: 12 });
   });
 });
 
