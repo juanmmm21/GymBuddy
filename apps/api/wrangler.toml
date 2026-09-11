@@ -4,6 +4,13 @@ main = "src/index.ts"
 # los tests ni siquiera arrancan el runtime.
 compatibility_date = "2026-08-22"
 
+# Las passkeys van atadas a este dominio: cambiarlo obliga a cada usuario a crear la suya otra
+# vez (ADR 0005). Son el dominio y el origen de la PWA, no los del Worker. En local, los de
+# Vite; los de producción se fijan al desplegar (fase 14), antes de que nadie registre una.
+[vars]
+WEBAUTHN_RP_ID = "localhost"
+WEBAUTHN_ORIGIN = "http://localhost:5173"
+
 # Los logs del Worker son el único sitio donde se ve un fallo en el edge.
 [observability]
 enabled = true
