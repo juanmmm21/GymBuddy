@@ -8,12 +8,7 @@
  * de importar, y cada sitio que necesita uno tiene que decidir explícitamente qué hacer
  * cuando falta, que es la situación real de un Worker recién desplegado.
  */
-export const SECRET_NAMES = [
-  'ADMIN_TOKEN',
-  'JWT_SECRET',
-  'TELEGRAM_BOT_TOKEN',
-  'TELEGRAM_WEBHOOK_SECRET',
-] as const;
+export const SECRET_NAMES = ['ADMIN_TOKEN', 'JWT_SECRET'] as const;
 
 export type SecretName = (typeof SECRET_NAMES)[number];
 

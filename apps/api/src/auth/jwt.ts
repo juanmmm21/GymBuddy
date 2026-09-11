@@ -6,9 +6,9 @@ import {
 } from 'hono/utils/jwt/types';
 
 /**
- * Treinta días. Es una app de una sola persona que se abre tres veces por semana desde el
- * móvil: obligar a volver a pasar por Telegram cada poco sería fricción sin ganancia, y la
- * sesión se corta igual borrando el token del dispositivo.
+ * Treinta días. Es una app que se abre tres veces por semana desde el móvil: obligar a volver
+ * a entrar cada poco sería fricción sin ganancia, y la sesión se corta igual borrando el token
+ * del dispositivo.
  */
 const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
 

@@ -34,7 +34,7 @@ export default defineConfig({
         // El shell se precachea entero; la caché de GIFs y la cola offline llegan en la fase 13.
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         // Una petición a la API que falle no puede responderse con el index.html del shell.
-        navigateFallbackDenylist: [/^\/api\//, /^\/telegram\//],
+        navigateFallbackDenylist: [/^\/api\//],
       },
       devOptions: { enabled: false },
     }),

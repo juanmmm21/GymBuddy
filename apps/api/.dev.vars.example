@@ -2,15 +2,8 @@
 # `.dev.vars` está en .gitignore y nunca se versiona. En producción estos valores
 # se cargan con `wrangler secret put <NOMBRE>`, jamás desde wrangler.toml.
 
-# Token del bot que da BotFather. Controla el canal de entrada además del bot.
-TELEGRAM_BOT_TOKEN=""
-
 # Clave para firmar los JWT de sesión de la PWA. Cadena aleatoria larga.
 JWT_SECRET=""
-
-# Valor que se envía a Telegram al registrar el webhook y que llega de vuelta en la
-# cabecera X-Telegram-Bot-Api-Secret-Token: sirve para descartar peticiones ajenas.
-TELEGRAM_WEBHOOK_SECRET=""
 
 # Secreto de las rutas /api/v1/admin/*, que disparan la sincronización del catálogo.
 # Sin él configurado esas rutas responden 404: una sincronización abierta al mundo

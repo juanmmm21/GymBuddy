@@ -3,7 +3,7 @@ import type { NewCatalogExerciseRow } from '../db/schema';
 import { sourceExerciseSchema, type SourceExercise, type SourceMuscleFile } from './source';
 
 /**
- * Texto sobre el que buscan la API y el parser del bot. Se guarda ya normalizado porque
+ * Texto sobre el que busca la API. Se guarda ya normalizado porque
  * SQLite no sabe ignorar acentos: si la normalización se hiciera al consultar, `LIKE` no
  * podría usar el índice y "biceps" no encontraría "bíceps".
  */

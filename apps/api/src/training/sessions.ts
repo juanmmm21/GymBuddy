@@ -99,7 +99,7 @@ export async function findSessionDetail(
 /**
  * Registra una serie en una sesión abierta. El `orderIndex` lo calcula la propia sentencia
  * de inserción: pedirlo antes en una consulta aparte dejaría a dos series simultáneas
- * —la PWA y el bot a la vez— compartiendo posición.
+ * —dos móviles, o la cola offline reenviando mientras se registra otra— compartiendo posición.
  *
  * Los récords se evalúan al final, sobre la fila que quedó guardada. También en el
  * reenvío: si el primer intento insertó la serie y se cayó antes de escribir la marca,
@@ -337,7 +337,7 @@ async function findActiveSessionRow(
 /**
  * La sesión sobre la que se puede escribir: existe, es de este usuario y sigue abierta.
  * Cerrada no se toca, ni para registrar ni para corregir; es lo que ve la cola offline
- * cuando reenvía sobre una sesión que se cerró desde el bot mientras no había red.
+ * cuando reenvía sobre una sesión que se cerró desde otro móvil mientras no había red.
  */
 async function requireOpenSession(
   db: Database,

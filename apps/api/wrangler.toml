@@ -4,16 +4,11 @@ main = "src/index.ts"
 # los tests ni siquiera arrancan el runtime.
 compatibility_date = "2026-08-22"
 
-# El nombre del bot es público (está en el enlace t.me/...), así que va aquí y no en los
-# secretos: el Worker arma con él el enlace de entrada y la PWA no lo lleva cableado.
-[vars]
-TELEGRAM_BOT_USERNAME = "GymBotBuddy_bot"
-
 # Los logs del Worker son el único sitio donde se ve un fallo en el edge.
 [observability]
 enabled = true
 
-# Base de datos única para la PWA y el bot: cero estado divergente.
+# Una sola base de datos para todo lo del usuario: cero estado divergente.
 # En local wrangler crea la D1 bajo .wrangler/ y no mira database_id; el identificador
 # real se rellena al crear la base de producción con `wrangler d1 create` (fase 14).
 [[d1_databases]]

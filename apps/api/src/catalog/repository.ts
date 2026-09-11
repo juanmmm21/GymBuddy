@@ -113,8 +113,8 @@ export interface CatalogSearchQuery {
 /**
  * Busca por nombre sobre `search_text`, que ya está en minúsculas y sin acentos: "biceps"
  * encuentra "bíceps" y "banca press" encuentra "press de banca" porque cada palabra se
- * exige por separado y el orden dentro de la frase da igual. Es lo que necesitan tanto el
- * buscador de la PWA como el parser del bot, que recibe cosas como `banca 80x8`.
+ * exige por separado y el orden dentro de la frase da igual, que es como se teclea deprisa
+ * en el buscador de la PWA.
  */
 export async function searchCatalogExercises(
   db: Database,

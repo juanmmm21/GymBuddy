@@ -61,7 +61,7 @@ export const adminRoute = new Hono<{ Bindings: Env }>()
  * Protege las rutas de administración con un secreto propio. Sin él configurado responden
  * `not_found`: dejar abierta la sincronización permitiría que cualquiera consumiese las
  * 100.000 escrituras diarias de D1, y un olvido de configuración no puede abrir el agujero.
- * Cuando llegue la identidad de Telegram (fase 4) esto pasará a ser el rol del usuario.
+ * Los usuarios no tienen roles: administrar es de quien tiene este secreto.
  */
 async function assertAdmin(
   provided: string | undefined,

@@ -183,8 +183,8 @@ export async function getTrainingSignals(
 /**
  * El mini calendario de la semana en curso: los siete días con la parte del cuerpo que más
  * volumen tuvo en cada uno. Va aparte de `GET /stats/signals` a propósito: las señales las
- * pide también el bot y la mascota, y leer las series de la semana entera en cada una de
- * esas llamadas sería pagar por un dato que solo pinta la pantalla de Hoy.
+ * pide también la mascota, y leer las series de la semana entera en cada una de esas
+ * llamadas sería pagar por un dato que solo pinta la pantalla de Hoy.
  */
 export async function getWeeklyCalendar(
   db: Database,
