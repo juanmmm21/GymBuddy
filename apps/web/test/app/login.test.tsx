@@ -148,6 +148,74 @@ describe('entrada con llave de acceso', () => {
     expect(create).toHaveBeenCalledWith(registrationOptions.options);
   });
 
+  it('suma este móvil a la cuenta con el código del otro', async () => {
+    const user = userEvent.setup();
+    const create = vi.fn((_options: RegistrationOptionsResponse['options']) =>
+      Promise.resolve(attestation),
+    );
+
+    const { storage } = renderApp({
+      path: '/login',
+      authenticator: { isSupported: () => true, create, get: unused },
+      setup: (fake) => {
+        fake.on('POST', '/auth/devices/options', (request) => {
+          expect(request.body).toEqual({ linkCode: 'ABCDEFGH' });
+          return jsonResponse(registrationOptions);
+        });
+        fake.on('POST', '/auth/devices/verify', (request) => {
+          expect(request.body).toEqual({ challengeId: CHALLENGE_ID, credential: attestation });
+          return jsonResponse(session, 201);
+        });
+        fake.on('GET', '/stats/signals', () => jsonResponse(signals));
+      },
+    });
+
+    await user.click(await screen.findByRole('button', { name: 'Ya la uso en otro móvil' }));
+    const submit = screen.getByRole('button', { name: 'Añadir este móvil' });
+    expect(submit).toBeDisabled();
+
+    await user.type(screen.getByLabelText('Código del otro móvil'), 'abcd-efgh');
+    expect(submit).toBeEnabled();
+    await user.click(submit);
+
+    expect(await screen.findByRole('heading', { name: 'Hola, Juan' })).toBeInTheDocument();
+    expect(create).toHaveBeenCalledWith(registrationOptions.options);
+    expect(storage.data.get(SESSION_STORAGE_KEY)).toBe(JSON.stringify(session));
+  });
+
+  it('un código de dispositivo que ya no sirve dice dónde pedir otro', async () => {
+    const user = userEvent.setup();
+
+    renderApp({
+      path: '/login',
+      authenticator: { isSupported: () => true, create: unused, get: unused },
+      setup: (fake) => {
+        fake.on('POST', '/auth/devices/options', () =>
+          errorResponse('device_link_invalid', 400, 'no sirve'),
+        );
+      },
+    });
+
+    await user.click(await screen.findByRole('button', { name: 'Ya la uso en otro móvil' }));
+    await user.type(screen.getByLabelText('Código del otro móvil'), 'ABCD-EFGH');
+    await user.click(screen.getByRole('button', { name: 'Añadir este móvil' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('El código no sirve');
+    expect(screen.getByRole('alert')).toHaveTextContent('Añadir otro dispositivo');
+  });
+
+  it('avisa de un código de dispositivo mal escrito antes de enviarlo', async () => {
+    const user = userEvent.setup();
+    const { fake } = renderApp({ path: '/login' });
+
+    await user.click(await screen.findByRole('button', { name: 'Ya la uso en otro móvil' }));
+    await user.type(screen.getByLabelText('Código del otro móvil'), 'ABCD-EFGH-JKMN');
+
+    expect(screen.getByText('Son ocho letras y números, como ABCD-EFGH.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Añadir este móvil' })).toBeDisabled();
+    expect(fake.requests).toEqual([]);
+  });
+
   it('avisa de un código mal escrito antes de enviarlo', async () => {
     const user = userEvent.setup();
     renderApp({ path: '/login' });
