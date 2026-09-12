@@ -4,10 +4,13 @@ import {
   registrationOptionsRequestSchema,
   registrationVerifyRequestSchema,
   type DeviceLink,
+  type Invitation,
+  type InvitationStatus,
   type Session,
 } from '@gymbuddy/shared';
 import { Hono } from 'hono';
 import { issueDeviceLink } from '../../auth/device-links';
+import { issueInvitationForUser, readInvitationStatus } from '../../auth/invitations';
 import { issueSessionToken } from '../../auth/jwt';
 import {
   finishDeviceLinkRegistration,
@@ -65,6 +68,31 @@ export const authRoute = new Hono<AuthenticatedEnv>()
     const account = await finishPasskeyLogin(createDatabase(c.env.DB), rp, body, now);
 
     return c.json(await sessionFor(account, secret, now));
+  })
+
+  /** Cuántas invitaciones sin usar tiene quien pregunta, y cuántas más puede generar. */
+  .get('/auth/invitations', requireUser, async (c) => {
+    const status: InvitationStatus = await readInvitationStatus(
+      createDatabase(c.env.DB),
+      c.get('user').id,
+      new Date(),
+    );
+
+    return c.json(status);
+  })
+
+  /**
+   * Una invitación para un amigo, pedida desde la app. Es la única vez que ese código viaja en
+   * claro: en la base queda su digest, igual que con el de administración.
+   */
+  .post('/auth/invitations', requireUser, async (c) => {
+    const created: Invitation = await issueInvitationForUser(
+      createDatabase(c.env.DB),
+      c.get('user').id,
+      new Date(),
+    );
+
+    return c.json(created, 201);
   })
 
   /**
