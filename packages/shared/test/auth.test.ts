@@ -14,9 +14,15 @@ import {
   invitationStatusSchema,
   isAccessCode,
   loginOptionsSchema,
+  readSessionRefresh,
   registrationCredentialSchema,
   registrationOptionsRequestSchema,
   registrationOptionsSchema,
+  SESSION_REFRESH_EXPIRES_HEADER,
+  SESSION_REFRESH_TOKEN_HEADER,
+  sessionRefreshSchema,
+  sessionSchema,
+  type HeaderReader,
 } from '../src/index';
 
 describe('códigos de acceso', () => {
@@ -243,5 +249,74 @@ describe('formas de WebAuthn', () => {
     });
 
     expect(parsed.success).toBe(true);
+  });
+});
+
+describe('sesión renovada en las cabeceras', () => {
+  const headersOf = (entries: Record<string, string>): HeaderReader => ({
+    get: (name) => entries[name] ?? null,
+  });
+
+  const token = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbGljZSJ9.firma';
+
+  it('lee el par de cabeceras que manda el Worker', () => {
+    const refresh = readSessionRefresh(
+      headersOf({
+        [SESSION_REFRESH_TOKEN_HEADER]: token,
+        [SESSION_REFRESH_EXPIRES_HEADER]: '2026-10-12T08:00:00.000Z',
+      }),
+    );
+
+    expect(refresh).toEqual({ token, expiresAt: '2026-10-12T08:00:00.000Z' });
+  });
+
+  it('no renueva nada cuando la respuesta no trae las cabeceras', () => {
+    expect(readSessionRefresh(headersOf({}))).toBeNull();
+  });
+
+  it('no renueva con media pareja: sin caducidad no se sabe hasta cuándo vale', () => {
+    expect(readSessionRefresh(headersOf({ [SESSION_REFRESH_TOKEN_HEADER]: token }))).toBeNull();
+    expect(
+      readSessionRefresh(
+        headersOf({ [SESSION_REFRESH_EXPIRES_HEADER]: '2026-10-12T08:00:00.000Z' }),
+      ),
+    ).toBeNull();
+  });
+
+  it('descarta unas cabeceras que no cumplen el contrato', () => {
+    expect(
+      readSessionRefresh(
+        headersOf({
+          [SESSION_REFRESH_TOKEN_HEADER]: token,
+          [SESSION_REFRESH_EXPIRES_HEADER]: 'mañana',
+        }),
+      ),
+    ).toBeNull();
+    expect(
+      readSessionRefresh(
+        headersOf({
+          [SESSION_REFRESH_TOKEN_HEADER]: '',
+          [SESSION_REFRESH_EXPIRES_HEADER]: '2026-10-12T08:00:00.000Z',
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  it('una sesión es una renovación con su usuario detrás', () => {
+    const user = {
+      id: '6c4b2a1e-7f3d-4a5b-8c9d-0e1f2a3b4c5d',
+      displayName: 'Juan',
+      locale: 'es',
+      unitSystem: 'metric',
+      createdAt: '2026-09-01T08:00:00.000Z',
+    };
+    const session = { token, expiresAt: '2026-10-12T08:00:00.000Z', user };
+
+    expect(sessionSchema.safeParse(session).success).toBe(true);
+    // Lo que viaja en las cabeceras es la misma sesión sin el usuario: no se reenvía quién es.
+    expect(sessionRefreshSchema.safeParse(session).success).toBe(true);
+    expect(sessionSchema.safeParse({ token, expiresAt: '2026-10-12T08:00:00.000Z' }).success).toBe(
+      false,
+    );
   });
 });

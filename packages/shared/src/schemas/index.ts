@@ -41,6 +41,8 @@ export type {
   Muscle,
 } from './catalog';
 export {
+  SESSION_REFRESH_EXPIRES_HEADER,
+  SESSION_REFRESH_TOKEN_HEADER,
   deviceLinkCodeSchema,
   deviceLinkOptionsRequestSchema,
   deviceLinkSchema,
@@ -50,14 +52,17 @@ export {
   loginOptionsResponseSchema,
   loginVerifyRequestSchema,
   pendingInvitationSchema,
+  readSessionRefresh,
   registrationOptionsRequestSchema,
   registrationOptionsResponseSchema,
   registrationVerifyRequestSchema,
+  sessionRefreshSchema,
   sessionSchema,
 } from './auth';
 export type {
   DeviceLink,
   DeviceLinkOptionsRequest,
+  HeaderReader,
   Invitation,
   InvitationStatus,
   LoginOptionsResponse,
@@ -67,6 +72,7 @@ export type {
   RegistrationOptionsResponse,
   RegistrationVerifyRequest,
   Session,
+  SessionRefresh,
 } from './auth';
 export {
   authenticationCredentialSchema,

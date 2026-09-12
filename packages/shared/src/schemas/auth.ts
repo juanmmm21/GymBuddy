@@ -38,11 +38,47 @@ export const deviceLinkCodeSchema = accessCodeSchema(
   `El código tiene ${String(DEVICE_LINK_CODE_LENGTH)} letras y cifras`,
 );
 
-export const sessionSchema = z.object({
+/**
+ * Una sesión renovada: el mismo usuario con un token nuevo. Viaja en las cabeceras de cualquier
+ * respuesta autenticada, así que aquí no va el usuario — quien recibe esto ya sabe quién es.
+ */
+export const sessionRefreshSchema = z.object({
   token: z.string().min(1),
   expiresAt: isoDatetimeSchema,
+});
+
+export const sessionSchema = sessionRefreshSchema.extend({
   user: userSchema,
 });
+
+/**
+ * Cabeceras con las que una respuesta entrega una sesión renovada. Van en dos porque el valor
+ * es un par de cadenas y meter un JSON en una cabecera obligaría a escaparlo para nada.
+ *
+ * Ojo al desplegar (Fase 14): con la PWA y el Worker en orígenes distintos, el navegador no deja
+ * leer una cabecera de respuesta que no esté en `Access-Control-Expose-Headers`.
+ */
+export const SESSION_REFRESH_TOKEN_HEADER = 'x-gymbuddy-session-token';
+export const SESSION_REFRESH_EXPIRES_HEADER = 'x-gymbuddy-session-expires-at';
+
+/** Lo mínimo que hace falta de unas cabeceras: `Headers` del navegador y del Worker lo cumplen. */
+export interface HeaderReader {
+  get(name: string): string | null;
+}
+
+/**
+ * La sesión renovada que trae una respuesta, o `null` si no trae ninguna. Pasa por el esquema
+ * como cualquier otra respuesta: unas cabeceras a medias o con una fecha inventada no se guardan.
+ */
+export function readSessionRefresh(headers: HeaderReader): SessionRefresh | null {
+  const token = headers.get(SESSION_REFRESH_TOKEN_HEADER);
+  const expiresAt = headers.get(SESSION_REFRESH_EXPIRES_HEADER);
+  if (token === null || expiresAt === null) return null;
+
+  const parsed = sessionRefreshSchema.safeParse({ token, expiresAt });
+
+  return parsed.success ? parsed.data : null;
+}
 
 /** Primer paso del registro: con qué invitación, con qué nombre y en qué idioma. */
 export const registrationOptionsRequestSchema = z.object({
@@ -122,6 +158,7 @@ export const deviceLinkOptionsRequestSchema = z.object({
 });
 
 export type Session = z.infer<typeof sessionSchema>;
+export type SessionRefresh = z.infer<typeof sessionRefreshSchema>;
 export type RegistrationOptionsRequest = z.infer<typeof registrationOptionsRequestSchema>;
 export type RegistrationOptionsResponse = z.infer<typeof registrationOptionsResponseSchema>;
 export type RegistrationVerifyRequest = z.infer<typeof registrationVerifyRequestSchema>;
