@@ -165,7 +165,7 @@ export const catalogExercise = sqliteTable(
     nameEn: text('name_en').notNull(),
     instructionsEs: text('instructions_es', { mode: 'json' }).notNull().$type<string[]>(),
     instructionsEn: text('instructions_en', { mode: 'json' }).notNull().$type<string[]>(),
-    // Nombre normalizado (minúsculas y sin acentos) para la búsqueda difusa del bot y la API.
+    // Nombre normalizado (minúsculas y sin acentos) para la búsqueda difusa del catálogo.
     searchText: text('search_text').notNull(),
     catalogVersion: text('catalog_version').notNull(),
     syncedAt: isoTimestamp('synced_at').notNull(),
@@ -244,7 +244,6 @@ export const workoutSession = sqliteTable(
     // Nulo mientras la sesión sigue abierta: es lo que distingue la sesión en curso.
     endedAt: isoTimestamp('ended_at'),
     notes: text('notes'),
-    source: text('source', { enum: ['web', 'bot'] }).notNull(),
   },
   (table) => [index('workout_session_user_started_idx').on(table.userId, table.startedAt)],
 );
@@ -267,7 +266,6 @@ export const setEntry = sqliteTable(
     rpeTenths: integer('rpe_tenths'),
     isWarmup: integer('is_warmup', { mode: 'boolean' }).notNull().default(false),
     completedAt: isoTimestamp('completed_at').notNull(),
-    source: text('source', { enum: ['web', 'bot'] }).notNull(),
   },
   (table) => [
     index('set_entry_session_order_idx').on(table.sessionId, table.orderIndex),

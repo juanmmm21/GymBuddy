@@ -54,7 +54,6 @@ function insertSet(overrides: { weightGrams?: number; reps?: number; rpeTenths?:
     rpeTenths: overrides.rpeTenths ?? null,
     isWarmup: false,
     completedAt: '2026-08-24T19:00:00.000Z',
-    source: 'web',
   });
 }
 
@@ -160,4 +159,19 @@ describe('restricciones de identidad', () => {
 
     expect(await db.select().from(passkeyCredential)).toEqual([]);
   });
+});
+
+describe('migración que retira la superficie de escritura', () => {
+  // La columna se quitó con `DROP COLUMN`, no recreando las tablas: en D1 las claves ajenas
+  // están activas y el `DROP TABLE` intermedio de una recreación se llevaría las series.
+  it.each(['workout_session', 'set_entry'])(
+    '%s ya no guarda de dónde vino el dato',
+    async (table) => {
+      const columns = await env.DB.prepare('select name from pragma_table_info(?)')
+        .bind(table)
+        .all<{ name: string }>();
+
+      expect(columns.results.map((column) => column.name)).not.toContain('source');
+    },
+  );
 });

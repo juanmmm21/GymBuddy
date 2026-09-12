@@ -43,6 +43,13 @@
       "when": 1789211720190,
       "tag": "0005_device_link_codes",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1789233396300,
+      "tag": "0006_drop_entry_source",
+      "breakpoints": true
     }
   ]
 }
