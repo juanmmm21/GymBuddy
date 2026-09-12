@@ -1,4 +1,9 @@
-import { MAX_DISPLAY_NAME_LENGTH, displayNameSchema, invitationCodeSchema } from '@gymbuddy/shared';
+import {
+  MAX_DISPLAY_NAME_LENGTH,
+  deviceLinkCodeSchema,
+  displayNameSchema,
+  invitationCodeSchema,
+} from '@gymbuddy/shared';
 import { useState, type FormEvent } from 'react';
 import { Button, Notice, Surface, TextField, type NoticeTone } from '../components/index';
 import { localeFromLanguage } from '../lib/locale';
@@ -13,7 +18,7 @@ import {
 /** Holgado para pegar el código con los guiones o los espacios con los que se haya enviado. */
 const INVITATION_CODE_INPUT_MAX_LENGTH = 24;
 
-type Mode = 'login' | 'registration';
+type Mode = 'login' | 'registration' | 'device_link';
 
 interface FailureText {
   readonly tone: NoticeTone;
@@ -36,6 +41,11 @@ const FAILURE_TEXT: Readonly<Record<EntryFailure, FailureText>> = {
     tone: 'danger',
     title: 'El código no sirve',
     body: 'Puede que esté mal escrito, que ya se haya usado o que haya caducado. Pide otro a quien te invitó.',
+  },
+  device_link_invalid: {
+    tone: 'danger',
+    title: 'El código no sirve',
+    body: 'Dura diez minutos y solo vale una vez. En el móvil donde ya tienes GymBuddy, entra en «Añadir otro dispositivo» y pide uno nuevo.',
   },
   passkey_invalid: {
     tone: 'danger',
@@ -86,15 +96,27 @@ export function LoginScreen() {
       </div>
 
       <Surface raised padding="lg" className={styles.card}>
-        {mode === 'login' ? (
+        {mode === 'login' && (
           <SignInPanel
             entry={entry}
             onInvited={() => {
               switchTo('registration');
             }}
+            onLinking={() => {
+              switchTo('device_link');
+            }}
           />
-        ) : (
+        )}
+        {mode === 'registration' && (
           <RegistrationForm
+            entry={entry}
+            onBack={() => {
+              switchTo('login');
+            }}
+          />
+        )}
+        {mode === 'device_link' && (
+          <DeviceLinkForm
             entry={entry}
             onBack={() => {
               switchTo('login');
@@ -109,9 +131,10 @@ export function LoginScreen() {
 interface SignInPanelProps {
   readonly entry: PasskeyEntry;
   readonly onInvited: () => void;
+  readonly onLinking: () => void;
 }
 
-function SignInPanel({ entry, onInvited }: SignInPanelProps) {
+function SignInPanel({ entry, onInvited, onLinking }: SignInPanelProps) {
   const { state } = entry;
   const working = state.phase === 'working';
 
@@ -136,6 +159,12 @@ function SignInPanel({ entry, onInvited }: SignInPanelProps) {
         </p>
         <Button variant="secondary" fullWidth disabled={working} onClick={onInvited}>
           Tengo una invitación
+        </Button>
+        <p className={styles.explain}>
+          ¿Ya usas GymBuddy en otro móvil? Pide allí un código y escríbelo aquí.
+        </p>
+        <Button variant="secondary" fullWidth disabled={working} onClick={onLinking}>
+          Ya la uso en otro móvil
         </Button>
       </section>
     </>
@@ -213,6 +242,68 @@ function RegistrationForm({ entry, onBack }: RegistrationFormProps) {
       </Button>
       <Button variant="ghost" fullWidth disabled={working} onClick={onBack}>
         Ya tengo acceso
+      </Button>
+    </form>
+  );
+}
+
+interface DeviceLinkFormProps {
+  readonly entry: PasskeyEntry;
+  readonly onBack: () => void;
+}
+
+/**
+ * Sumar este móvil a una cuenta que ya existe. No pide nombre ni invitación: el código dice de
+ * quién es la cuenta, y lo que se crea aquí es otra llave de acceso, no otra cuenta.
+ */
+function DeviceLinkForm({ entry, onBack }: DeviceLinkFormProps) {
+  const [code, setCode] = useState('');
+  const { state } = entry;
+  const working = state.phase === 'working';
+
+  const parsedCode = deviceLinkCodeSchema.safeParse(code);
+  const codeLooksWrong = code.trim() !== '' && !parsedCode.success;
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
+    event.preventDefault();
+    if (!parsedCode.success || working) return;
+    entry.linkDevice(parsedCode.data);
+  };
+
+  return (
+    <form className={styles.section} onSubmit={handleSubmit} noValidate>
+      <h2 className={styles.heading}>Usar este móvil también</h2>
+      <ol className={styles.steps}>
+        <li>
+          En el móvil donde ya usas GymBuddy, entra en «Añadir otro dispositivo» y pide un código.
+        </li>
+        <li>Escríbelo aquí antes de diez minutos.</li>
+        <li>Confirma con tu huella, tu cara o el código de este móvil.</li>
+      </ol>
+
+      <TextField
+        label="Código del otro móvil"
+        value={code}
+        onChange={setCode}
+        placeholder="ABCD-EFGH"
+        maxLength={INVITATION_CODE_INPUT_MAX_LENGTH}
+        disabled={working}
+        hint={
+          codeLooksWrong
+            ? 'Son ocho letras y números, como ABCD-EFGH.'
+            : 'Lo verás en el móvil que ya usas.'
+        }
+      />
+
+      {state.phase === 'failed' && (
+        <FailureNotice ceremony={state.ceremony} reason={state.reason} />
+      )}
+
+      <Button type="submit" size="lg" fullWidth loading={working} disabled={!parsedCode.success}>
+        Añadir este móvil
+      </Button>
+      <Button variant="ghost" fullWidth disabled={working} onClick={onBack}>
+        Volver
       </Button>
     </form>
   );

@@ -4,6 +4,7 @@ import {
   catalogExercisePageSchema,
   catalogExerciseSchema,
   catalogExerciseSummarySchema,
+  deviceLinkSchema,
   exerciseHistorySchema,
   exerciseStatsSchema,
   loginOptionsResponseSchema,
@@ -27,6 +28,8 @@ import {
   type CatalogExerciseSummary,
   type CreateRoutineRequest,
   type CreateTrackedExerciseRequest,
+  type DeviceLink,
+  type DeviceLinkOptionsRequest,
   type EndSessionRequest,
   type ExerciseHistory,
   type ExerciseStats,
@@ -106,6 +109,40 @@ export function verifyLogin(client: ApiClient, body: LoginVerifyRequest): Promis
   return client.request({
     method: 'POST',
     path: '/auth/login/verify',
+    schema: sessionSchema,
+    body,
+  });
+}
+
+/**
+ * Pide el código con el que otro dispositivo se suma a esta cuenta. Lo llama quien ya tiene
+ * sesión; el código solo existe en esta respuesta.
+ */
+export function createDeviceLink(client: ApiClient): Promise<DeviceLink> {
+  return client.request({ method: 'POST', path: '/auth/devices/link', schema: deviceLinkSchema });
+}
+
+/** Añadir otro dispositivo, paso 1, desde el nuevo: el código dice de qué cuenta es la llave. */
+export function requestDeviceLinkOptions(
+  client: ApiClient,
+  body: DeviceLinkOptionsRequest,
+): Promise<RegistrationOptionsResponse> {
+  return client.request({
+    method: 'POST',
+    path: '/auth/devices/options',
+    schema: registrationOptionsResponseSchema,
+    body,
+  });
+}
+
+/** Paso 2: la llave creada a cambio de la sesión de la cuenta que ya existía. */
+export function verifyDeviceLink(
+  client: ApiClient,
+  body: RegistrationVerifyRequest,
+): Promise<Session> {
+  return client.request({
+    method: 'POST',
+    path: '/auth/devices/verify',
     schema: sessionSchema,
     body,
   });

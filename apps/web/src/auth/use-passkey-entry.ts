@@ -2,8 +2,10 @@ import type { Locale, Session } from '@gymbuddy/shared';
 import { useCallback, useState } from 'react';
 import { ApiRequestError, ApiTransportError } from '../api/client';
 import {
+  requestDeviceLinkOptions,
   requestLoginOptions,
   requestRegistrationOptions,
+  verifyDeviceLink,
   verifyLogin,
   verifyRegistration,
 } from '../api/endpoints';
@@ -12,10 +14,16 @@ import { usePasskeyAuthenticator } from './AuthenticatorProvider';
 import { PasskeyCeremonyError } from './passkey-authenticator';
 import { useSession } from './SessionProvider';
 
-export type EntryCeremony = 'login' | 'registration';
+export type EntryCeremony = 'login' | 'registration' | 'device_link';
 
 export type EntryFailure =
-  'cancelled' | 'unsupported' | 'invitation_invalid' | 'passkey_invalid' | 'offline' | 'unexpected';
+  | 'cancelled'
+  | 'unsupported'
+  | 'invitation_invalid'
+  | 'device_link_invalid'
+  | 'passkey_invalid'
+  | 'offline'
+  | 'unexpected';
 
 export type EntryState =
   | { readonly phase: 'idle' }
@@ -36,6 +44,8 @@ export interface PasskeyEntry {
   readonly state: EntryState;
   readonly signIn: () => void;
   readonly register: (input: RegistrationInput) => void;
+  /** Suma este dispositivo a una cuenta que ya existe, con el código pedido desde el otro. */
+  readonly linkDevice: (linkCode: string) => void;
   /** Olvida el último fallo, al cambiar entre entrar y registrarse. */
   readonly reset: () => void;
 }
@@ -99,11 +109,22 @@ export function usePasskeyEntry(locale: Locale): PasskeyEntry {
     [authenticator, client, locale, run],
   );
 
+  const linkDevice = useCallback(
+    (linkCode: string): void => {
+      run('device_link', async () => {
+        const { challengeId, options } = await requestDeviceLinkOptions(client, { linkCode });
+        const credential = await authenticator.create(options);
+        return verifyDeviceLink(client, { challengeId, credential });
+      });
+    },
+    [authenticator, client, run],
+  );
+
   const reset = useCallback((): void => {
     setState({ phase: 'idle' });
   }, []);
 
-  return { state, signIn, register, reset };
+  return { state, signIn, register, linkDevice, reset };
 }
 
 /** El motivo que la pantalla explica, a partir de lo que falló en el navegador o en el Worker. */
@@ -114,7 +135,9 @@ export function entryFailureOf(error: unknown): EntryFailure {
   if (error instanceof ApiTransportError) return 'offline';
   if (
     error instanceof ApiRequestError &&
-    (error.code === 'invitation_invalid' || error.code === 'passkey_invalid')
+    (error.code === 'invitation_invalid' ||
+      error.code === 'device_link_invalid' ||
+      error.code === 'passkey_invalid')
   ) {
     return error.code;
   }
