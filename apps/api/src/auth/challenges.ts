@@ -22,13 +22,25 @@ export interface RegistrationChallenge {
   readonly registration: PendingRegistration;
 }
 
+/** La cuenta que estrenará passkey y el código que se gastará al hacerlo. */
+export interface PendingDeviceLink {
+  readonly userId: string;
+  readonly deviceLinkHash: string;
+}
+
+export interface DeviceLinkChallenge {
+  readonly challenge: string;
+  readonly link: PendingDeviceLink;
+}
+
 export type NewChallenge =
   | {
       readonly kind: 'registration';
       readonly challenge: string;
       readonly registration: PendingRegistration;
     }
-  | { readonly kind: 'authentication'; readonly challenge: string };
+  | { readonly kind: 'authentication'; readonly challenge: string }
+  | { readonly kind: 'device_link'; readonly challenge: string; readonly link: PendingDeviceLink };
 
 /** Guarda el reto de una ceremonia que empieza y devuelve su identificador. */
 export async function storeChallenge(
@@ -38,6 +50,7 @@ export async function storeChallenge(
 ): Promise<string> {
   const id = crypto.randomUUID();
   const registration = challenge.kind === 'registration' ? challenge.registration : null;
+  const link = challenge.kind === 'device_link' ? challenge.link : null;
 
   await db.insert(authChallenge).values({
     id,
@@ -45,10 +58,13 @@ export async function storeChallenge(
     challenge: challenge.challenge,
     createdAt: now.toISOString(),
     expiresAt: new Date(now.getTime() + CHALLENGE_TTL_MS).toISOString(),
-    pendingUserId: registration?.userId ?? null,
+    // La cuenta va en la misma columna en las dos ceremonias que la traen: la que se creará en
+    // el registro, la que ya existe al añadir otro dispositivo.
+    pendingUserId: registration?.userId ?? link?.userId ?? null,
     displayName: registration?.displayName ?? null,
     locale: registration?.locale ?? null,
     invitationHash: registration?.invitationHash ?? null,
+    deviceLinkHash: link?.deviceLinkHash ?? null,
   });
 
   return id;
@@ -79,6 +95,25 @@ export async function takeRegistrationChallenge(
     challenge: row.challenge,
     registration: { userId: pendingUserId, displayName, locale, invitationHash },
   };
+}
+
+/** Retira el reto de un dispositivo que se suma y lo devuelve si seguía vivo. */
+export async function takeDeviceLinkChallenge(
+  db: Database,
+  id: string,
+  now: Date,
+): Promise<DeviceLinkChallenge | null> {
+  const row = await takeChallenge(db, id, 'device_link', now);
+  if (row === null) return null;
+
+  const { pendingUserId, deviceLinkHash } = row;
+  if (pendingUserId === null || deviceLinkHash === null) {
+    // El CHECK de la tabla lo impide; si pasa, la base está corrupta y no hay enlace que seguir.
+    console.error('Reto de enlace sin la cuenta o sin el código', { id });
+    return null;
+  }
+
+  return { challenge: row.challenge, link: { userId: pendingUserId, deviceLinkHash } };
 }
 
 /** Retira el reto de una entrada y devuelve el valor que tuvo que firmarse, si seguía vivo. */

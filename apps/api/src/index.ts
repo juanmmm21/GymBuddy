@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { purgeExpiredChallenges } from './auth/challenges';
+import { purgeExpiredDeviceLinks } from './auth/device-links';
 import { CatalogSourceError } from './catalog/client';
 import { recordCatalogSyncFailure, runCatalogSyncStep } from './catalog/index';
 import { createDatabase } from './db/client';
@@ -43,8 +44,12 @@ async function scheduled(_event: ScheduledController, env: Env): Promise<void> {
   // de quien cerró la app a mitad no se va sola. Va antes del catálogo porque es barato y no
   // debe quedarse sin hacer si el origen está caído.
   try {
-    const purged = await purgeExpiredChallenges(db, new Date());
+    const now = new Date();
+    const purged = await purgeExpiredChallenges(db, now);
     if (purged > 0) console.log(`Retos de passkey caducados retirados: ${String(purged)}`);
+
+    const links = await purgeExpiredDeviceLinks(db, now);
+    if (links > 0) console.log(`Códigos de dispositivo caducados retirados: ${String(links)}`);
   } catch (error) {
     console.error('No se pudieron retirar los retos de passkey caducados', error);
   }
