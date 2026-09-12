@@ -115,3 +115,24 @@ La ceremonia es la del registro —lo que se crea es otra passkey—, pero **no 
 reto guarda a qué usuario pertenece (`auth_challenge.kind = 'device_link'`), y al verificar, la llave
 se cuelga de esa cuenta y el dispositivo nuevo estrena sesión. El código se consume con el mismo
 `UPDATE` condicionado que la invitación, y se devuelve si guardar la llave falla.
+
+## La sesión se renueva al usarse — 2026-09-12
+
+El JWT dura treinta días, así que quien entrena cada semana volvía a pasar por su llave cada mes sin
+motivo: la sesión caducaba por el calendario, no por dejar de usarse. Ahora **cualquier respuesta a
+una petición autenticada puede traer un token nuevo**, y lo trae cuando al actual le queda **menos de
+la mitad de su vida**. Viaja en dos cabeceras (`x-gymbuddy-session-token` y
+`x-gymbuddy-session-expires-at`), las lee el cliente de la PWA y sustituye el token guardado en el
+dispositivo sin tocar nada más: es la misma cuenta y el usuario no viaja ahí.
+
+Se eligió la cabecera y no devolver el token nuevo en `GET /auth/me` porque así renueva **cualquier**
+uso de la app, no solo abrirla; y la mitad de la vida, y no un umbral más corto, porque tras renovar
+pasan quince días hasta que vuelve a tocar: no se firma un token por petición. Quien deja la app
+parada un mes entero sigue teniendo que volver a pasar por su llave, que es lo que se quería
+conservar: **no hay tokens que no caduquen**.
+
+Dos consecuencias que hay que tener presentes. El token viejo **no se invalida** —no hay dónde
+apuntarlo, y una petición que ya iba en camino con él tiene que seguir valiendo—, así que renovar
+alarga la sesión, no corta la anterior. Y al desplegar (Fase 14), con la PWA y el Worker en orígenes
+distintos, el navegador solo deja leer esas dos cabeceras si van en `Access-Control-Expose-Headers`:
+sin eso la renovación se pierde en silencio y la sesión vuelve a caducar al mes.
