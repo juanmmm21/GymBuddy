@@ -108,7 +108,6 @@ export async function seedTrainingScenario(binding: D1Database): Promise<Trainin
       startedAt: day('2026-08-10', '18:00:00'),
       endedAt: day('2026-08-10', '19:10:00'),
       notes: null,
-      source: 'web',
     },
     {
       id: sessionIds[1],
@@ -116,7 +115,6 @@ export async function seedTrainingScenario(binding: D1Database): Promise<Trainin
       startedAt: day('2026-08-17', '18:00:00'),
       endedAt: day('2026-08-17', '19:05:00'),
       notes: null,
-      source: 'web',
     },
     {
       id: sessionIds[2],
@@ -124,7 +122,6 @@ export async function seedTrainingScenario(binding: D1Database): Promise<Trainin
       startedAt: day('2026-08-24', '18:00:00'),
       endedAt: null,
       notes: 'Sesión sin cerrar',
-      source: 'bot',
     },
     {
       id: otherSessionId,
@@ -132,7 +129,6 @@ export async function seedTrainingScenario(binding: D1Database): Promise<Trainin
       startedAt: day('2026-08-24', '18:30:00'),
       endedAt: null,
       notes: null,
-      source: 'web',
     },
   ]);
 
@@ -224,6 +220,5 @@ function set(
     rpeTenths: extra.rpeTenths ?? null,
     isWarmup: extra.isWarmup ?? false,
     completedAt,
-    source: 'web',
   };
 }

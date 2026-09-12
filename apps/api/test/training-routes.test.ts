@@ -88,7 +88,7 @@ describe('api de entrenamiento', () => {
       method: 'POST',
       path: '/sessions',
       token,
-      body: { id: sessionId, source: 'web' },
+      body: { id: sessionId },
     });
 
     expect(opened.status).toBe(201);
@@ -106,7 +106,6 @@ describe('api de entrenamiento', () => {
           weight,
           reps: index === 0 ? 10 : 8,
           isWarmup: index === 0,
-          source: 'web',
         },
       });
 
@@ -153,7 +152,6 @@ describe('api de entrenamiento', () => {
       weight: '80.00',
       reps: 8,
       completedAt: '2026-09-08T18:30:00.000Z',
-      source: 'web',
     };
 
     const first = await call({
@@ -186,7 +184,6 @@ describe('api de entrenamiento', () => {
       trackedExerciseId: exerciseId,
       weight: '80.00',
       reps: 8,
-      source: 'web',
     };
 
     await call({ method: 'POST', path: `/sessions/${sessionId}/sets`, token, body });
@@ -208,7 +205,7 @@ describe('api de entrenamiento', () => {
       method: 'POST',
       path: '/sessions',
       token,
-      body: { id: uuid(), source: 'bot' },
+      body: { id: uuid() },
     });
 
     expect(second.status).toBe(409);
@@ -219,7 +216,7 @@ describe('api de entrenamiento', () => {
       method: 'POST',
       path: '/sessions',
       token,
-      body: { id: sessionId, source: 'web' },
+      body: { id: sessionId },
     });
     expect(again.status).toBe(200);
   });
@@ -232,7 +229,7 @@ describe('api de entrenamiento', () => {
       method: 'POST',
       path: `/sessions/${sessionId}/sets`,
       token,
-      body: { id: uuid(), trackedExerciseId: exerciseId, weight: '80.00', reps: 8, source: 'web' },
+      body: { id: uuid(), trackedExerciseId: exerciseId, weight: '80.00', reps: 8 },
     });
 
     expect(late.status).toBe(409);
@@ -300,7 +297,7 @@ describe('api de entrenamiento', () => {
       method: 'POST',
       path: `/sessions/${sessionId}/sets`,
       token,
-      body: { id: uuid(), trackedExerciseId: exerciseId, weight: '80.00', reps: 8, source: 'web' },
+      body: { id: uuid(), trackedExerciseId: exerciseId, weight: '80.00', reps: 8 },
     });
 
     const archived = await call({
@@ -333,7 +330,7 @@ describe('api de entrenamiento', () => {
       method: 'POST',
       path: `/sessions/${sessionId}/sets`,
       token,
-      body: { id: uuid(), trackedExerciseId: exerciseId, weight: '80.00', reps: 8, source: 'web' },
+      body: { id: uuid(), trackedExerciseId: exerciseId, weight: '80.00', reps: 8 },
     });
 
     const renamed = await call({
@@ -436,7 +433,7 @@ describe('api de entrenamiento', () => {
       method: 'POST',
       path: `/sessions/${sessionId}/sets`,
       token: otherToken,
-      body: { id: uuid(), trackedExerciseId: exerciseId, weight: '80.00', reps: 8, source: 'web' },
+      body: { id: uuid(), trackedExerciseId: exerciseId, weight: '80.00', reps: 8 },
     });
 
     // 404 y no 403: confirmar que el recurso existe ya sería contar algo de otro.
@@ -459,7 +456,7 @@ describe('api de entrenamiento', () => {
       method: 'POST',
       path: '/sessions',
       token,
-      body: { source: 'web' },
+      body: {},
     });
 
     expect(response.status).toBe(400);
@@ -488,7 +485,7 @@ describe('api de entrenamiento', () => {
       method: 'POST',
       path: '/sessions',
       token: sessionToken,
-      body: { id: sessionId, source: 'web', startedAt },
+      body: { id: sessionId, startedAt },
     });
 
     return { exerciseId, sessionId };

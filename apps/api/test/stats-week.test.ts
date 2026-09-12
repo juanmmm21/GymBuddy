@@ -129,7 +129,6 @@ describe('calendario de la semana', () => {
       startedAt,
       endedAt: null,
       notes: null,
-      source: 'web',
     });
 
     if (sets.length > 0) {
@@ -144,7 +143,6 @@ describe('calendario de la semana', () => {
           rpeTenths: null,
           isWarmup: entry.isWarmup ?? false,
           completedAt: startedAt,
-          source: 'web' as const,
         })),
       );
     }

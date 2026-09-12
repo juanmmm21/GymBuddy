@@ -59,7 +59,6 @@ async function seedExerciseHistory(
       startedAt: `${session.day}T18:00:00.000Z`,
       endedAt: `${session.day}T19:00:00.000Z`,
       notes: null,
-      source: 'web',
     });
 
     await db.insert(setEntry).values(
@@ -73,7 +72,6 @@ async function seedExerciseHistory(
         rpeTenths: null,
         isWarmup: false,
         completedAt: `${session.day}T18:${String(10 + index * 5).padStart(2, '0')}:00.000Z`,
-        source: 'web' as const,
       })),
     );
   }
@@ -267,7 +265,6 @@ describe('señales de entrenamiento', () => {
       startedAt: new Date().toISOString(),
       endedAt: null,
       notes: null,
-      source: 'web',
     });
 
     const signals = trainingSignalsSchema.parse(await (await get('/stats/signals', token)).json());
@@ -443,7 +440,7 @@ describe('récords personales', () => {
       {
         method: 'POST',
         headers: { authorization: token, 'content-type': 'application/json' },
-        body: JSON.stringify({ id: sessionId, source: 'web' }),
+        body: JSON.stringify({ id: sessionId }),
       },
       statsEnv(),
     );
@@ -477,7 +474,6 @@ describe('récords personales', () => {
       trackedExerciseId: exerciseId,
       weight: '80.00',
       reps: 8,
-      source: 'web',
     });
     expect(first.records.map((record) => record.kind)).toStrictEqual([
       'max_weight',
@@ -492,7 +488,6 @@ describe('récords personales', () => {
       trackedExerciseId: exerciseId,
       weight: '85.00',
       reps: 5,
-      source: 'web',
     });
     expect(second.records.map((record) => record.kind)).toStrictEqual(['max_weight']);
 
@@ -515,7 +510,6 @@ describe('récords personales', () => {
       trackedExerciseId: exerciseId,
       weight: '80.00',
       reps: 8,
-      source: 'web',
     };
 
     expect((await logSet(sessionId, body)).records).toHaveLength(3);
@@ -536,7 +530,6 @@ describe('récords personales', () => {
       weight: '200.00',
       reps: 10,
       isWarmup: true,
-      source: 'web',
     });
 
     expect(warmup.records).toStrictEqual([]);
@@ -555,7 +548,7 @@ describe('récords personales', () => {
       {
         method: 'POST',
         headers: { authorization: token, 'content-type': 'application/json' },
-        body: JSON.stringify({ id: sessionId, source: 'web' }),
+        body: JSON.stringify({ id: sessionId }),
       },
       statsEnv(),
     );
@@ -565,7 +558,6 @@ describe('récords personales', () => {
       trackedExerciseId: exerciseId,
       weight: '70.00',
       reps: 5,
-      source: 'web',
     });
 
     expect(logged.records).toStrictEqual([]);
@@ -578,7 +570,6 @@ describe('récords personales', () => {
       trackedExerciseId: exerciseId,
       weight: '80.00',
       reps: 8,
-      source: 'web',
     });
 
     const signals = trainingSignalsSchema.parse(await (await get('/stats/signals', token)).json());

@@ -39,7 +39,6 @@ export async function listSessionPage(
         startedAt: workoutSession.startedAt,
         endedAt: workoutSession.endedAt,
         notes: workoutSession.notes,
-        source: workoutSession.source,
         setCount: count(setEntry.id),
       })
       .from(workoutSession)
@@ -57,7 +56,6 @@ export async function listSessionPage(
       startedAt: row.startedAt,
       endedAt: row.endedAt,
       notes: row.notes,
-      source: row.source,
       setCount: row.setCount,
     })),
     total: totals[0]?.total ?? 0,

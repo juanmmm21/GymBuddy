@@ -50,7 +50,6 @@ export async function startWorkoutSession(
     startedAt: request.startedAt ?? now.toISOString(),
     endedAt: null,
     notes: request.notes ?? null,
-    source: request.source,
   };
 
   const inserted = await db
@@ -125,7 +124,6 @@ export async function logSet(
     rpeTenths: request.rpe === null || request.rpe === undefined ? null : rpeToTenths(request.rpe),
     isWarmup: request.isWarmup ?? false,
     completedAt: request.completedAt ?? now.toISOString(),
-    source: request.source,
   };
 
   const inserted = await db
@@ -277,7 +275,6 @@ export function toWorkoutSession(row: WorkoutSessionRow): WorkoutSession {
     startedAt: row.startedAt,
     endedAt: row.endedAt,
     notes: row.notes,
-    source: row.source,
   };
 }
 
@@ -291,7 +288,6 @@ export function toSetEntry(row: SetEntryRow): SetEntry {
     rpe: row.rpeTenths === null ? null : tenthsToRpe(row.rpeTenths),
     isWarmup: row.isWarmup,
     completedAt: row.completedAt,
-    source: row.source,
   };
 }
 

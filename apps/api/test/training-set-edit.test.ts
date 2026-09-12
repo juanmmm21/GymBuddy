@@ -74,7 +74,7 @@ describe('corregir y borrar una serie', () => {
       method: 'POST',
       path: '/sessions',
       token,
-      body: { id: sessionId, source: 'web' },
+      body: { id: sessionId },
     });
   });
 
@@ -85,7 +85,7 @@ describe('corregir y borrar una serie', () => {
       method: 'POST',
       path: `/sessions/${sessionId}/sets`,
       token,
-      body: { id: setId, trackedExerciseId: exerciseId, weight, reps, isWarmup, source: 'web' },
+      body: { id: setId, trackedExerciseId: exerciseId, weight, reps, isWarmup },
     });
 
     expect(response.status).toBe(201);
@@ -151,7 +151,6 @@ describe('corregir y borrar una serie', () => {
         weight: '80.00',
         reps: 8,
         rpe: 8.5,
-        source: 'web',
       },
     });
 
