@@ -1,54 +1,74 @@
 import { describe, expect, it } from 'vitest';
 import {
-  INVITATION_CODE_ALPHABET,
+  ACCESS_CODE_ALPHABET,
+  DEVICE_LINK_CODE_LENGTH,
   INVITATION_CODE_LENGTH,
   MAX_DISPLAY_NAME_LENGTH,
   authenticationCredentialSchema,
-  compactInvitationCode,
+  compactAccessCode,
+  deviceLinkCodeSchema,
+  deviceLinkOptionsRequestSchema,
   displayNameSchema,
-  formatInvitationCode,
+  formatAccessCode,
   invitationCodeSchema,
-  isInvitationCode,
+  isAccessCode,
   loginOptionsSchema,
   registrationCredentialSchema,
   registrationOptionsRequestSchema,
   registrationOptionsSchema,
 } from '../src/index';
 
-describe('código de invitación', () => {
+describe('códigos de acceso', () => {
   it('usa el alfabeto de Crockford, sin letras que se confundan con cifras', () => {
-    expect(INVITATION_CODE_ALPHABET).toHaveLength(32);
+    expect(ACCESS_CODE_ALPHABET).toHaveLength(32);
     for (const letter of ['I', 'L', 'O', 'U']) {
-      expect(INVITATION_CODE_ALPHABET).not.toContain(letter);
+      expect(ACCESS_CODE_ALPHABET).not.toContain(letter);
     }
     expect(INVITATION_CODE_LENGTH).toBe(12);
+    expect(DEVICE_LINK_CODE_LENGTH).toBe(8);
   });
 
   it('compacta lo tecleado: mayúsculas, sin separadores y la O, la I y la L como cifras', () => {
-    expect(compactInvitationCode(' abcd-efgh jkmn ')).toBe('ABCDEFGHJKMN');
+    expect(compactAccessCode(' abcd-efgh jkmn ')).toBe('ABCDEFGHJKMN');
     // Guiones largos: los pone el corrector de un chat al pegar «--».
-    expect(compactInvitationCode('0oil—1234–5678')).toBe('001112345678');
+    expect(compactAccessCode('0oil—1234–5678')).toBe('001112345678');
   });
 
-  it('solo es código la forma canónica de doce símbolos del alfabeto', () => {
-    expect(isInvitationCode('ABCDEFGHJKMN')).toBe(true);
-    expect(isInvitationCode('ABCDEFGHJKM')).toBe(false);
-    expect(isInvitationCode('ABCDEFGHJKMU')).toBe(false);
-    expect(isInvitationCode('abcdefghjkmn')).toBe(false);
+  it('solo es código la forma canónica del largo que se pide', () => {
+    expect(isAccessCode('ABCDEFGHJKMN', INVITATION_CODE_LENGTH)).toBe(true);
+    expect(isAccessCode('ABCDEFGHJKM', INVITATION_CODE_LENGTH)).toBe(false);
+    expect(isAccessCode('ABCDEFGHJKMU', INVITATION_CODE_LENGTH)).toBe(false);
+    expect(isAccessCode('abcdefghjkmn', INVITATION_CODE_LENGTH)).toBe(false);
+    expect(isAccessCode('ABCDEFGH', DEVICE_LINK_CODE_LENGTH)).toBe(true);
+    expect(isAccessCode('ABCDEFGHJKMN', DEVICE_LINK_CODE_LENGTH)).toBe(false);
   });
 
   it('se enseña de cuatro en cuatro y lo enseñado vuelve a la forma canónica', () => {
-    const shown = formatInvitationCode('ABCDEFGHJKMN');
+    const shown = formatAccessCode('ABCDEFGHJKMN');
 
     expect(shown).toBe('ABCD-EFGH-JKMN');
     expect(invitationCodeSchema.parse(shown)).toBe('ABCDEFGHJKMN');
+    expect(formatAccessCode('ABCDEFGH')).toBe('ABCD-EFGH');
   });
 
-  it('el esquema devuelve la forma canónica o rechaza', () => {
+  it('el esquema de la invitación devuelve la forma canónica o rechaza', () => {
     expect(invitationCodeSchema.parse('abcd efgh jkmn')).toBe('ABCDEFGHJKMN');
     expect(invitationCodeSchema.safeParse('ABCD-EFGH').success).toBe(false);
     expect(invitationCodeSchema.safeParse('ABCD-EFGH-JKMU').success).toBe(false);
     expect(invitationCodeSchema.safeParse('').success).toBe(false);
+  });
+
+  it('el del enlace de un dispositivo es de ocho, y los dos largos no se confunden', () => {
+    expect(deviceLinkCodeSchema.parse('abcd-efgh')).toBe('ABCDEFGH');
+    expect(deviceLinkCodeSchema.safeParse('ABCDEFGHJKMN').success).toBe(false);
+    expect(invitationCodeSchema.safeParse('ABCDEFGH').success).toBe(false);
+  });
+
+  it('el primer paso de añadir otro dispositivo solo pide el código', () => {
+    expect(deviceLinkOptionsRequestSchema.parse({ linkCode: 'abcd efgh' })).toEqual({
+      linkCode: 'ABCDEFGH',
+    });
+    expect(deviceLinkOptionsRequestSchema.safeParse({ linkCode: 'ABCD-EFG' }).success).toBe(false);
   });
 });
 

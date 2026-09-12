@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { compactInvitationCode, INVITATION_CODE_PATTERN } from '../domain/invitation-code';
+import {
+  compactAccessCode,
+  DEVICE_LINK_CODE_LENGTH,
+  DEVICE_LINK_CODE_PATTERN,
+  INVITATION_CODE_LENGTH,
+  INVITATION_CODE_PATTERN,
+} from '../domain/access-code';
 import { isoDatetimeSchema, localeSchema, resourceIdSchema } from './common';
 import {
   authenticationCredentialSchema,
@@ -10,18 +16,27 @@ import {
 import { displayNameSchema, userSchema } from './user';
 
 /**
- * Un código de invitación tal y como lo teclea alguien: se acepta en minúsculas, con guiones o
- * espacios y con una O por un cero, y sale ya en su forma canónica.
+ * Un código tal y como lo teclea alguien: se acepta en minúsculas, con guiones o espacios y con
+ * una O por un cero, y sale ya en su forma canónica.
  */
-export const invitationCodeSchema = z
-  .string()
-  .max(64)
-  .transform(compactInvitationCode)
-  .pipe(
-    z.string().regex(INVITATION_CODE_PATTERN, {
-      message: 'El código de invitación tiene doce letras y cifras',
-    }),
-  );
+function accessCodeSchema(pattern: RegExp, message: string) {
+  return z
+    .string()
+    .max(64)
+    .transform(compactAccessCode)
+    .pipe(z.string().regex(pattern, { message }));
+}
+
+export const invitationCodeSchema = accessCodeSchema(
+  INVITATION_CODE_PATTERN,
+  `El código de invitación tiene ${String(INVITATION_CODE_LENGTH)} letras y cifras`,
+);
+
+/** El de «añadir otro dispositivo», que se teclea a mano y por eso es más corto. */
+export const deviceLinkCodeSchema = accessCodeSchema(
+  DEVICE_LINK_CODE_PATTERN,
+  `El código tiene ${String(DEVICE_LINK_CODE_LENGTH)} letras y cifras`,
+);
 
 export const sessionSchema = z.object({
   token: z.string().min(1),
@@ -66,6 +81,26 @@ export const invitationSchema = z.object({
   expiresAt: isoDatetimeSchema,
 });
 
+/**
+ * El código con el que un dispositivo nuevo se suma a una cuenta que ya existe. Se pide desde un
+ * dispositivo que ya tiene sesión y se teclea en el otro; como la invitación, en la base solo
+ * queda su digest, así que esta respuesta es la única vez que existe en claro.
+ */
+export const deviceLinkSchema = z.object({
+  code: z.string().regex(DEVICE_LINK_CODE_PATTERN),
+  expiresAt: isoDatetimeSchema,
+});
+
+/**
+ * Primer paso de «añadir otro dispositivo», desde el dispositivo nuevo: solo el código. Quién es
+ * la cuenta lo dice el código, no quien lo teclea, y la ceremonia que sigue es la del registro
+ * (`registrationOptionsResponseSchema` y `registrationVerifyRequestSchema`), porque lo que se
+ * crea es otra passkey.
+ */
+export const deviceLinkOptionsRequestSchema = z.object({
+  linkCode: deviceLinkCodeSchema,
+});
+
 export type Session = z.infer<typeof sessionSchema>;
 export type RegistrationOptionsRequest = z.infer<typeof registrationOptionsRequestSchema>;
 export type RegistrationOptionsResponse = z.infer<typeof registrationOptionsResponseSchema>;
@@ -73,3 +108,5 @@ export type RegistrationVerifyRequest = z.infer<typeof registrationVerifyRequest
 export type LoginOptionsResponse = z.infer<typeof loginOptionsResponseSchema>;
 export type LoginVerifyRequest = z.infer<typeof loginVerifyRequestSchema>;
 export type Invitation = z.infer<typeof invitationSchema>;
+export type DeviceLink = z.infer<typeof deviceLinkSchema>;
+export type DeviceLinkOptionsRequest = z.infer<typeof deviceLinkOptionsRequestSchema>;

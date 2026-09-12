@@ -1,6 +1,6 @@
 import {
   apiErrorSchema,
-  formatInvitationCode,
+  formatAccessCode,
   invitationSchema,
   loginOptionsResponseSchema,
   registrationOptionsResponseSchema,
@@ -184,7 +184,7 @@ describe('passkeys', () => {
     it('acepta el código como lo teclea la gente', async () => {
       const code = await newInvitationCode(db);
 
-      const response = await requestRegistrationOptions(formatInvitationCode(code).toLowerCase());
+      const response = await requestRegistrationOptions(formatAccessCode(code).toLowerCase());
 
       expect(response.status).toBe(200);
     });

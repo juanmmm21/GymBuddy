@@ -1,4 +1,4 @@
-import { isInvitationCode } from '@gymbuddy/shared';
+import { INVITATION_CODE_LENGTH, isAccessCode } from '@gymbuddy/shared';
 import { env } from 'cloudflare:test';
 import { eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -23,7 +23,7 @@ describe('códigos de invitación', () => {
   it('genera códigos canónicos y distintos', () => {
     const codes = Array.from({ length: 50 }, () => generateInvitationCode());
 
-    expect(codes.every(isInvitationCode)).toBe(true);
+    expect(codes.every((code) => isAccessCode(code, INVITATION_CODE_LENGTH))).toBe(true);
     expect(new Set(codes).size).toBe(codes.length);
   });
 });

@@ -43,6 +43,9 @@ export type {
   Muscle,
 } from './catalog';
 export {
+  deviceLinkCodeSchema,
+  deviceLinkOptionsRequestSchema,
+  deviceLinkSchema,
   invitationCodeSchema,
   invitationSchema,
   loginOptionsResponseSchema,
@@ -53,6 +56,8 @@ export {
   sessionSchema,
 } from './auth';
 export type {
+  DeviceLink,
+  DeviceLinkOptionsRequest,
   Invitation,
   LoginOptionsResponse,
   LoginVerifyRequest,

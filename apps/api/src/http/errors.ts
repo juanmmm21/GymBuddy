@@ -6,6 +6,7 @@ export const httpStatusByErrorCode: Record<ApiErrorCode, ContentfulStatusCode> =
   not_found: 404,
   unauthorized: 401,
   invitation_invalid: 400,
+  device_link_invalid: 400,
   passkey_invalid: 400,
   // 503 y no 502: el origen es un CDN inmutable, así que el fallo es transitorio y
   // reintentar más tarde es la respuesta correcta.

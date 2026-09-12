@@ -1,11 +1,8 @@
-import {
-  INVITATION_CODE_ALPHABET,
-  INVITATION_CODE_LENGTH,
-  type Invitation,
-} from '@gymbuddy/shared';
+import { INVITATION_CODE_LENGTH, type Invitation } from '@gymbuddy/shared';
 import { and, eq, gt, isNull } from 'drizzle-orm';
 import type { Database } from '../db/client';
 import { invitation } from '../db/schema';
+import { generateAccessCode } from './access-codes';
 import { sha256Hex } from './digest';
 
 /** Una semana: lo que tarda alguien en abrir el mensaje y ponerse a ello sin prisa. */
@@ -17,16 +14,9 @@ export interface IssueInvitationOptions {
   readonly now: Date;
 }
 
-/**
- * Un código nuevo. Treinta y dos símbolos reparten los 256 valores de un byte en partes
- * exactas (ocho cada uno), así que el resto de dividir no favorece a ningún símbolo.
- */
+/** Un código de invitación nuevo. */
 export function generateInvitationCode(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(INVITATION_CODE_LENGTH));
-
-  return Array.from(bytes, (byte) =>
-    INVITATION_CODE_ALPHABET.charAt(byte % INVITATION_CODE_ALPHABET.length),
-  ).join('');
+  return generateAccessCode(INVITATION_CODE_LENGTH);
 }
 
 /** El digest con el que se guarda y se busca un código ya en su forma canónica. */

@@ -13,6 +13,10 @@ export const apiErrorCodeSchema = z.enum([
   // El código de invitación no sirve: no existe, caducó o ya se usó. Los tres casos comparten
   // código a propósito, para no confirmarle a nadie que un código existió.
   'invitation_invalid',
+  // El código de «añadir otro dispositivo» no sirve: no existe, caducó o ya se usó. Va aparte de
+  // `invitation_invalid` porque el texto que hay que enseñar es otro: aquí se pide otro código
+  // desde el móvil que ya tiene la cuenta, no a quien te invitó.
+  'device_link_invalid',
   // La passkey no se pudo comprobar: el reto caducó o ya se usó, la firma no cuadra o la llave
   // no es de ninguna cuenta. Es un 400 y no un 401: quien intenta entrar no tiene sesión que
   // cerrar, y la PWA cierra la sesión ante cualquier 401.
