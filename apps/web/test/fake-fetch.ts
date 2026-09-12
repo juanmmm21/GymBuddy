@@ -1,4 +1,10 @@
-import { apiError, type ApiErrorCode } from '@gymbuddy/shared';
+import {
+  apiError,
+  SESSION_REFRESH_EXPIRES_HEADER,
+  SESSION_REFRESH_TOKEN_HEADER,
+  type ApiErrorCode,
+  type SessionRefresh,
+} from '@gymbuddy/shared';
 
 export interface RecordedRequest {
   readonly method: string;
@@ -55,6 +61,15 @@ export function jsonResponse(payload: unknown, status = 200): Response {
     status,
     headers: { 'Content-Type': 'application/json' },
   });
+}
+
+/** La misma respuesta con el par de cabeceras con el que el Worker entrega un token nuevo. */
+export function withSessionRefresh(response: Response, refresh: SessionRefresh): Response {
+  const headers = new Headers(response.headers);
+  headers.set(SESSION_REFRESH_TOKEN_HEADER, refresh.token);
+  headers.set(SESSION_REFRESH_EXPIRES_HEADER, refresh.expiresAt);
+
+  return new Response(response.body, { status: response.status, headers });
 }
 
 export function errorResponse(code: ApiErrorCode, status: number, message: string): Response {

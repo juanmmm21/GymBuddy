@@ -7,19 +7,23 @@ import {
   ApiTransportError,
 } from '../../src/api/client';
 import { fetchCurrentUser, listSessionHistory, logSet } from '../../src/api/endpoints';
-import { createFakeFetch, errorResponse, jsonResponse } from '../fake-fetch';
+import { createFakeFetch, errorResponse, jsonResponse, withSessionRefresh } from '../fake-fetch';
 import { sessionPage, user } from '../fixtures';
 
 function createClient(fetchImpl: typeof fetch, token: string | null = 'token-123') {
   const onUnauthorized = vi.fn();
+  const onSessionRefreshed = vi.fn();
   const client = new ApiClient({
     baseUrl: 'https://api.example.test/',
     getToken: () => token,
     fetchImpl,
     onUnauthorized,
+    onSessionRefreshed,
   });
-  return { client, onUnauthorized };
+  return { client, onUnauthorized, onSessionRefreshed };
 }
+
+const renewed = { token: 'token-456', expiresAt: '2099-06-01T00:00:00.000Z' };
 
 describe('ApiClient', () => {
   it('manda el token, valida la respuesta con el contrato y la devuelve tipada', async () => {
@@ -107,6 +111,35 @@ describe('ApiClient', () => {
     const error = await fetchCurrentUser(client).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(ApiTransportError);
     expect((error as ApiTransportError).cause).toBe(cause);
+  });
+
+  it('recoge el token nuevo que trae la respuesta', async () => {
+    const fake = createFakeFetch();
+    fake.on('GET', '/auth/me', () => withSessionRefresh(jsonResponse(user), renewed));
+    const { client, onSessionRefreshed } = createClient(fake.fetch);
+
+    expect(await fetchCurrentUser(client)).toEqual(user);
+    expect(onSessionRefreshed).toHaveBeenCalledWith(renewed);
+  });
+
+  it('lo recoge también de una respuesta de error: la sesión vale aunque la petición falle', async () => {
+    const fake = createFakeFetch();
+    fake.on('GET', '/auth/me', () =>
+      withSessionRefresh(errorResponse('not_found', 404, 'No está'), renewed),
+    );
+    const { client, onSessionRefreshed } = createClient(fake.fetch);
+
+    await expect(fetchCurrentUser(client)).rejects.toBeInstanceOf(ApiRequestError);
+    expect(onSessionRefreshed).toHaveBeenCalledWith(renewed);
+  });
+
+  it('una respuesta normal no renueva nada', async () => {
+    const fake = createFakeFetch();
+    fake.on('GET', '/auth/me', () => jsonResponse(user));
+    const { client, onSessionRefreshed } = createClient(fake.fetch);
+
+    await fetchCurrentUser(client);
+    expect(onSessionRefreshed).not.toHaveBeenCalled();
   });
 
   it('compone la URL con el prefijo de versión y sin barras dobles', async () => {
