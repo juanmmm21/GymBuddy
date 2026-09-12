@@ -78,10 +78,10 @@ passkey es el único factor, así que se exige que el móvil haya comprobado la 
 *   **Cambiar de dominio invalida todas las passkeys.** Van atadas al `rpID`: los datos no se
     pierden, pero cada persona tendría que crear su llave otra vez. El dominio se decide **antes de que
     nadie registre una**; `*.pages.dev` vale como `rpID`.
-*   **Perder todos los dispositivos es perder el acceso** mientras no existan «añadir otro
-    dispositivo» y la exportación en JSON, que van detrás en la misma fase. Las passkeys se sincronizan
-    dentro de Apple o dentro de Google, pero no entre los dos: pasar de iPhone a Android necesita el
-    código de «añadir otro dispositivo».
+*   **Perder todos los dispositivos es perder el acceso** mientras no exista la exportación en JSON,
+    que va detrás en la misma fase. Las passkeys se sincronizan dentro de Apple o dentro de Google,
+    pero no entre los dos: pasar de iPhone a Android necesita el código de «añadir otro
+    dispositivo», que ya está hecho (ver abajo).
 *   **Pedir las opciones de entrada es público y escribe una fila**, como lo era pedir el nonce. Los
     retos caducan a los cinco minutos y el Cron Trigger los barre; el de registro, además, no se
     concede sin una invitación válida.
@@ -94,3 +94,24 @@ passkey es el único factor, así que se exige que el móvil haya comprobado la 
     Safari».
 *   El modelo sigue siendo multiusuario sin coste añadido: todo cuelga de `user_id`, que ahora es
     nuestro y no un identificador de Telegram.
+
+## Añadir otro dispositivo — 2026-09-12
+
+La segunda llave de una cuenta se crea con un **código corto de un solo uso** que se pide desde un
+dispositivo que ya tiene sesión (`POST /auth/devices/link`) y se teclea en el nuevo
+(`POST /auth/devices/options` y `/verify`). Es la misma mecánica que la invitación, con tres
+diferencias que vienen de para qué sirve cada uno:
+
+*   **Ocho símbolos y diez minutos**, frente a los doce y la semana de la invitación. Este código no
+    se copia de un mensaje: se lee en una pantalla y se teclea en otra, con los dos móviles delante.
+    Cuarenta bits en una ventana de diez minutos, de un solo uso, no se adivinan probando.
+*   **Pedir uno nuevo retira el anterior**, así que una cuenta nunca tiene más de un código vivo: el
+    que se escribió mal deja de valer en cuanto se pide otro.
+*   **Las opciones llevan `excludeCredentials`** con las llaves que la cuenta ya tiene. Si quien
+    teclea el código es un móvil que ya estaba dentro, el navegador lo dice en vez de crear una
+    segunda llave del mismo sitio; y si aun así llegara, el Worker la rechaza sin gastar el código.
+
+La ceremonia es la del registro —lo que se crea es otra passkey—, pero **no crea ninguna cuenta**: el
+reto guarda a qué usuario pertenece (`auth_challenge.kind = 'device_link'`), y al verificar, la llave
+se cuelga de esa cuenta y el dispositivo nuevo estrena sesión. El código se consume con el mismo
+`UPDATE` condicionado que la invitación, y se devuelve si guardar la llave falla.
