@@ -210,7 +210,6 @@ describe('la mascota en la sesión', () => {
             rpe: body.rpe ?? null,
             isWarmup: body.isWarmup ?? false,
             completedAt: new Date().toISOString(),
-            source: body.source,
           };
           current = { ...current, sets: [...current.sets, entry] };
           return jsonResponse({ set: entry, records: [] });
@@ -270,7 +269,6 @@ describe('la mascota en la sesión', () => {
             rpe: body.rpe ?? null,
             isWarmup: body.isWarmup ?? false,
             completedAt,
-            source: body.source,
           };
           current = { ...current, sets: [...current.sets, entry] };
           return jsonResponse({

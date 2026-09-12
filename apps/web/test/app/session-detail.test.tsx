@@ -28,7 +28,6 @@ describe('detalle de una sesión pasada', () => {
     expect(screen.getByText('85 kg × 6')).toBeInTheDocument();
     expect(screen.getByText('RPE 8,5')).toBeInTheDocument();
     expect(screen.getByText('Calentamiento')).toBeInTheDocument();
-    expect(screen.getByText('Telegram')).toBeInTheDocument();
   });
 
   it('una sesión sin series lo dice en vez de quedarse en blanco', async () => {

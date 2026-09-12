@@ -53,7 +53,6 @@ describe('ApiClient', () => {
         trackedExerciseId: '00000000-0000-4000-8000-000000000002',
         weight: '82.50',
         reps: 8,
-        source: 'web',
       }),
     ).rejects.toMatchObject({ name: 'ApiRequestError', code: 'session_closed', status: 409 });
     expect(fake.requests[1]?.headers.get('Content-Type')).toBe('application/json');

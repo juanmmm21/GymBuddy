@@ -39,7 +39,7 @@ export function ExercisesScreen() {
               title="Todavía no sigues ningún ejercicio"
               action={<Link to={CATALOG_PATH}>Abrir el catálogo</Link>}
             >
-              Elige uno del catálogo o registra una serie desde el bot de Telegram.
+              Elige uno del catálogo para empezar a seguirlo.
             </Notice>
           ) : (
             <div className={styles.groups}>

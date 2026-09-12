@@ -50,7 +50,6 @@ describe('sesión: sin ninguna abierta', () => {
     expect(await screen.findByText('Todavía no has registrado ninguna serie')).toBeInTheDocument();
     const post = fake.requests.find((request) => request.path === '/sessions');
     const body = post?.body as StartSessionRequest;
-    expect(body.source).toBe('web');
     expect(body.id).toMatch(UUID);
   });
 
@@ -118,7 +117,6 @@ describe('sesión en curso', () => {
             rpe: body.rpe ?? null,
             isWarmup: body.isWarmup ?? false,
             completedAt: '2026-09-08T18:30:00.000Z',
-            source: body.source,
           };
           current = { ...current, sets: [...current.sets, entry] };
           return jsonResponse({ set: entry, records: [newMaxWeightRecord] });
@@ -150,7 +148,6 @@ describe('sesión en curso', () => {
     expect(body.reps).toBe(8);
     expect(body.rpe).toBeNull();
     expect(body.isWarmup).toBe(false);
-    expect(body.source).toBe('web');
     expect(body.id).toMatch(UUID);
   });
 
@@ -230,7 +227,6 @@ describe('sesión: terminarla', () => {
             startedAt: activeSession.startedAt,
             endedAt: '2026-09-08T19:00:00.000Z',
             notes: 'Buen día',
-            source: 'web',
           });
         });
       },

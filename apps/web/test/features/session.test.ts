@@ -30,7 +30,6 @@ function setOf(
     rpe: null,
     isWarmup: false,
     completedAt: '2026-09-08T18:00:00.000Z',
-    source: 'web',
     ...overrides,
   };
 }

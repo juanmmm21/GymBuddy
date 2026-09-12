@@ -117,7 +117,6 @@ function SessionBody({ session, exercises, locale }: SessionBodyProps) {
           value={pluralize(totals.exerciseCount, 'ejercicio', 'ejercicios')}
         />
         <Metric label="Volumen" value={formatVolumeLabel(totals.volumeGrams, locale)} />
-        {session.source === 'bot' && <Metric label="Origen" value="Telegram" />}
       </Surface>
 
       {session.notes !== null && (
@@ -177,7 +176,6 @@ function SetRow({ set, position, locale }: SetRowProps) {
       <span className={styles.setMeta}>
         {set.isWarmup && <Badge>Calentamiento</Badge>}
         {set.rpe !== null && <span>{formatRpe(set.rpe, locale)}</span>}
-        {set.source === 'bot' && <Badge>Telegram</Badge>}
       </span>
     </li>
   );

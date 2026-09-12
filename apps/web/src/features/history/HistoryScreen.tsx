@@ -78,7 +78,6 @@ function SessionRow({ session, locale }: SessionRowProps) {
           <span className={styles.meta}>
             {formatTime(session.startedAt, locale)}
             {session.endedAt !== null && ` – ${formatTime(session.endedAt, locale)}`}
-            {session.source === 'bot' && ' · desde el bot'}
           </span>
         </span>
         {session.endedAt === null ? (

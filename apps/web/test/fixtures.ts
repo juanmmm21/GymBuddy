@@ -217,7 +217,6 @@ export const sessionPage: WorkoutSessionPage = {
       startedAt: '2026-09-06T18:00:00.000Z',
       endedAt: '2026-09-06T19:05:00.000Z',
       notes: null,
-      source: 'web',
       setCount: 12,
     },
   ],
@@ -236,7 +235,6 @@ export function sessionSummaries(count: number, offset = 0): WorkoutSessionSumma
       startedAt: `2026-08-${day}T18:00:00.000Z`,
       endedAt: `2026-08-${day}T19:00:00.000Z`,
       notes: null,
-      source: 'web',
       setCount: 10,
     };
   });
@@ -280,7 +278,6 @@ export const pastSession: WorkoutSessionDetail = {
   startedAt: '2026-09-06T18:00:00.000Z',
   endedAt: '2026-09-06T19:05:00.000Z',
   notes: 'Buen día, la barra subía sola.',
-  source: 'web',
   sets: [
     {
       id: 'c06d5081-7c9d-4ea4-bfe0-5b6c7d8e9fa1',
@@ -291,7 +288,6 @@ export const pastSession: WorkoutSessionDetail = {
       rpe: null,
       isWarmup: true,
       completedAt: '2026-09-06T18:05:00.000Z',
-      source: 'web',
     },
     {
       id: 'ad4b3e6f-5a7b-4c82-9dce-3f4a5b6c7d8e',
@@ -302,7 +298,6 @@ export const pastSession: WorkoutSessionDetail = {
       rpe: 8.5,
       isWarmup: false,
       completedAt: '2026-09-06T18:20:00.000Z',
-      source: 'web',
     },
     {
       id: 'd07f72a3-9ebf-40c6-b102-7d8e9fa1b2c3',
@@ -313,7 +308,6 @@ export const pastSession: WorkoutSessionDetail = {
       rpe: null,
       isWarmup: false,
       completedAt: '2026-09-06T18:45:00.000Z',
-      source: 'bot',
     },
   ],
 };
@@ -327,7 +321,6 @@ export const activeSession: WorkoutSessionDetail = {
   startedAt: '2026-09-08T18:00:00.000Z',
   endedAt: null,
   notes: null,
-  source: 'web',
   sets: [
     {
       id: 'f2ab8c4d-5e6f-4a72-8b3c-4d5e6f7a8b9c',
@@ -338,7 +331,6 @@ export const activeSession: WorkoutSessionDetail = {
       rpe: null,
       isWarmup: false,
       completedAt: '2026-09-08T18:10:00.000Z',
-      source: 'web',
     },
   ],
 };
@@ -450,7 +442,6 @@ export const benchPressHistory: ExerciseHistory = {
           rpe: null,
           isWarmup: true,
           completedAt: '2026-09-06T18:05:00.000Z',
-          source: 'web',
         },
         {
           id: 'ad4b3e6f-5a7b-4c82-9dce-3f4a5b6c7d8e',
@@ -461,7 +452,6 @@ export const benchPressHistory: ExerciseHistory = {
           rpe: 8.5,
           isWarmup: false,
           completedAt: '2026-09-06T18:20:00.000Z',
-          source: 'web',
         },
       ],
     },
@@ -479,7 +469,6 @@ export const benchPressHistory: ExerciseHistory = {
           rpe: null,
           isWarmup: false,
           completedAt: '2026-09-03T18:20:00.000Z',
-          source: 'bot',
         },
       ],
     },

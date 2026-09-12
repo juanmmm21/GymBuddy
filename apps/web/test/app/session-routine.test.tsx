@@ -56,7 +56,6 @@ function serveWorker(fake: FakeFetch, options: WorkerOptions): void {
       startedAt: '2026-09-08T18:00:00.000Z',
       endedAt: null,
       notes: null,
-      source: body.source,
       sets: [],
     };
     return jsonResponse({ ...current, sets: undefined });
@@ -77,7 +76,6 @@ function serveWorker(fake: FakeFetch, options: WorkerOptions): void {
       rpe: body.rpe ?? null,
       isWarmup: body.isWarmup ?? false,
       completedAt: '2026-09-08T18:30:00.000Z',
-      source: body.source,
     };
     current = { ...current, sets: [...current.sets, entry] };
     return jsonResponse({ set: entry, records: [] });
@@ -90,7 +88,6 @@ function serveWorker(fake: FakeFetch, options: WorkerOptions): void {
       startedAt: opened.startedAt,
       endedAt: '2026-09-08T19:00:00.000Z',
       notes: null,
-      source: opened.source,
     });
   });
 }
@@ -106,7 +103,6 @@ function workingSets(trackedExerciseId: string, count: number, offset: number): 
     rpe: null,
     isWarmup: false,
     completedAt: '2026-09-08T18:20:00.000Z',
-    source: 'web' as const,
   }));
 }
 

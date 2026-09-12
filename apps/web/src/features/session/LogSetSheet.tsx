@@ -118,7 +118,6 @@ function LogSetForm({
           reps: values.reps,
           rpe: values.rpe,
           isWarmup: values.isWarmup,
-          source: 'web',
         },
       },
       { onSuccess: onLogged },

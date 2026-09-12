@@ -28,7 +28,6 @@ function setOf(trackedExerciseId: string, overrides: Partial<SetEntry> = {}): Se
     rpe: null,
     isWarmup: false,
     completedAt: '2026-09-10T18:00:00.000Z',
-    source: 'web',
     ...overrides,
   };
 }

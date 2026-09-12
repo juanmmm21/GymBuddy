@@ -186,14 +186,14 @@ function StartSessionPanel({ routineId, routine }: StartSessionPanelProps) {
     // sesión lleva ese id, y este panel se desmonta en cuanto aparece la sesión abierta, así
     // que un `onSuccess` de aquí podría no llegar a ejecutarse.
     if (routine !== null) saveSessionRoutine(storage, { sessionId, routineId: routine.id });
-    start.mutate({ id: sessionId, source: 'web' });
+    start.mutate({ id: sessionId });
   };
 
   return (
     <div className={styles.stack}>
       {routine === null ? (
         <Notice title="No tienes ninguna sesión abierta">
-          Empieza una y ve registrando las series según las haces. El bot escribe en la misma.
+          Empieza una y ve registrando las series según las haces.
         </Notice>
       ) : (
         <Notice title={`Vas a empezar «${routine.name}»`}>
@@ -466,7 +466,6 @@ function SetRow({ set, position, locale, onEdit }: SetRowProps) {
         <span className={styles.setMeta}>
           {set.isWarmup && <Badge>Calentamiento</Badge>}
           {set.rpe !== null && <span>{formatRpe(set.rpe, locale)}</span>}
-          {set.source === 'bot' && <Badge>Telegram</Badge>}
         </span>
       </button>
     </li>
