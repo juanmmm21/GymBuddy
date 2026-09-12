@@ -66,18 +66,21 @@ interface ApiBoundaryProps {
  * pantalla del siguiente.
  */
 function ApiBoundary({ apiBaseUrl, fetchImpl, queryClient, children }: ApiBoundaryProps) {
-  const { session, signOut } = useSession();
+  const { session, signOut, renew } = useSession();
   const token = session?.token ?? null;
 
+  // El cliente se rehace con cada token renovado, pero la caché de TanStack Query no se toca:
+  // solo se vacía al cerrar sesión, abajo. Las claves no dependen del cliente.
   const client = useMemo(
     () =>
       new ApiClient({
         baseUrl: apiBaseUrl,
         getToken: () => token,
         onUnauthorized: signOut,
+        onSessionRefreshed: renew,
         ...(fetchImpl === undefined ? {} : { fetchImpl }),
       }),
-    [apiBaseUrl, fetchImpl, signOut, token],
+    [apiBaseUrl, fetchImpl, renew, signOut, token],
   );
 
   useEffect(() => {

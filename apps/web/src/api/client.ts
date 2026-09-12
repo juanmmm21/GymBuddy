@@ -1,4 +1,9 @@
-import { apiErrorSchema, type ApiErrorCode } from '@gymbuddy/shared';
+import {
+  apiErrorSchema,
+  readSessionRefresh,
+  type ApiErrorCode,
+  type SessionRefresh,
+} from '@gymbuddy/shared';
 import type { ZodType } from 'zod';
 
 export type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
@@ -22,6 +27,8 @@ export interface ApiClientOptions {
   readonly fetchImpl?: typeof fetch;
   /** El Worker rechazó la sesión: la PWA la descarta y vuelve a la entrada. */
   readonly onUnauthorized?: () => void;
+  /** El Worker devolvió un token nuevo porque al de esta sesión le quedaba poca vida. */
+  readonly onSessionRefreshed?: (refresh: SessionRefresh) => void;
 }
 
 /** El Worker respondió con el contrato de error: la PWA decide mirando `code`. */
@@ -65,6 +72,7 @@ export class ApiClient {
   private readonly getToken: () => string | null;
   private readonly fetchImpl: typeof fetch;
   private readonly onUnauthorized: (() => void) | undefined;
+  private readonly onSessionRefreshed: ((refresh: SessionRefresh) => void) | undefined;
 
   constructor(options: ApiClientOptions) {
     this.baseUrl = options.baseUrl.replace(/\/+$/, '');
@@ -72,6 +80,7 @@ export class ApiClient {
     // Se ata al `globalThis` explícitamente: un `fetch` suelto pierde su `this` en el navegador.
     this.fetchImpl = options.fetchImpl ?? ((input, init) => globalThis.fetch(input, init));
     this.onUnauthorized = options.onUnauthorized;
+    this.onSessionRefreshed = options.onSessionRefreshed;
   }
 
   async request<T>(request: ApiRequest<T>): Promise<T> {
@@ -96,6 +105,11 @@ export class ApiClient {
         },
       );
     }
+
+    // La sesión se renueva sola al usarse: el token nuevo viaja en las cabeceras de cualquier
+    // respuesta, también en la de un error, así que se recoge antes de mirar el estado.
+    const refreshed = readSessionRefresh(response.headers);
+    if (refreshed !== null) this.onSessionRefreshed?.(refreshed);
 
     const payload: unknown = await readJson(response);
 
