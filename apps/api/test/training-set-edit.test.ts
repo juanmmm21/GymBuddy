@@ -2,6 +2,7 @@ import {
   apiErrorSchema,
   exerciseStatsSchema,
   logSetResponseSchema,
+  readSessionRefresh,
   workoutSessionDetailSchema,
 } from '@gymbuddy/shared';
 import { env } from 'cloudflare:test';
@@ -51,6 +52,7 @@ async function errorCode(response: Response): Promise<string> {
 
 describe('corregir y borrar una serie', () => {
   let db: Database;
+  let userId: string;
   let token: string;
   let otherToken: string;
   let exerciseId: string;
@@ -59,6 +61,7 @@ describe('corregir y borrar una serie', () => {
   beforeEach(async () => {
     const seeded = await seedUsers(env.DB);
     db = seeded.db;
+    userId = seeded.userId;
     token = await bearer(seeded.userId);
     otherToken = await bearer(seeded.otherUserId);
 
@@ -262,6 +265,24 @@ describe('corregir y borrar una serie', () => {
     expect(workoutSessionDetailSchema.parse(await detail.json()).sets).toEqual([]);
     // La clave ajena es `on delete cascade`: sin la serie no queda marca que la respalde.
     expect(await db.select().from(personalRecord)).toEqual([]);
+  });
+
+  it('renueva la sesión también en el 204, que no tiene cuerpo donde llevarla', async () => {
+    const setId = await logSet('80.00', 8);
+    const stale = await issueSessionToken(
+      userId,
+      JWT_SECRET,
+      new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
+    );
+
+    const removed = await call({
+      method: 'DELETE',
+      path: `/sessions/${sessionId}/sets/${setId}`,
+      token: `Bearer ${stale.token}`,
+    });
+
+    expect(removed.status).toBe(204);
+    expect(readSessionRefresh(removed.headers)).not.toBeNull();
   });
 
   it('borrar una serie que ya no está responde igual: la cola offline reintenta', async () => {

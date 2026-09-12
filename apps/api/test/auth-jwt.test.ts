@@ -1,5 +1,11 @@
+import { sign } from 'hono/jwt';
 import { describe, expect, it } from 'vitest';
-import { issueSessionToken, verifySessionToken } from '../src/auth/jwt';
+import {
+  SESSION_TTL_SECONDS,
+  issueSessionToken,
+  shouldRenewSession,
+  verifySessionToken,
+} from '../src/auth/jwt';
 
 const SECRET = 'un-secreto-de-pruebas-suficientemente-largo';
 const OTHER_SECRET = 'otro-secreto-distinto-del-primero';
@@ -7,10 +13,13 @@ const NOW = new Date('2026-09-08T12:00:00.000Z');
 const USER_ID = '3f6c2b1a-58e6-4c65-9d0e-2b1a4c7f8d31';
 
 describe('token de sesión', () => {
-  it('va y vuelve con el identificador del usuario', async () => {
+  it('va y vuelve con el identificador del usuario y su caducidad', async () => {
     const { token } = await issueSessionToken(USER_ID, SECRET, NOW);
 
-    expect(await verifySessionToken(token, SECRET)).toBe(USER_ID);
+    expect(await verifySessionToken(token, SECRET)).toEqual({
+      userId: USER_ID,
+      expiresAtSeconds: Math.floor(NOW.getTime() / 1000) + SESSION_TTL_SECONDS,
+    });
   });
 
   it('caduca a los treinta días', async () => {
@@ -61,5 +70,33 @@ describe('token de sesión', () => {
     for (const token of ['', 'nope', 'a.b', 'a.b.c.d']) {
       expect(await verifySessionToken(token, SECRET)).toBeNull();
     }
+  });
+
+  it('rechaza un token nuestro sin caducidad: no lo hemos emitido nosotros', async () => {
+    const eternal = await sign({ sub: USER_ID }, SECRET, 'HS256');
+
+    expect(await verifySessionToken(eternal, SECRET)).toBeNull();
+  });
+});
+
+describe('renovar la sesión al usarse', () => {
+  const sessionIssuedAt = (issuedAt: Date) => ({
+    userId: USER_ID,
+    expiresAtSeconds: Math.floor(issuedAt.getTime() / 1000) + SESSION_TTL_SECONDS,
+  });
+
+  const daysAfter = (days: number) => new Date(NOW.getTime() + days * 24 * 60 * 60 * 1000);
+
+  it('no toca un token recién emitido', () => {
+    expect(shouldRenewSession(sessionIssuedAt(NOW), NOW)).toBe(false);
+  });
+
+  it('aguanta hasta que le queda la mitad de vida', () => {
+    expect(shouldRenewSession(sessionIssuedAt(NOW), daysAfter(14))).toBe(false);
+    expect(shouldRenewSession(sessionIssuedAt(NOW), daysAfter(15.5))).toBe(true);
+  });
+
+  it('renueva el de quien vuelve tras tres semanas', () => {
+    expect(shouldRenewSession(sessionIssuedAt(NOW), daysAfter(21))).toBe(true);
   });
 });

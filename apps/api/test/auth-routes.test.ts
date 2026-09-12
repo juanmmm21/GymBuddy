@@ -1,4 +1,4 @@
-import { apiErrorSchema, userSchema } from '@gymbuddy/shared';
+import { apiErrorSchema, readSessionRefresh, userSchema } from '@gymbuddy/shared';
 import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { issueSessionToken } from '../src/auth/jwt';
@@ -88,5 +88,53 @@ describe('rutas que exigen sesión', () => {
 
     expect(me.status).toBe(500);
     expect(apiErrorSchema.parse(await me.json()).error.code).toBe('internal_error');
+  });
+});
+
+describe('la sesión se renueva al usarse', () => {
+  const daysAgo = (days: number): Date => new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+  beforeEach(async () => {
+    const db = createDatabase(env.DB);
+    await db.delete(user);
+    await seedUser(db);
+  });
+
+  it('no renueva la de quien acaba de entrar', async () => {
+    const { token } = await issueSessionToken(USER_ID, JWT_SECRET, new Date());
+
+    const me = await app.request(`${BASE}/auth/me`, bearer(token), authEnv());
+
+    expect(readSessionRefresh(me.headers)).toBeNull();
+  });
+
+  it('le da un token nuevo a quien vuelve con uno a medio gastar, y el nuevo vale', async () => {
+    const { token } = await issueSessionToken(USER_ID, JWT_SECRET, daysAgo(20));
+
+    const me = await app.request(`${BASE}/auth/me`, bearer(token), authEnv());
+    const renewed = readSessionRefresh(me.headers);
+
+    expect(me.status).toBe(200);
+    expect(renewed).not.toBeNull();
+    expect(renewed?.token).not.toBe(token);
+    // Otros treinta días por delante, contados desde ahora y no desde que se emitió el viejo.
+    expect(Date.parse(renewed?.expiresAt ?? '')).toBeGreaterThan(
+      Date.now() + 29 * 24 * 60 * 60 * 1000,
+    );
+
+    const again = await app.request(`${BASE}/auth/me`, bearer(renewed?.token ?? ''), authEnv());
+
+    expect(again.status).toBe(200);
+    // Recién emitido: la petición que lo estrena ya no trae otro.
+    expect(readSessionRefresh(again.headers)).toBeNull();
+  });
+
+  it('no renueva nada cuando la sesión no vale: un token caducado es 401 y punto', async () => {
+    const { token } = await issueSessionToken(USER_ID, JWT_SECRET, daysAgo(40));
+
+    const me = await app.request(`${BASE}/auth/me`, bearer(token), authEnv());
+
+    expect(me.status).toBe(401);
+    expect(readSessionRefresh(me.headers)).toBeNull();
   });
 });
