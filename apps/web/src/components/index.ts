@@ -1,3 +1,5 @@
+export { AccessCode } from './access-code/AccessCode';
+export type { AccessCodeProps } from './access-code/AccessCode';
 export { Badge } from './badge/Badge';
 export type { BadgeProps, BadgeTone } from './badge/Badge';
 export { Button } from './button/Button';

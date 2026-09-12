@@ -1,7 +1,7 @@
-import { formatAccessCode, type DeviceLink } from '@gymbuddy/shared';
+import type { DeviceLink } from '@gymbuddy/shared';
 import { useCreateDeviceLink } from '../../api/mutations';
 import { ScreenHeader, type BackLink } from '../../app/ScreenHeader';
-import { Button, Notice, Surface } from '../../components/index';
+import { AccessCode, Button, Notice, Surface } from '../../components/index';
 import { useNow } from '../../hooks/use-now';
 import { describeError } from '../../lib/errors';
 import { formatStopwatch } from '../../lib/format';
@@ -94,12 +94,11 @@ function LiveCode({ link, pending, onRenew }: LiveCodeProps) {
 
   return (
     <>
-      <Surface as="section" padding="lg" className={styles.code}>
-        <p className={styles.value}>{formatAccessCode(link.code)}</p>
+      <AccessCode code={link.code}>
         <p className={styles.countdown} role="timer">
           Caduca en {formatStopwatch(remainingSeconds)}
         </p>
-      </Surface>
+      </AccessCode>
       <Notice title="Solo para ti">
         Quien tenga este código puede entrar en tu cuenta desde su móvil mientras no caduque. Si se
         lo has enseñado a alguien sin querer, pide otro: el anterior deja de valer.

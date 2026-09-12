@@ -13,23 +13,6 @@
   line-height: var(--gb-type-body-line);
 }
 
-.code {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--gb-space-sm);
-}
-
-/* El código se lee desde el otro móvil, a un palmo: es lo más grande de la pantalla. */
-.value {
-  font-size: var(--gb-type-display-size);
-  font-weight: var(--gb-type-display-weight);
-  line-height: var(--gb-type-display-line);
-  letter-spacing: var(--gb-type-display-tracking);
-  color: var(--gb-color-accent);
-  font-variant-numeric: tabular-nums;
-}
-
 .countdown {
   color: var(--gb-color-text-muted);
   font-size: var(--gb-type-label-size);
