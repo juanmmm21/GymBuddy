@@ -2,6 +2,7 @@ import { createBrowserRouter, createMemoryRouter, type RouteObject } from 'react
 import { BodyPartScreen } from '../features/catalog/BodyPartScreen';
 import { CatalogExerciseScreen } from '../features/catalog/CatalogExerciseScreen';
 import { CatalogScreen } from '../features/catalog/CatalogScreen';
+import { LinkDeviceScreen } from '../features/devices/LinkDeviceScreen';
 import { ExercisesScreen } from '../features/exercises/ExercisesScreen';
 import { TrackedExerciseScreen } from '../features/exercises/TrackedExerciseScreen';
 import { HistoryScreen } from '../features/history/HistoryScreen';
@@ -26,6 +27,9 @@ export const routes: RouteObject[] = [
           // La sesión no es una pestaña: se entra desde Hoy o desde la ficha de un
           // ejercicio, que es cuando hay algo que registrar.
           { path: 'session', element: <SessionScreen /> },
+          // Añadir otro dispositivo cuelga de Hoy, donde está el saludo y la salida: es cosa
+          // de la cuenta, no del entrenamiento, y no merece una pestaña.
+          { path: 'devices', element: <LinkDeviceScreen /> },
           { path: 'exercises', element: <ExercisesScreen /> },
           { path: 'exercises/:id', element: <TrackedExerciseScreen /> },
           // Las rutinas no tienen pestaña propia: cuelgan de "Mis ejercicios", que es de lo

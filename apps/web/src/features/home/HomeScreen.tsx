@@ -12,6 +12,7 @@ import {
   formatWeightLabel,
   pluralize,
 } from '../../lib/format';
+import { DEVICES_PATH } from '../devices/paths';
 import { RECORD_LABELS } from '../exercises/labels';
 import { LiveMascot } from '../mascot/LiveMascot';
 import { SESSION_PATH } from '../session/paths';
@@ -31,9 +32,14 @@ export function HomeScreen() {
       <ScreenHeader
         title={`Hola, ${displayName}`}
         action={
-          <Button variant="ghost" onClick={signOut}>
-            Salir
-          </Button>
+          <div className={styles.account}>
+            <Link to={DEVICES_PATH} className={styles.accountLink}>
+              Añadir otro dispositivo
+            </Link>
+            <Button variant="ghost" onClick={signOut}>
+              Salir
+            </Button>
+          </div>
         }
       />
       <AsyncContent query={signals}>

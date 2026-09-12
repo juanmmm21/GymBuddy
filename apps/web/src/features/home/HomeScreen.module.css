@@ -79,3 +79,16 @@
   font-weight: var(--gb-type-title-weight);
   line-height: var(--gb-type-title-line);
 }
+
+.account {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--gb-space-xs);
+}
+
+.accountLink {
+  color: var(--gb-color-text-secondary);
+  font-size: var(--gb-type-label-size);
+  text-align: right;
+}

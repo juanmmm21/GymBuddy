@@ -1,5 +1,6 @@
 import type {
   CreateRoutineRequest,
+  DeviceLink,
   CreateTrackedExerciseRequest,
   EndSessionRequest,
   LogSetRequest,
@@ -21,6 +22,7 @@ import {
 } from '@tanstack/react-query';
 import { ApiRequestError, type ApiClient } from './client';
 import {
+  createDeviceLink,
   createRoutine,
   createTrackedExercise,
   endSession,
@@ -209,6 +211,16 @@ export function useEndSession(): UseMutationResult<WorkoutSession, Error, EndSes
     mutationFn: ({ sessionId, body }: EndSessionVariables) => endSession(client, sessionId, body),
     onSuccess: () => invalidateTrainingData(queryClient),
   });
+}
+
+/**
+ * Pide el código para sumar otro dispositivo a esta cuenta. No invalida nada: el código no es
+ * un dato de la cuenta que otra pantalla esté pintando, es la respuesta de esta pulsación.
+ */
+export function useCreateDeviceLink(): UseMutationResult<DeviceLink, Error, void> {
+  const client = useApiClient();
+
+  return useMutation({ mutationFn: () => createDeviceLink(client) });
 }
 
 /**
