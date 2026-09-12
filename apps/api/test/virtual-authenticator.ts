@@ -29,6 +29,8 @@ export interface VirtualPasskey {
 }
 
 export interface CeremonyTweaks {
+  /** El identificador de la credencial, en base64url, para repetir uno que ya está registrado. */
+  readonly credentialId?: string;
   readonly origin?: string;
   readonly rpId?: string;
   readonly userVerified?: boolean;
@@ -53,7 +55,10 @@ export async function createPasskey(
   tweaks: CeremonyTweaks = {},
 ): Promise<CreatedPasskey> {
   const keyPair = await generateKeyPair();
-  const credentialId = crypto.getRandomValues(new Uint8Array(16));
+  const credentialId =
+    tweaks.credentialId === undefined
+      ? crypto.getRandomValues(new Uint8Array(16))
+      : fromBase64Url(tweaks.credentialId);
 
   const jwk = await crypto.subtle.exportKey('jwk', keyPair.publicKey);
   if (jwk instanceof ArrayBuffer || jwk.x === undefined || jwk.y === undefined) {
