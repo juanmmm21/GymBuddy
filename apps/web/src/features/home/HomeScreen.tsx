@@ -13,6 +13,7 @@ import {
   pluralize,
 } from '../../lib/format';
 import { DEVICES_PATH } from '../devices/paths';
+import { INVITE_PATH } from '../invitations/paths';
 import { RECORD_LABELS } from '../exercises/labels';
 import { LiveMascot } from '../mascot/LiveMascot';
 import { SESSION_PATH } from '../session/paths';
@@ -35,6 +36,9 @@ export function HomeScreen() {
           <div className={styles.account}>
             <Link to={DEVICES_PATH} className={styles.accountLink}>
               Añadir otro dispositivo
+            </Link>
+            <Link to={INVITE_PATH} className={styles.accountLink}>
+              Invitar a un amigo
             </Link>
             <Button variant="ghost" onClick={signOut}>
               Salir

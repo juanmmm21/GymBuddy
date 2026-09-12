@@ -8,6 +8,7 @@ import { TrackedExerciseScreen } from '../features/exercises/TrackedExerciseScre
 import { HistoryScreen } from '../features/history/HistoryScreen';
 import { SessionDetailScreen } from '../features/history/SessionDetailScreen';
 import { HomeScreen } from '../features/home/HomeScreen';
+import { InviteFriendScreen } from '../features/invitations/InviteFriendScreen';
 import { RoutineScreen } from '../features/routines/RoutineScreen';
 import { RoutinesScreen } from '../features/routines/RoutinesScreen';
 import { SessionScreen } from '../features/session/SessionScreen';
@@ -30,6 +31,8 @@ export const routes: RouteObject[] = [
           // Añadir otro dispositivo cuelga de Hoy, donde está el saludo y la salida: es cosa
           // de la cuenta, no del entrenamiento, y no merece una pestaña.
           { path: 'devices', element: <LinkDeviceScreen /> },
+          // Invitar a un amigo cuelga de Hoy por lo mismo: es de la cuenta, no del entrenamiento.
+          { path: 'invite', element: <InviteFriendScreen /> },
           { path: 'exercises', element: <ExercisesScreen /> },
           { path: 'exercises/:id', element: <TrackedExerciseScreen /> },
           // Las rutinas no tienen pestaña propia: cuelgan de "Mis ejercicios", que es de lo
