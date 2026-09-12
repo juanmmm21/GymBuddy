@@ -1,6 +1,7 @@
 import {
   loginOptionsResponseSchema,
   registrationOptionsResponseSchema,
+  type DeviceLinkOptionsRequest,
   type LoginOptionsResponse,
   type LoginVerifyRequest,
   type RegistrationOptionsRequest,
@@ -12,6 +13,8 @@ import {
   generateRegistrationOptions,
   verifyAuthenticationResponse,
   verifyRegistrationResponse,
+  type PublicKeyCredentialCreationOptionsJSON,
+  type WebAuthnCredential,
 } from '@simplewebauthn/server';
 import { isoBase64URL, isoUint8Array } from '@simplewebauthn/server/helpers';
 import { eq } from 'drizzle-orm';
@@ -20,6 +23,7 @@ import {
   invitation,
   passkeyCredential,
   user,
+  type NewPasskeyCredentialRow,
   type PasskeyCredentialRow,
   type UserRow,
 } from '../db/schema';
@@ -27,8 +31,15 @@ import { ApiException } from '../http/errors';
 import {
   storeChallenge,
   takeAuthenticationChallenge,
+  takeDeviceLinkChallenge,
   takeRegistrationChallenge,
 } from './challenges';
+import {
+  consumeDeviceLink,
+  findLinkedUserId,
+  hashDeviceLinkCode,
+  releaseDeviceLink,
+} from './device-links';
 import {
   consumeInvitation,
   hashInvitationCode,
@@ -58,19 +69,8 @@ export async function startPasskeyRegistration(
   if (!(await isInvitationUsable(db, invitationHash, now))) throw invitationInvalid();
 
   const userId = crypto.randomUUID();
-  const options = await generateRegistrationOptions({
-    rpName: rp.name,
-    rpID: rp.id,
-    // Es lo que el móvil enseña al elegir la llave: el nombre de la persona.
-    userName: request.displayName,
-    userDisplayName: request.displayName,
-    // Lo que el móvil devuelve al entrar (`userHandle`): los bytes del id de la cuenta.
-    userID: isoUint8Array.fromUTF8String(userId),
-    timeout: CEREMONY_TIMEOUT_MS,
-    attestationType: 'none',
-    authenticatorSelection: { residentKey: 'required', userVerification: 'required' },
-    supportedAlgorithmIDs: SUPPORTED_ALGORITHM_IDS,
-  });
+  // La cuenta todavía no existe, así que no hay ninguna llave suya que excluir.
+  const options = await buildRegistrationOptions(rp, userId, request.displayName, []);
 
   const challengeId = await storeChallenge(
     db,
@@ -142,16 +142,9 @@ export async function finishPasskeyRegistration(
     // Un `batch` de D1 es una transacción: o entran la cuenta y su passkey, o ninguna.
     await db.batch([
       db.insert(user).values(account),
-      db.insert(passkeyCredential).values({
-        id: credential.id,
-        userId: account.id,
-        publicKey: isoBase64URL.fromBuffer(credential.publicKey),
-        counter: credential.counter,
-        transports: credential.transports ?? null,
-        backedUp: credentialBackedUp,
-        createdAt,
-        lastUsedAt: null,
-      }),
+      db
+        .insert(passkeyCredential)
+        .values(credentialRow(credential, credentialBackedUp, account.id, createdAt)),
       db
         .update(invitation)
         .set({ usedByUserId: account.id })
@@ -252,6 +245,112 @@ export async function finishPasskeyLogin(
   return account;
 }
 
+/**
+ * Primer paso de «añadir otro dispositivo», desde el dispositivo nuevo. El código dice de qué
+ * cuenta es la llave que se va a crear: quien lo teclea no tiene sesión que lo diga. Como en el
+ * registro, el código se comprueba pero no se gasta hasta que la passkey verifique.
+ */
+export async function startDeviceLinkRegistration(
+  db: Database,
+  rp: RelyingParty,
+  request: DeviceLinkOptionsRequest,
+  now: Date,
+): Promise<RegistrationOptionsResponse> {
+  const deviceLinkHash = await hashDeviceLinkCode(request.linkCode);
+  const userId = await findLinkedUserId(db, deviceLinkHash, now);
+  if (userId === null) throw deviceLinkInvalid();
+
+  const account = await findUserById(db, userId);
+  // La clave ajena es `on delete cascade`: un código sin cuenta no debería existir.
+  if (account === null) throw deviceLinkInvalid();
+
+  // Las llaves que la cuenta ya tiene se excluyen: si el móvil que teclea el código es uno que
+  // ya está dentro, conviene que lo diga en vez de crear una segunda llave del mismo sitio.
+  const existing = await listUserCredentials(db, account.id);
+  const options = await buildRegistrationOptions(rp, account.id, account.displayName, existing);
+
+  const challengeId = await storeChallenge(
+    db,
+    {
+      kind: 'device_link',
+      challenge: options.challenge,
+      link: { userId: account.id, deviceLinkHash },
+    },
+    now,
+  );
+
+  return registrationOptionsResponseSchema.parse({ challengeId, options });
+}
+
+/**
+ * Segundo paso: verifica la passkey del dispositivo nuevo, gasta el código y la cuelga de la
+ * cuenta que ya existía. No crea ninguna cuenta ni toca las llaves que ya había.
+ */
+export async function finishDeviceLinkRegistration(
+  db: Database,
+  rp: RelyingParty,
+  request: RegistrationVerifyRequest,
+  now: Date,
+): Promise<UserRow> {
+  const pending = await takeDeviceLinkChallenge(db, request.challengeId, now);
+  if (pending === null) {
+    throw passkeyInvalid('El enlace ha caducado o ya se usó: pide otro código');
+  }
+
+  const verification = await attemptVerification('registro', () =>
+    verifyRegistrationResponse({
+      response: request.credential,
+      expectedChallenge: pending.challenge,
+      expectedOrigin: rp.origin,
+      expectedRPID: rp.id,
+      requireUserPresence: true,
+      requireUserVerification: true,
+      supportedAlgorithmIDs: SUPPORTED_ALGORITHM_IDS,
+    }),
+  );
+  if (verification === null || !verification.verified) {
+    throw passkeyInvalid('No se pudo comprobar la passkey');
+  }
+
+  const account = await findUserById(db, pending.link.userId);
+  if (account === null) throw deviceLinkInvalid();
+
+  const { credential, credentialBackedUp } = verification.registrationInfo;
+  if ((await findPasskeyCredential(db, credential.id)) !== null) {
+    // Es la llave que el dispositivo ya tenía: el código no se gasta, porque no hay nada nuevo
+    // que guardar y quien está delante ya puede entrar con ella.
+    throw passkeyInvalid('Esa passkey ya está registrada: entra con ella');
+  }
+
+  const createdAt = now.toISOString();
+  if (!(await consumeDeviceLink(db, pending.link.deviceLinkHash, now))) throw deviceLinkInvalid();
+
+  try {
+    await db
+      .insert(passkeyCredential)
+      .values(credentialRow(credential, credentialBackedUp, account.id, createdAt));
+  } catch (error) {
+    // Sin passkey guardada el código no puede quedarse gastado: se devuelve, y el fallo sigue su
+    // camino hasta el manejador central como el 500 que es.
+    try {
+      await releaseDeviceLink(db, pending.link.deviceLinkHash, createdAt);
+    } catch (releaseError) {
+      console.error('No se pudo devolver el código de un enlace fallido', releaseError);
+    }
+    throw error;
+  }
+
+  return account;
+}
+
+/** Las passkeys que una cuenta ya tiene. */
+export async function listUserCredentials(
+  db: Database,
+  userId: string,
+): Promise<PasskeyCredentialRow[]> {
+  return await db.select().from(passkeyCredential).where(eq(passkeyCredential.userId, userId));
+}
+
 export async function findPasskeyCredential(
   db: Database,
   id: string,
@@ -282,6 +381,55 @@ async function attemptVerification<T>(
   }
 }
 
+/**
+ * Las opciones de crear una passkey, iguales para registrarse y para añadir otro dispositivo:
+ * cambia de quién es la cuenta y qué llaves suyas hay que excluir, no la política.
+ */
+async function buildRegistrationOptions(
+  rp: RelyingParty,
+  userId: string,
+  displayName: string,
+  existing: readonly PasskeyCredentialRow[],
+): Promise<PublicKeyCredentialCreationOptionsJSON> {
+  return await generateRegistrationOptions({
+    rpName: rp.name,
+    rpID: rp.id,
+    // Es lo que el móvil enseña al elegir la llave: el nombre de la persona.
+    userName: displayName,
+    userDisplayName: displayName,
+    // Lo que el móvil devuelve al entrar (`userHandle`): los bytes del id de la cuenta. El
+    // dispositivo que se suma usa el de la cuenta que ya existe, no uno nuevo.
+    userID: isoUint8Array.fromUTF8String(userId),
+    timeout: CEREMONY_TIMEOUT_MS,
+    attestationType: 'none',
+    authenticatorSelection: { residentKey: 'required', userVerification: 'required' },
+    supportedAlgorithmIDs: SUPPORTED_ALGORITHM_IDS,
+    excludeCredentials: existing.map((row) => ({
+      id: row.id,
+      ...(row.transports === null ? {} : { transports: row.transports }),
+    })),
+  });
+}
+
+/** La fila de una passkey recién verificada, igual en el registro y en el enlace. */
+function credentialRow(
+  credential: WebAuthnCredential,
+  backedUp: boolean,
+  userId: string,
+  createdAt: string,
+): NewPasskeyCredentialRow {
+  return {
+    id: credential.id,
+    userId,
+    publicKey: isoBase64URL.fromBuffer(credential.publicKey),
+    counter: credential.counter,
+    transports: credential.transports ?? null,
+    backedUp,
+    createdAt,
+    lastUsedAt: null,
+  };
+}
+
 function passkeyInvalid(message: string): ApiException {
   return new ApiException('passkey_invalid', message);
 }
@@ -290,5 +438,12 @@ function invitationInvalid(): ApiException {
   return new ApiException(
     'invitation_invalid',
     'El código de invitación no sirve: no existe, ya se usó o ha caducado',
+  );
+}
+
+function deviceLinkInvalid(): ApiException {
+  return new ApiException(
+    'device_link_invalid',
+    'El código no sirve: no existe, ya se usó o ha caducado',
   );
 }
