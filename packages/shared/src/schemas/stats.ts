@@ -13,7 +13,7 @@ import { personalRecordSchema } from './record';
 /**
  * Un punto de la gráfica de progresión: una sesión resumida a lo que se pinta de ella.
  * Llega ya calculado del Worker en vez de dejar que la PWA sume series, porque el mismo
- * número tiene que salir igual en la gráfica, en el bot y en la mascota.
+ * número tiene que salir igual en la gráfica y en la mascota.
  */
 export const progressionPointSchema = z.object({
   sessionId: resourceIdSchema,

@@ -19,7 +19,7 @@ export type SessionRoutineLink = z.infer<typeof sessionRoutineSchema>;
 
 /**
  * La rutina que guía esa sesión, o `null`. Lo guardado para otra sesión no vale: esa se
- * cerró —quizá desde el bot— y la abierta es otra. No se borra, porque la próxima rutina
+ * cerró —quizá desde otro móvil— y la abierta es otra. No se borra, porque la próxima rutina
  * que se empiece la sustituye y cerrar la sesión desde aquí ya la olvida.
  */
 export function loadSessionRoutine(storage: StorageLike, sessionId: ResourceId): ResourceId | null {

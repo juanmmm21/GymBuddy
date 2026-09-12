@@ -14,8 +14,8 @@ export interface SessionExerciseGroup {
 
 /**
  * Nombre de una serie cuyo ejercicio no está en el listado. No debería pasar —la pantalla
- * pide también los archivados—, pero una serie del bot registrada mientras la lista está
- * en caché llegaría antes que su ficha, y perderla de la pantalla sería peor que esto.
+ * pide también los archivados—, pero una serie escrita desde otro móvil mientras la lista
+ * está en caché llegaría antes que su ficha, y perderla de la pantalla sería peor que esto.
  */
 export const UNKNOWN_EXERCISE_NAME = 'Ejercicio';
 
@@ -75,8 +75,8 @@ export function summarizeSession(sets: readonly SetEntry[]): SessionTotals {
 
 /**
  * Cuándo se registró la última serie, que es desde cuándo se está descansando. Se compara
- * por instante y no por texto: el bot y la PWA pueden mandar el suyo con otra zona horaria
- * y el orden lexicográfico solo coincide con el cronológico dentro de la misma.
+ * por instante y no por texto: dos móviles de la misma cuenta pueden mandar el suyo con
+ * otra zona horaria, y el orden lexicográfico solo coincide con el cronológico en una.
  */
 export function latestSetCompletedAt(sets: readonly SetEntry[]): string | null {
   let latest: string | null = null;

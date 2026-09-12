@@ -1,8 +1,8 @@
 /**
  * La mascota: qué cara pone según cómo va el entrenamiento. Es lógica y no decoración
  * (`AGENTS.md` §5): el estado sale de aquí, puro y con tests, y el componente de la PWA
- * —o el bot— solo lo dibuja o lo escribe. Si una pantalla decide por su cuenta que la
- * mascota se duerme, hay dos máquinas de estados y acabarán diciendo cosas distintas.
+ * solo lo dibuja. Si una pantalla decide por su cuenta que la mascota se duerme, hay dos
+ * máquinas de estados y acabarán diciendo cosas distintas.
  *
  * El instante entra por parámetro: sin `Date.now()` dentro, el mismo estado sale en el
  * Worker, en el navegador y en un test, y el componente decide cuándo repintar.
@@ -52,8 +52,8 @@ export type MascotMood = (typeof MASCOT_MOODS)[number];
 
 /**
  * Lo que sabe el Worker. Es un subconjunto estructural de `TrainingSignals`, así que la
- * respuesta de `GET /stats/signals` se pasa tal cual; declararlo estrecho deja que el bot
- * lo construya sin inventarse los campos que la mascota no lee.
+ * respuesta de `GET /stats/signals` se pasa tal cual; declararlo estrecho deja escrito
+ * qué lee la mascota, así que un campo nuevo en las señales no la toca.
  */
 export interface MascotTrainingSignals {
   readonly lastSessionAt: string | null;
@@ -75,7 +75,7 @@ export interface MascotDeviceSignals {
   readonly freshRecords: readonly { readonly achievedAt: string }[];
 }
 
-/** Un dispositivo que no aporta nada: la pantalla de Hoy o el bot. */
+/** Un dispositivo que no aporta nada: la pantalla de Hoy. */
 export const NO_DEVICE_SIGNALS: MascotDeviceSignals = { rest: null, freshRecords: [] };
 
 /**

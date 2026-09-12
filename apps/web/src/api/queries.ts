@@ -190,7 +190,7 @@ export function useSessionDetail(sessionId: ResourceId): UseQueryResult<WorkoutS
 /**
  * Cómo va un ejercicio: peso habitual, marcas vigentes, puntos de progresión y si está
  * estancado. El Worker decide cuántas sesiones mira (diez por defecto): la ficha no pide
- * más porque el mismo número tiene que salir igual aquí, en el bot y en la mascota.
+ * más porque el mismo número tiene que salir igual aquí y en la mascota.
  */
 export function useExerciseStats(exerciseId: ResourceId): UseQueryResult<ExerciseStats> {
   const client = useApiClient();
