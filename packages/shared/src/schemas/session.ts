@@ -1,12 +1,6 @@
 import { z } from 'zod';
 import { personalRecordSchema } from './record';
-import {
-  entrySourceSchema,
-  isoDatetimeSchema,
-  resourceIdSchema,
-  rpeSchema,
-  weightKilogramsSchema,
-} from './common';
+import { isoDatetimeSchema, resourceIdSchema, rpeSchema, weightKilogramsSchema } from './common';
 
 export const setEntrySchema = z.object({
   id: resourceIdSchema,
@@ -17,7 +11,6 @@ export const setEntrySchema = z.object({
   rpe: rpeSchema.nullable(),
   isWarmup: z.boolean(),
   completedAt: isoDatetimeSchema,
-  source: entrySourceSchema,
 });
 
 export const workoutSessionSchema = z.object({
@@ -26,7 +19,6 @@ export const workoutSessionSchema = z.object({
   // Nulo mientras la sesión sigue abierta: es lo que la marca como "en curso".
   endedAt: isoDatetimeSchema.nullable(),
   notes: z.string().nullable(),
-  source: entrySourceSchema,
 });
 
 export const workoutSessionDetailSchema = workoutSessionSchema.extend({
@@ -47,7 +39,6 @@ export const workoutSessionSummarySchema = workoutSessionSchema.extend({
  */
 export const startSessionRequestSchema = z.object({
   id: resourceIdSchema,
-  source: entrySourceSchema,
   startedAt: isoDatetimeSchema.optional(),
   notes: z.string().max(1000).nullish(),
 });
@@ -59,9 +50,8 @@ export const logSetRequestSchema = z.object({
   reps: z.int().positive().max(1000),
   rpe: rpeSchema.nullish(),
   isWarmup: z.boolean().optional(),
-  // El bot y la cola offline registran series con retraso, así que el momento lo manda quien escribe.
+  // La cola offline registra series con retraso, así que el momento lo manda quien escribe.
   completedAt: isoDatetimeSchema.optional(),
-  source: entrySourceSchema,
 });
 
 /**

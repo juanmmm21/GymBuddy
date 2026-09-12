@@ -3,7 +3,6 @@ export type { ApiError, ApiErrorCode } from './error';
 export { healthResponseSchema } from './health';
 export type { HealthResponse } from './health';
 export {
-  entrySourceSchema,
   isoDatetimeSchema,
   localeSchema,
   noContentSchema,
@@ -14,7 +13,6 @@ export {
   weightKilogramsSchema,
 } from './common';
 export type {
-  EntrySource,
   IsoDatetime,
   Locale,
   ResourceId,

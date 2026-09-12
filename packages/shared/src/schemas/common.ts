@@ -33,9 +33,6 @@ export const volumeKilogramsSchema = z.string().regex(API_VOLUME_PATTERN, {
  */
 export const noContentSchema = z.null();
 
-/** Superficie desde la que se escribió el dato: la PWA o el bot. */
-export const entrySourceSchema = z.enum(['web', 'bot']);
-
 export const localeSchema = z.enum(['es', 'en']);
 export const unitSystemSchema = z.enum(['metric', 'imperial']);
 
@@ -46,6 +43,5 @@ export type ResourceId = z.infer<typeof resourceIdSchema>;
 export type IsoDatetime = z.infer<typeof isoDatetimeSchema>;
 export type WeightKilograms = z.infer<typeof weightKilogramsSchema>;
 export type VolumeKilograms = z.infer<typeof volumeKilogramsSchema>;
-export type EntrySource = z.infer<typeof entrySourceSchema>;
 export type Locale = z.infer<typeof localeSchema>;
 export type UnitSystem = z.infer<typeof unitSystemSchema>;

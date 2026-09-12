@@ -134,7 +134,6 @@ describe('series', () => {
     rpe: 8.5,
     isWarmup: false,
     completedAt: '2026-09-07T18:30:00.000Z',
-    source: 'web',
   };
 
   it('acepta una serie completa', () => {
@@ -159,7 +158,6 @@ describe('series', () => {
       trackedExerciseId: EXERCISE_ID,
       weight: '60.00',
       reps: 10,
-      source: 'bot',
     });
 
     expect(parsed.success).toBe(true);
@@ -171,7 +169,6 @@ describe('series', () => {
         trackedExerciseId: EXERCISE_ID,
         weight: '60.00',
         reps: 10,
-        source: 'bot',
       }).success,
     ).toBe(false);
 
@@ -181,7 +178,6 @@ describe('series', () => {
         trackedExerciseId: EXERCISE_ID,
         weight: '60.00',
         reps: 10,
-        source: 'bot',
       }).success,
     ).toBe(false);
   });
@@ -217,10 +213,8 @@ describe('series', () => {
 
 describe('sesión', () => {
   it('exige el identificador al abrir, igual que al registrar una serie', () => {
-    expect(startSessionRequestSchema.safeParse({ source: 'web' }).success).toBe(false);
-    expect(startSessionRequestSchema.safeParse({ id: SESSION_ID, source: 'web' }).success).toBe(
-      true,
-    );
+    expect(startSessionRequestSchema.safeParse({}).success).toBe(false);
+    expect(startSessionRequestSchema.safeParse({ id: SESSION_ID }).success).toBe(true);
   });
 
   it('representa "no hay sesión en curso" como un nulo, no como una ausencia', () => {
@@ -236,7 +230,6 @@ describe('sesión', () => {
           startedAt: '2026-09-07T18:00:00.000Z',
           endedAt: '2026-09-07T19:10:00.000Z',
           notes: null,
-          source: 'web',
           setCount: 5,
         },
       ],
@@ -254,7 +247,6 @@ describe('sesión', () => {
       startedAt: '2026-09-07T18:00:00.000Z',
       endedAt: null,
       notes: null,
-      source: 'web',
       sets: [],
     });
 
@@ -383,7 +375,6 @@ describe('historial de un ejercicio', () => {
               rpe: null,
               isWarmup: false,
               completedAt: '2026-09-07T18:30:00.000Z',
-              source: 'web',
             },
           ],
         },
