@@ -8,9 +8,10 @@ import {
 /**
  * Treinta días. Es una app que se abre tres veces por semana desde el móvil: obligar a volver
  * a entrar cada poco sería fricción sin ganancia, y la sesión se corta igual borrando el token
- * del dispositivo.
+ * del dispositivo. Quien la usa no llega a agotarlos nunca porque la sesión se renueva al
+ * usarse (`shouldRenewSession`); quien la deja parada un mes vuelve a pasar por su llave.
  */
-const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
+export const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
 
 /**
  * El algoritmo va explícito al firmar **y al verificar**. Dejar que lo decida la cabecera
@@ -22,6 +23,13 @@ const SESSION_ALGORITHM = 'HS256';
 export interface IssuedSession {
   readonly token: string;
   readonly expiresAt: string;
+}
+
+/** Lo que un token válido dice de sí mismo: de quién es y hasta cuándo vale. */
+export interface VerifiedSession {
+  readonly userId: string;
+  /** Segundos desde la época, tal y como viaja en el `exp` del token. */
+  readonly expiresAtSeconds: number;
 }
 
 /**
@@ -48,16 +56,24 @@ export async function issueSessionToken(
 }
 
 /**
- * Devuelve el identificador del usuario, o `null` si el token falta, caducó, viene
+ * Devuelve de quién es el token y hasta cuándo vale, o `null` si falta, caducó, viene
  * manipulado o no lo firmamos nosotros. Los cuatro casos son lo mismo para quien pregunta:
  * no hay sesión.
  */
-export async function verifySessionToken(token: string, secret: string): Promise<string | null> {
+export async function verifySessionToken(
+  token: string,
+  secret: string,
+): Promise<VerifiedSession | null> {
   try {
     const payload = await verify(token, secret, SESSION_ALGORITHM);
     const subject = payload.sub;
+    const expiresAtSeconds = payload.exp;
 
-    return typeof subject === 'string' && subject !== '' ? subject : null;
+    // Sin `exp` no se sabe cuándo caduca, y todo token nuestro lo lleva: no es de los nuestros.
+    if (typeof subject !== 'string' || subject === '') return null;
+    if (typeof expiresAtSeconds !== 'number') return null;
+
+    return { userId: subject, expiresAtSeconds };
   } catch (error) {
     // Cualquier fallo al verificar significa lo mismo para quien pregunta: no hay sesión.
     // Se capturan todos y no una lista de clases porque `hono/jwt` lanza una distinta por
@@ -70,6 +86,20 @@ export async function verifySessionToken(token: string, secret: string): Promise
 
     return null;
   }
+}
+
+/**
+ * ¿Toca darle un token nuevo? Cuando al actual le queda menos de la mitad de su vida. Quien
+ * abre la app cada semana no vuelve a pasar por su llave nunca, y quien la deja parada quince
+ * días sigue teniendo margen de sobra para volver sin que nadie le pida nada.
+ *
+ * La mitad, y no un umbral más corto, es lo que evita firmar un token nuevo en cada petición
+ * de cada sesión: tras renovar, pasan quince días hasta que esta función vuelve a decir que sí.
+ */
+export function shouldRenewSession(session: VerifiedSession, now: Date): boolean {
+  const remainingSeconds = session.expiresAtSeconds - Math.floor(now.getTime() / 1000);
+
+  return remainingSeconds < SESSION_TTL_SECONDS / 2;
 }
 
 /** Las tres formas normales de token roto en una API pública; el resto es sospechoso. */
