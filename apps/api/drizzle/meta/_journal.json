@@ -36,6 +36,13 @@
       "when": 1789163686080,
       "tag": "0004_drop_telegram_identity",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1789211720190,
+      "tag": "0005_device_link_codes",
+      "breakpoints": true
     }
   ]
 }

@@ -84,6 +84,28 @@ export const passkeyCredential = sqliteTable(
 );
 
 /**
+ * El código con el que un dispositivo nuevo se suma a una cuenta que ya existe. Se guarda su
+ * digest SHA-256, igual que el de la invitación: mientras no se usa es una llave para entrar en
+ * una cuenta ajena, y una copia de la base no debe contener llaves utilizables.
+ */
+export const deviceLink = sqliteTable(
+  'device_link',
+  {
+    codeHash: text('code_hash').primaryKey(),
+    // La cuenta a la que se sumará el dispositivo nuevo. Ya existe, así que sí lleva clave ajena.
+    userId: rowId('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    createdAt: isoTimestamp('created_at').notNull(),
+    expiresAt: isoTimestamp('expires_at').notNull(),
+    // Se sella al consumirlo con un UPDATE condicionado a que siga nulo, como la invitación.
+    usedAt: isoTimestamp('used_at'),
+  },
+  // Pedir un código nuevo retira los anteriores de esa cuenta: se busca por aquí.
+  (table) => [index('device_link_user_id_idx').on(table.userId)],
+);
+
+/**
  * El reto de una ceremonia de WebAuthn a medias. Vive minutos y se borra al leerlo: es lo que
  * impide presentar dos veces la misma respuesta firmada.
  */
@@ -91,27 +113,36 @@ export const authChallenge = sqliteTable(
   'auth_challenge',
   {
     id: rowId('id').primaryKey(),
-    kind: text('kind', { enum: ['registration', 'authentication'] }).notNull(),
+    kind: text('kind', {
+      enum: ['registration', 'authentication', 'device_link'],
+    }).notNull(),
     // Va en claro, a diferencia del código de invitación: no es una llave, porque firmarlo exige
     // la clave privada que solo tiene el móvil.
     challenge: text('challenge').notNull(),
     createdAt: isoTimestamp('created_at').notNull(),
     expiresAt: isoTimestamp('expires_at').notNull(),
-    // Solo en el registro: la cuenta que se creará si la passkey verifica. Todavía no existe,
-    // así que no puede llevar clave ajena.
+    // En el registro, la cuenta que se creará si la passkey verifica; en el enlace de un
+    // dispositivo, la que ya existe. No lleva clave ajena porque en el primer caso todavía no hay
+    // fila a la que apuntar.
     pendingUserId: rowId('pending_user_id'),
     displayName: text('display_name'),
     locale: text('locale', { enum: ['es', 'en'] }),
     invitationHash: text('invitation_hash').references(() => invitation.codeHash, {
       onDelete: 'cascade',
     }),
+    // Solo al añadir otro dispositivo: el código que se gastará si la passkey verifica.
+    deviceLinkHash: text('device_link_hash').references(() => deviceLink.codeHash, {
+      onDelete: 'cascade',
+    }),
   },
   (table) => [
     // Los retos caducados se barren por esta columna desde el Cron Trigger.
     index('auth_challenge_expires_at_idx').on(table.expiresAt),
+    // Cada tipo de ceremonia trae lo suyo: el registro, la cuenta pendiente y su invitación;
+    // el enlace, la cuenta que ya existe y su código. La entrada no necesita nada más.
     check(
-      'auth_challenge_registration_complete',
-      sql`${table.kind} = 'authentication' or (${table.pendingUserId} is not null and ${table.displayName} is not null and ${table.locale} is not null and ${table.invitationHash} is not null)`,
+      'auth_challenge_ceremony_complete',
+      sql`${table.kind} = 'authentication' or (${table.kind} = 'registration' and ${table.pendingUserId} is not null and ${table.displayName} is not null and ${table.locale} is not null and ${table.invitationHash} is not null) or (${table.kind} = 'device_link' and ${table.pendingUserId} is not null and ${table.deviceLinkHash} is not null)`,
     ),
   ],
 );
@@ -321,6 +352,8 @@ export type InvitationRow = typeof invitation.$inferSelect;
 export type NewInvitationRow = typeof invitation.$inferInsert;
 export type PasskeyCredentialRow = typeof passkeyCredential.$inferSelect;
 export type NewPasskeyCredentialRow = typeof passkeyCredential.$inferInsert;
+export type DeviceLinkRow = typeof deviceLink.$inferSelect;
+export type NewDeviceLinkRow = typeof deviceLink.$inferInsert;
 export type AuthChallengeRow = typeof authChallenge.$inferSelect;
 export type NewAuthChallengeRow = typeof authChallenge.$inferInsert;
 export type CatalogExerciseRow = typeof catalogExercise.$inferSelect;
