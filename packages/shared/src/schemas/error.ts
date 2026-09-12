@@ -17,6 +17,10 @@ export const apiErrorCodeSchema = z.enum([
   // `invitation_invalid` porque el texto que hay que enseñar es otro: aquí se pide otro código
   // desde el móvil que ya tiene la cuenta, no a quien te invitó.
   'device_link_invalid',
+  // Quien invita ya tiene tantas invitaciones sin usar como permite el tope. No es un fallo de
+  // la petición: se arregla esperando a que alguien use una o a que caduque, así que va aparte
+  // de `invitation_invalid`, que habla del código que se teclea al registrarse.
+  'invitation_limit_reached',
   // La passkey no se pudo comprobar: el reto caducó o ya se usó, la firma no cuadra o la llave
   // no es de ninguna cuenta. Es un 400 y no un 401: quien intenta entrar no tiene sesión que
   // cerrar, y la PWA cierra la sesión ante cualquier 401.

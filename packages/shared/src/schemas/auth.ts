@@ -82,6 +82,26 @@ export const invitationSchema = z.object({
 });
 
 /**
+ * Una invitación que alguien generó y todavía no ha usado nadie. Sin el código: solo existe en
+ * claro en la respuesta que lo crea, así que lo único que se puede contar después es cuántas
+ * hay vivas y hasta cuándo.
+ */
+export const pendingInvitationSchema = z.object({
+  createdAt: isoDatetimeSchema,
+  expiresAt: isoDatetimeSchema,
+});
+
+/**
+ * Cuántas invitaciones sin usar tiene quien pregunta y cuántas más puede generar. El tope lo
+ * fija el Worker y viaja en la respuesta: la PWA lo enseña, no lo decide.
+ */
+export const invitationStatusSchema = z.object({
+  limit: z.int().positive(),
+  remaining: z.int().nonnegative(),
+  pending: z.array(pendingInvitationSchema),
+});
+
+/**
  * El código con el que un dispositivo nuevo se suma a una cuenta que ya existe. Se pide desde un
  * dispositivo que ya tiene sesión y se teclea en el otro; como la invitación, en la base solo
  * queda su digest, así que esta respuesta es la única vez que existe en claro.
@@ -108,5 +128,7 @@ export type RegistrationVerifyRequest = z.infer<typeof registrationVerifyRequest
 export type LoginOptionsResponse = z.infer<typeof loginOptionsResponseSchema>;
 export type LoginVerifyRequest = z.infer<typeof loginVerifyRequestSchema>;
 export type Invitation = z.infer<typeof invitationSchema>;
+export type PendingInvitation = z.infer<typeof pendingInvitationSchema>;
+export type InvitationStatus = z.infer<typeof invitationStatusSchema>;
 export type DeviceLink = z.infer<typeof deviceLinkSchema>;
 export type DeviceLinkOptionsRequest = z.infer<typeof deviceLinkOptionsRequestSchema>;
