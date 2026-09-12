@@ -15,6 +15,7 @@ import type {
   CatalogExerciseSummary,
   ExerciseHistory,
   ExerciseStats,
+  InvitationStatus,
   ResourceId,
   Routine,
   TrackedExercise,
@@ -32,6 +33,7 @@ import {
   fetchCurrentUser,
   fetchExerciseHistory,
   fetchExerciseStats,
+  fetchInvitationStatus,
   fetchSessionDetail,
   fetchTrainingSignals,
   fetchWeeklyCalendar,
@@ -53,6 +55,7 @@ import { useApiClient } from './provider';
  */
 export const queryKeys = {
   currentUser: ['auth', 'me'] as const,
+  invitations: ['auth', 'invitations'] as const,
   exercises: {
     all: ['exercises'] as const,
     list: (options: ListTrackedExercisesOptions) => ['exercises', 'list', options] as const,
@@ -111,6 +114,16 @@ export function useCurrentUser(): UseQueryResult<User> {
  * Los ejercicios del usuario. La mascota de Hoy solo necesita sus nombres cuando va a
  * nombrar uno estancado, y desactivada la consulta no pide nada.
  */
+/** Lo que la pantalla de invitar necesita para saber si todavía puede pedir un código. */
+export function useInvitationStatus(): UseQueryResult<InvitationStatus> {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: queryKeys.invitations,
+    queryFn: () => fetchInvitationStatus(client),
+    retry: shouldRetryRequest,
+  });
+}
+
 export function useTrackedExercises(
   options: ListTrackedExercisesOptions = {},
   { enabled = true }: QueryToggle = {},

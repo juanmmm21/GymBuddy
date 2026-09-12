@@ -1,6 +1,7 @@
 import type {
   CreateRoutineRequest,
   DeviceLink,
+  Invitation,
   CreateTrackedExerciseRequest,
   EndSessionRequest,
   LogSetRequest,
@@ -23,6 +24,7 @@ import {
 import { ApiRequestError, type ApiClient } from './client';
 import {
   createDeviceLink,
+  createInvitation,
   createRoutine,
   createTrackedExercise,
   endSession,
@@ -221,6 +223,20 @@ export function useCreateDeviceLink(): UseMutationResult<DeviceLink, Error, void
   const client = useApiClient();
 
   return useMutation({ mutationFn: () => createDeviceLink(client) });
+}
+
+/**
+ * Pide una invitación para un amigo. Sí invalida: cuántas quedan es un dato que esta misma
+ * pantalla está pintando, y acaba de cambiar.
+ */
+export function useCreateInvitation(): UseMutationResult<Invitation, Error, void> {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => createInvitation(client),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.invitations }),
+  });
 }
 
 /**

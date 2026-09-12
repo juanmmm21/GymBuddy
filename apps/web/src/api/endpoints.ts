@@ -7,6 +7,8 @@ import {
   deviceLinkSchema,
   exerciseHistorySchema,
   exerciseStatsSchema,
+  invitationSchema,
+  invitationStatusSchema,
   loginOptionsResponseSchema,
   logSetResponseSchema,
   noContentSchema,
@@ -33,6 +35,8 @@ import {
   type EndSessionRequest,
   type ExerciseHistory,
   type ExerciseStats,
+  type Invitation,
+  type InvitationStatus,
   type Locale,
   type LoginOptionsResponse,
   type LoginVerifyRequest,
@@ -120,6 +124,20 @@ export function verifyLogin(client: ApiClient, body: LoginVerifyRequest): Promis
  */
 export function createDeviceLink(client: ApiClient): Promise<DeviceLink> {
   return client.request({ method: 'POST', path: '/auth/devices/link', schema: deviceLinkSchema });
+}
+
+/** Cuántas invitaciones sin usar tiene la cuenta y cuántas más puede generar. */
+export function fetchInvitationStatus(client: ApiClient): Promise<InvitationStatus> {
+  return client.request({
+    method: 'GET',
+    path: '/auth/invitations',
+    schema: invitationStatusSchema,
+  });
+}
+
+/** Pide una invitación para un amigo. Como el de dispositivos, el código solo existe aquí. */
+export function createInvitation(client: ApiClient): Promise<Invitation> {
+  return client.request({ method: 'POST', path: '/auth/invitations', schema: invitationSchema });
 }
 
 /** Añadir otro dispositivo, paso 1, desde el nuevo: el código dice de qué cuenta es la llave. */
