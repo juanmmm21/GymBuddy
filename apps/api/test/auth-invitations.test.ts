@@ -12,7 +12,11 @@ import {
   consumeInvitation,
   generateInvitationCode,
   hashInvitationCode,
+  INVITATION_TTL_MS,
   issueInvitation,
+  issueInvitationForUser,
+  MAX_PENDING_INVITATIONS,
+  readInvitationStatus,
   releaseInvitation,
 } from '../src/auth/invitations';
 import { readRelyingParty } from '../src/auth/relying-party';
@@ -78,6 +82,76 @@ describe('ciclo de una invitación', () => {
 
     await releaseInvitation(db, codeHash, now.toISOString());
     expect(await consumeInvitation(db, codeHash, now)).toBe(false);
+  });
+});
+
+describe('invitaciones pedidas desde la app', () => {
+  let db: Database;
+  const now = new Date('2026-09-12T10:00:00.000Z');
+  const inviterId = '0d1e2f30-4a5b-4c6d-8e9f-0a1b2c3d4e5f';
+  const otherId = '1e2f3041-5b6c-4d7e-9f01-1b2c3d4e5f60';
+
+  beforeEach(async () => {
+    db = createDatabase(env.DB);
+    await db.delete(authChallenge);
+    await db.delete(invitation);
+    await db.delete(user);
+    await db.insert(user).values([
+      { id: inviterId, displayName: 'Juan', createdAt: now.toISOString() },
+      { id: otherId, displayName: 'Otro', createdAt: now.toISOString() },
+    ]);
+  });
+
+  it('empieza con el tope entero y lo va gastando', async () => {
+    expect(await readInvitationStatus(db, inviterId, now)).toEqual({
+      limit: MAX_PENDING_INVITATIONS,
+      remaining: MAX_PENDING_INVITATIONS,
+      pending: [],
+    });
+
+    await issueInvitationForUser(db, inviterId, now);
+    const status = await readInvitationStatus(db, inviterId, now);
+
+    expect(status.remaining).toBe(MAX_PENDING_INVITATIONS - 1);
+    expect(status.pending).toHaveLength(1);
+    expect(status.pending[0]?.createdAt).toBe(now.toISOString());
+  });
+
+  it('al llegar al tope no da más códigos', async () => {
+    for (let index = 0; index < MAX_PENDING_INVITATIONS; index += 1) {
+      await issueInvitationForUser(db, inviterId, now);
+    }
+
+    await expect(issueInvitationForUser(db, inviterId, now)).rejects.toThrow(
+      expect.objectContaining({ code: 'invitation_limit_reached' }),
+    );
+  });
+
+  it('una caducada y una usada dejan hueco otra vez', async () => {
+    const { code } = await issueInvitationForUser(db, inviterId, now);
+    await issueInvitationForUser(db, inviterId, now);
+    await issueInvitationForUser(db, inviterId, now);
+
+    await consumeInvitation(db, await hashInvitationCode(code), now);
+    expect((await readInvitationStatus(db, inviterId, now)).remaining).toBe(1);
+
+    const afterExpiry = new Date(now.getTime() + INVITATION_TTL_MS);
+    expect(await readInvitationStatus(db, inviterId, afterExpiry)).toEqual({
+      limit: MAX_PENDING_INVITATIONS,
+      remaining: MAX_PENDING_INVITATIONS,
+      pending: [],
+    });
+  });
+
+  it('las de otra cuenta no gastan el tope de la tuya', async () => {
+    for (let index = 0; index < MAX_PENDING_INVITATIONS; index += 1) {
+      await issueInvitationForUser(db, otherId, now);
+    }
+    await issueInvitation(db, { createdByUserId: null, now });
+
+    expect((await readInvitationStatus(db, inviterId, now)).remaining).toBe(
+      MAX_PENDING_INVITATIONS,
+    );
   });
 });
 
