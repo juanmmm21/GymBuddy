@@ -11,6 +11,7 @@ import {
   displayNameSchema,
   formatAccessCode,
   invitationCodeSchema,
+  invitationStatusSchema,
   isAccessCode,
   loginOptionsSchema,
   registrationCredentialSchema,
@@ -105,6 +106,41 @@ describe('primer paso del registro', () => {
     });
 
     expect(parsed.success).toBe(false);
+  });
+});
+
+describe('invitaciones sin usar', () => {
+  const status = {
+    limit: 3,
+    remaining: 2,
+    pending: [{ createdAt: '2026-09-12T10:00:00.000Z', expiresAt: '2026-09-19T10:00:00.000Z' }],
+  };
+
+  it('acepta el recuento con sus fechas y sin ninguna pendiente', () => {
+    expect(invitationStatusSchema.parse(status)).toEqual(status);
+    expect(invitationStatusSchema.parse({ limit: 3, remaining: 3, pending: [] }).pending).toEqual(
+      [],
+    );
+  });
+
+  it('no lleva el código: lo que se guardó del pendiente es solo su digest', () => {
+    const parsed = invitationStatusSchema.parse({
+      ...status,
+      pending: [{ ...status.pending[0], code: 'ABCDEFGHJKMN' }],
+    });
+
+    expect(parsed.pending[0]).not.toHaveProperty('code');
+  });
+
+  it('rechaza un recuento negativo, fraccionario o con una fecha que no es ISO', () => {
+    expect(invitationStatusSchema.safeParse({ ...status, remaining: -1 }).success).toBe(false);
+    expect(invitationStatusSchema.safeParse({ ...status, remaining: 1.5 }).success).toBe(false);
+    expect(
+      invitationStatusSchema.safeParse({
+        ...status,
+        pending: [{ createdAt: '12/09/2026', expiresAt: '2026-09-19T10:00:00.000Z' }],
+      }).success,
+    ).toBe(false);
   });
 });
 
