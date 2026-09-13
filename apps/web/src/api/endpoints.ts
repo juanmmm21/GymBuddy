@@ -7,10 +7,13 @@ import {
   deviceLinkSchema,
   exerciseHistorySchema,
   exerciseStatsSchema,
+  exportSessionPageSchema,
+  exportSnapshotSchema,
   invitationSchema,
   invitationStatusSchema,
   loginOptionsResponseSchema,
   logSetResponseSchema,
+  MAX_EXPORT_SESSION_PAGE_SIZE,
   noContentSchema,
   registrationOptionsResponseSchema,
   routineSchema,
@@ -35,6 +38,8 @@ import {
   type EndSessionRequest,
   type ExerciseHistory,
   type ExerciseStats,
+  type ExportSessionPage,
+  type ExportSnapshot,
   type Invitation,
   type InvitationStatus,
   type Locale,
@@ -447,4 +452,22 @@ export function fetchCatalogExercise(
     schema: catalogExerciseSchema,
     query: { lang },
   });
+}
+
+/** Copia de seguridad: una página de sesiones con sus series y sus marcas, de la más antigua a la más reciente. */
+export function fetchExportSessionPage(
+  client: ApiClient,
+  offset: number,
+): Promise<ExportSessionPage> {
+  return client.request({
+    method: 'GET',
+    path: '/export/sessions',
+    schema: exportSessionPageSchema,
+    query: { limit: MAX_EXPORT_SESSION_PAGE_SIZE, offset },
+  });
+}
+
+/** Copia de seguridad: perfil, ejercicios y rutinas. Se pide después de las sesiones. */
+export function fetchExportSnapshot(client: ApiClient): Promise<ExportSnapshot> {
+  return client.request({ method: 'GET', path: '/export/snapshot', schema: exportSnapshotSchema });
 }
