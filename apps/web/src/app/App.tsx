@@ -10,12 +10,18 @@ import {
   type PasskeyAuthenticator,
 } from '../auth/passkey-authenticator';
 import { SessionProvider, useSession } from '../auth/SessionProvider';
+import { loadStoredSession } from '../auth/session-store';
 import type { StorageLike } from '../lib/storage';
+import {
+  clearDeviceSnapshot,
+  persistDeviceSnapshot,
+  restoreDeviceSnapshot,
+} from '../offline/device-snapshot';
 import { WriteQueue } from '../offline/write-queue';
 import { createBrowserWriteQueueStore, type WriteQueueStore } from '../offline/write-queue-store';
 import { useQueueDrainer, WriteQueueProvider } from '../offline/WriteQueueProvider';
 import { createAppRouter } from './router';
-import { StorageProvider } from './StorageProvider';
+import { StorageProvider, useStorage } from './StorageProvider';
 
 export interface AppProps {
   readonly apiBaseUrl: string;
@@ -40,9 +46,19 @@ export function App({
   authenticator = browserPasskeyAuthenticator,
   writeQueueStore,
 }: AppProps) {
-  const [queryClient] = useState(
-    () => new QueryClient({ defaultOptions: { queries: { staleTime: STALE_TIME_MS } } }),
-  );
+  const [queryClient] = useState(() => {
+    const client = new QueryClient({
+      defaultOptions: {
+        // `always`: con el modo por defecto, sin red TanStack Query congela la lectura y una
+        // pantalla sin datos guardados se queda en el spinner para siempre en vez de decirlo.
+        queries: { staleTime: STALE_TIME_MS, networkMode: 'always' },
+      },
+    });
+    // Antes del primer pintado: abierta sin red, la app enseña lo último que vio de esta cuenta.
+    const stored = loadStoredSession(storage, new Date());
+    if (stored !== null) restoreDeviceSnapshot(client, storage, stored.user.id);
+    return client;
+  });
   const [appRouter] = useState(() => router ?? createAppRouter());
   // Una sola cola por app: lee lo que quedó guardado al abrirla y no se rehace con el token.
   const [writeQueue] = useState(
@@ -76,11 +92,14 @@ interface ApiBoundaryProps {
 /**
  * Construye el cliente con el token de la sesión actual. Cambia con el token, y al
  * cerrar sesión se vacía la caché: los datos de un usuario no pueden asomar en la
- * pantalla del siguiente. Es también quien conecta la cola offline a la cuenta y la drena.
+ * pantalla del siguiente, ni en la caché ni en lo guardado en el dispositivo. Es también quien
+ * conecta la cola offline a la cuenta y la drena, y quien guarda lo que hace falta sin red.
  */
 function ApiBoundary({ apiBaseUrl, fetchImpl, queryClient, children }: ApiBoundaryProps) {
   const { session, signOut, renew } = useSession();
+  const storage = useStorage();
   const token = session?.token ?? null;
+  const userId = session?.user.id ?? null;
 
   // El cliente se rehace con cada token renovado, pero la caché de TanStack Query no se toca:
   // solo se vacía al cerrar sesión, abajo. Las claves no dependen del cliente.
@@ -97,15 +116,22 @@ function ApiBoundary({ apiBaseUrl, fetchImpl, queryClient, children }: ApiBounda
   );
 
   useEffect(() => {
-    if (token === null) queryClient.clear();
-  }, [queryClient, token]);
+    if (token !== null) return;
+    queryClient.clear();
+    clearDeviceSnapshot(storage);
+  }, [queryClient, storage, token]);
+
+  useEffect(
+    () => (userId === null ? undefined : persistDeviceSnapshot(queryClient, storage, userId)),
+    [queryClient, storage, userId],
+  );
 
   // Lo que la cola manda después cambia la sesión, el peso habitual y las marcas igual que
   // escribirlo en el momento, así que se relee lo mismo que tras una escritura directa.
   const refreshAfterDrain = useCallback(() => {
     void invalidateTrainingData(queryClient);
   }, [queryClient]);
-  useQueueDrainer({ client, userId: session?.user.id ?? null, onSettled: refreshAfterDrain });
+  useQueueDrainer({ client, userId, onSettled: refreshAfterDrain });
 
   return <ApiClientProvider client={client}>{children}</ApiClientProvider>;
 }
