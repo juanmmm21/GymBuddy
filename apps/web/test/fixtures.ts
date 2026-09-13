@@ -5,6 +5,9 @@ import type {
   CatalogExerciseSummary,
   ExerciseHistory,
   ExerciseStats,
+  ExportSessionPage,
+  ExportSnapshot,
+  ExportedSession,
   PersonalRecord,
   ProgressionPointView,
   Routine,
@@ -514,3 +517,77 @@ export const archivedLegRoutine: Routine = {
   archivedAt: '2026-09-01T10:00:00.000Z',
   items: [],
 };
+
+/** Lo que no son sesiones en la copia de seguridad: el press de banca y una rutina que lo nombra. */
+export const exportSnapshot: ExportSnapshot = {
+  exportedAt: '2026-09-13T10:00:00.000Z',
+  profile: { displayName: 'Juan', locale: 'es', unitSystem: 'metric' },
+  exercises: [
+    {
+      id: benchPress.id,
+      origin: 'catalog',
+      catalogId: 'pectorals/barbell-bench-press',
+      name: 'Press de banca',
+      muscle: 'pectorals',
+      bodyPart: 'chest',
+      notes: null,
+      createdAt: '2026-09-01T10:00:00.000Z',
+      archivedAt: null,
+    },
+  ],
+  routines: [
+    {
+      id: '6f1e2d3c-4b5a-4968-8776-a5b4c3d2e1f0',
+      name: 'Empuje',
+      description: null,
+      createdAt: '2026-09-02T10:00:00.000Z',
+      archivedAt: null,
+      items: [
+        {
+          id: '7a6b5c4d-3e2f-4a1b-9c8d-7e6f5a4b3c2d',
+          trackedExerciseId: benchPress.id,
+          orderIndex: 0,
+          targetSets: 4,
+          targetRepsMin: 6,
+          targetRepsMax: 8,
+        },
+      ],
+    },
+  ],
+};
+
+/** `count` sesiones de press de banca con una serie cada una, desde `offset`. */
+export function exportedSessions(count: number, offset = 0): ExportedSession[] {
+  return Array.from({ length: count }, (_unused, index) => {
+    const position = String(offset + index).padStart(12, '0');
+    const startedAt = new Date(Date.UTC(2026, 0, 1) + (offset + index) * 86_400_000);
+
+    return {
+      id: `00000000-0000-4000-8000-${position}`,
+      startedAt: startedAt.toISOString(),
+      endedAt: null,
+      notes: null,
+      sets: [
+        {
+          id: `11111111-0000-4000-8000-${position}`,
+          trackedExerciseId: benchPress.id,
+          orderIndex: 0,
+          weight: '82.50',
+          reps: 8,
+          rpe: null,
+          isWarmup: false,
+          completedAt: startedAt.toISOString(),
+          records: [],
+        },
+      ],
+    };
+  });
+}
+
+export function exportPage(
+  items: ExportedSession[],
+  total: number,
+  offset: number,
+): ExportSessionPage {
+  return { items, total, limit: 50, offset };
+}
