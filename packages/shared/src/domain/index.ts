@@ -73,3 +73,18 @@ export {
   weeklyBodyPartCalendar,
 } from './week';
 export type { WeekDaySummary, WeekSetEntry } from './week';
+export {
+  MAX_IMPORT_EXERCISES_PER_BATCH,
+  MAX_IMPORT_ROUTINES_PER_BATCH,
+  MAX_IMPORT_ROWS_PER_BATCH,
+  MAX_IMPORT_SESSIONS_PER_BATCH,
+  deriveImportedId,
+  deriveImportedIds,
+  findCatalogConflicts,
+  importedIdOf,
+  importedSessionEndedAt,
+  planImport,
+  routineImportRows,
+  sessionImportRows,
+} from './import';
+export type { AccountExerciseRef, ImportPlan, OversizedImportEntry } from './import';

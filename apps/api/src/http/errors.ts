@@ -19,6 +19,7 @@ export const httpStatusByErrorCode: Record<ApiErrorCode, ContentfulStatusCode> =
   session_already_open: 409,
   session_closed: 409,
   conflicting_write: 409,
+  import_conflict: 409,
   internal_error: 500,
 };
 

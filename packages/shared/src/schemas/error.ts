@@ -40,6 +40,10 @@ export const apiErrorCodeSchema = z.enum([
   // Ese identificador ya existe con otro contenido. La cola offline reenvía la misma
   // escritura una y otra vez, así que repetir es normal; cambiarla por debajo, no.
   'conflicting_write',
+  // La copia que se importa trae un ejercicio del catálogo que la cuenta ya sigue con otra ficha.
+  // Importarlo exigiría fusionar dos historiales, así que no se escribe nada de esa petición; el
+  // `detail` lleva los `catalogIds` que chocan.
+  'import_conflict',
   'internal_error',
 ]);
 

@@ -201,3 +201,15 @@ export type {
   ExportedSession,
   ExportedSet,
 } from './export';
+export {
+  importExercisesRequestSchema,
+  importExercisesResponseSchema,
+  importRoutinesRequestSchema,
+  importSessionsRequestSchema,
+} from './import';
+export type {
+  ImportExercisesRequest,
+  ImportExercisesResponse,
+  ImportRoutinesRequest,
+  ImportSessionsRequest,
+} from './import';
