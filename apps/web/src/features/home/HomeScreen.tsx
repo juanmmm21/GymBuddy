@@ -17,7 +17,9 @@ import { DEVICES_PATH } from '../devices/paths';
 import { INVITE_PATH } from '../invitations/paths';
 import { RECORD_LABELS } from '../exercises/labels';
 import { LiveMascot } from '../mascot/LiveMascot';
+import { useOpenSession } from '../../offline/use-open-session';
 import { SESSION_PATH } from '../session/paths';
+import { homeSessionState, type HomeSessionState } from './open-session';
 import { RoutineShortcuts } from './RoutineShortcuts';
 import { WeekCalendar } from './WeekCalendar';
 import styles from './HomeScreen.module.css';
@@ -63,19 +65,18 @@ interface SignalsSummaryProps {
 }
 
 function SignalsSummary({ signals, locale }: SignalsSummaryProps) {
-  // En una constante: el estrechamiento a «no es null» tiene que sobrevivir hasta el JSX.
-  const { lastSessionAt } = signals;
-  if (lastSessionAt === null) {
+  // Con la cola offline encima: lo abierto o cerrado sin cobertura cuenta ya aquí.
+  const open = useOpenSession();
+  const sessionState = homeSessionState(signals, open.data);
+
+  if (signals.lastSessionAt === null && sessionState.kind === 'none') {
     return (
       <div className={styles.stack}>
         <LiveMascot signals={signals} device={NO_DEVICE_SIGNALS} locale={locale} />
         <Notice title="Todavía no has entrenado">
           Cuando registres tu primera sesión, aquí verás tu racha y tus últimas marcas.
         </Notice>
-        <Link to={SESSION_PATH} className={styles.cta}>
-          Empezar a entrenar
-        </Link>
-        <RoutineShortcuts />
+        <SessionAction state={sessionState} locale={locale} />
       </div>
     );
   }
@@ -84,24 +85,7 @@ function SignalsSummary({ signals, locale }: SignalsSummaryProps) {
     <div className={styles.stack}>
       <LiveMascot signals={signals} device={NO_DEVICE_SIGNALS} locale={locale} />
 
-      {signals.activeSessionId === null ? (
-        <>
-          <Link to={SESSION_PATH} className={styles.cta}>
-            Empezar a entrenar
-          </Link>
-          <RoutineShortcuts />
-        </>
-      ) : (
-        <Surface className={styles.active}>
-          <Badge tone="accent">Sesión en curso</Badge>
-          <p className={styles.activeText}>
-            {/* Con una sola sesión abierta a la vez, la última que empezó es la abierta. */}
-            Tienes una sesión abierta desde el {formatSessionDate(lastSessionAt, locale)} a las{' '}
-            {formatTime(lastSessionAt, locale)}.
-          </p>
-          <Link to={SESSION_PATH}>Seguir</Link>
-        </Surface>
-      )}
+      <SessionAction state={sessionState} locale={locale} />
 
       <WeekCalendar locale={locale} />
 
@@ -140,6 +124,35 @@ function SignalsSummary({ signals, locale }: SignalsSummaryProps) {
         </Notice>
       )}
     </div>
+  );
+}
+
+interface SessionActionProps {
+  readonly state: HomeSessionState;
+  readonly locale: Locale;
+}
+
+function SessionAction({ state, locale }: SessionActionProps) {
+  if (state.kind === 'none') {
+    return (
+      <>
+        <Link to={SESSION_PATH} className={styles.cta}>
+          Empezar a entrenar
+        </Link>
+        <RoutineShortcuts />
+      </>
+    );
+  }
+
+  return (
+    <Surface className={styles.active}>
+      <Badge tone="accent">Sesión en curso</Badge>
+      <p className={styles.activeText}>
+        Tienes una sesión abierta desde el {formatSessionDate(state.startedAt, locale)} a las{' '}
+        {formatTime(state.startedAt, locale)}.
+      </p>
+      <Link to={SESSION_PATH}>Seguir</Link>
+    </Surface>
   );
 }
 
