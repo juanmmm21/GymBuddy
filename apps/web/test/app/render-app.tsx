@@ -7,6 +7,7 @@ import {
   type PasskeyAuthenticator,
 } from '../../src/auth/passkey-authenticator';
 import { SESSION_STORAGE_KEY } from '../../src/auth/session-store';
+import type { InstallSupport } from '../../src/features/install/InstallProvider';
 import type { StorageLike } from '../../src/lib/storage';
 import {
   createMemoryWriteQueueStore,
@@ -40,6 +41,8 @@ export function renderApp(options: {
   readonly authenticator?: PasskeyAuthenticator;
   /** Escrituras que quedaron en la cola la última vez que se abrió la app. */
   readonly queued?: readonly unknown[];
+  /** El navegador en el que se abre: por defecto, el de jsdom, que pasa por uno de escritorio. */
+  readonly install?: InstallSupport;
   readonly setup?: (fake: FakeFetch) => void;
 }): RenderedApp {
   const fake = createFakeFetch();
@@ -64,6 +67,7 @@ export function renderApp(options: {
       fetchImpl={fake.fetch}
       authenticator={options.authenticator ?? noPasskeys}
       writeQueueStore={queueStore}
+      {...(options.install === undefined ? {} : { install: options.install })}
     />,
   );
 
