@@ -23,3 +23,45 @@
   font-size: var(--gb-type-label-size);
   text-align: center;
 }
+
+.sectionTitle {
+  margin-bottom: var(--gb-space-md);
+  color: var(--gb-color-text);
+  font-size: var(--gb-type-title-size);
+  font-weight: var(--gb-type-title-weight);
+  line-height: var(--gb-type-title-line);
+  letter-spacing: var(--gb-type-title-tracking);
+}
+
+.fileLabel {
+  display: block;
+  margin-top: var(--gb-space-md);
+  margin-bottom: var(--gb-space-sm);
+  color: var(--gb-color-text-secondary);
+  font-size: var(--gb-type-label-size);
+  font-weight: var(--gb-type-label-weight);
+  line-height: var(--gb-type-label-line);
+  letter-spacing: var(--gb-type-label-tracking);
+  text-transform: uppercase;
+}
+
+.fileInput {
+  width: 100%;
+  color: var(--gb-color-text-secondary);
+  font-size: var(--gb-type-body-size);
+}
+
+.fileInput::file-selector-button {
+  min-height: var(--gb-size-control-height);
+  margin-right: var(--gb-space-md);
+  padding: 0 var(--gb-space-lg);
+  border: var(--gb-size-border-width) solid var(--gb-color-border-strong);
+  border-radius: var(--gb-radius-md);
+  background: var(--gb-color-surface-sunken);
+  color: var(--gb-color-text);
+  font: inherit;
+}
+
+.fileInput:disabled {
+  opacity: 0.55;
+}

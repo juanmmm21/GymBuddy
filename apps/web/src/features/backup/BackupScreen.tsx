@@ -4,6 +4,7 @@ import { describeError } from '../../lib/errors';
 import { pluralize } from '../../lib/format';
 import { ExportIntegrityError, type ExportProgress } from './collect-export';
 import { ExportSaveError, useExportDownload, type ExportSummary } from './use-export-download';
+import { ImportSection } from './ImportSection';
 import styles from './BackupScreen.module.css';
 
 const BACK_TO_HOME: BackLink = { to: '/', label: 'Hoy' };
@@ -67,6 +68,8 @@ export function BackupScreen() {
         >
           {download.isSuccess ? 'Descargar otra vez' : 'Descargar mis datos'}
         </Button>
+
+        <ImportSection />
       </div>
     </>
   );
