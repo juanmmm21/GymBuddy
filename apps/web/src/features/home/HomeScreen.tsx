@@ -12,6 +12,7 @@ import {
   formatWeightLabel,
   pluralize,
 } from '../../lib/format';
+import { BACKUP_PATH } from '../backup/paths';
 import { DEVICES_PATH } from '../devices/paths';
 import { INVITE_PATH } from '../invitations/paths';
 import { RECORD_LABELS } from '../exercises/labels';
@@ -39,6 +40,9 @@ export function HomeScreen() {
             </Link>
             <Link to={INVITE_PATH} className={styles.accountLink}>
               Invitar a un amigo
+            </Link>
+            <Link to={BACKUP_PATH} className={styles.accountLink}>
+              Copia de seguridad
             </Link>
             <Button variant="ghost" onClick={signOut}>
               Salir

@@ -1,0 +1,25 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-md);
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-xs);
+  padding-left: var(--gb-space-xl);
+  color: var(--gb-color-text-secondary);
+  line-height: var(--gb-type-body-line);
+}
+
+.contents {
+  color: var(--gb-color-text-secondary);
+  line-height: var(--gb-type-body-line);
+}
+
+.progress {
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-label-size);
+  text-align: center;
+}
