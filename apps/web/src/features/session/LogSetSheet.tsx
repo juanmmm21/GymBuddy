@@ -2,12 +2,12 @@ import {
   formatGramsAsKilograms,
   parseKilogramsToGrams,
   type Locale,
-  type LogSetResponse,
+  type PersonalRecord,
   type ResourceId,
   type TrackedExercise,
 } from '@gymbuddy/shared';
 import { useState, type FormEvent } from 'react';
-import { useLogSet } from '../../api/mutations';
+import { freshRecords, useLogSet } from '../../api/mutations';
 import { Button, Notice, Select, Sheet } from '../../components/index';
 import { describeError } from '../../lib/errors';
 import { newResourceId } from '../../lib/ids';
@@ -30,7 +30,8 @@ export interface LogSetSheetProps {
   readonly locale: Locale;
   readonly open: boolean;
   readonly onClose: () => void;
-  readonly onLogged: (response: LogSetResponse) => void;
+  /** Registrada o guardada para enviar: con las marcas que batió, si ya lo sabe el Worker. */
+  readonly onLogged: (records: readonly PersonalRecord[]) => void;
 }
 
 /**
@@ -76,7 +77,7 @@ interface LogSetFormProps {
   readonly initialExercise: TrackedExercise;
   readonly routineProgress: RoutineProgress | null;
   readonly locale: Locale;
-  readonly onLogged: (response: LogSetResponse) => void;
+  readonly onLogged: (records: readonly PersonalRecord[]) => void;
 }
 
 function LogSetForm({
@@ -89,6 +90,9 @@ function LogSetForm({
 }: LogSetFormProps) {
   const [exercise, setExercise] = useState(initialExercise);
   const [values, setValues] = useState<SetValues>(() => proposalFor(initialExercise));
+  // Fijado al abrir la hoja y no al pulsar: reintentar tras un fallo es la misma serie, y la
+  // cola offline no puede convertir un doble toque sin red en dos series.
+  const [setId] = useState(newResourceId);
   const log = useLogSet();
   // Sale del ejercicio elegido: cambiarlo en el selector cambia también el objetivo que se lee.
   const routineLine =
@@ -112,7 +116,7 @@ function LogSetForm({
       {
         sessionId,
         body: {
-          id: newResourceId(),
+          id: setId,
           trackedExerciseId: exercise.id,
           weight: formatGramsAsKilograms(values.weightGrams),
           reps: values.reps,
@@ -120,7 +124,11 @@ function LogSetForm({
           isWarmup: values.isWarmup,
         },
       },
-      { onSuccess: onLogged },
+      {
+        onSuccess: (outcome) => {
+          onLogged(freshRecords(outcome));
+        },
+      },
     );
   };
 

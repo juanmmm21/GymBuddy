@@ -1,7 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { RouterProvider, type createMemoryRouter } from 'react-router';
 import { ApiClient } from '../api/client';
+import { invalidateTrainingData } from '../api/mutations';
 import { ApiClientProvider } from '../api/provider';
 import { AuthenticatorProvider } from '../auth/AuthenticatorProvider';
 import {
@@ -10,6 +11,9 @@ import {
 } from '../auth/passkey-authenticator';
 import { SessionProvider, useSession } from '../auth/SessionProvider';
 import type { StorageLike } from '../lib/storage';
+import { WriteQueue } from '../offline/write-queue';
+import { createBrowserWriteQueueStore, type WriteQueueStore } from '../offline/write-queue-store';
+import { useQueueDrainer, WriteQueueProvider } from '../offline/WriteQueueProvider';
 import { createAppRouter } from './router';
 import { StorageProvider } from './StorageProvider';
 
@@ -21,6 +25,8 @@ export interface AppProps {
   readonly fetchImpl?: typeof fetch;
   /** Igual con las passkeys: jsdom no tiene WebAuthn. */
   readonly authenticator?: PasskeyAuthenticator;
+  /** Y con la cola offline: los tests la guardan en memoria para leer lo que se encoló. */
+  readonly writeQueueStore?: WriteQueueStore;
 }
 
 /** Medio minuto sin volver a pedir lo mismo: entre pantalla y pantalla no cambia nada. */
@@ -32,21 +38,28 @@ export function App({
   router,
   fetchImpl,
   authenticator = browserPasskeyAuthenticator,
+  writeQueueStore,
 }: AppProps) {
   const [queryClient] = useState(
     () => new QueryClient({ defaultOptions: { queries: { staleTime: STALE_TIME_MS } } }),
   );
   const [appRouter] = useState(() => router ?? createAppRouter());
+  // Una sola cola por app: lee lo que quedó guardado al abrirla y no se rehace con el token.
+  const [writeQueue] = useState(
+    () => new WriteQueue({ store: writeQueueStore ?? createBrowserWriteQueueStore() }),
+  );
 
   return (
     <QueryClientProvider client={queryClient}>
       <StorageProvider storage={storage}>
         <SessionProvider storage={storage}>
-          <ApiBoundary apiBaseUrl={apiBaseUrl} fetchImpl={fetchImpl} queryClient={queryClient}>
-            <AuthenticatorProvider authenticator={authenticator}>
-              <RouterProvider router={appRouter} />
-            </AuthenticatorProvider>
-          </ApiBoundary>
+          <WriteQueueProvider queue={writeQueue}>
+            <ApiBoundary apiBaseUrl={apiBaseUrl} fetchImpl={fetchImpl} queryClient={queryClient}>
+              <AuthenticatorProvider authenticator={authenticator}>
+                <RouterProvider router={appRouter} />
+              </AuthenticatorProvider>
+            </ApiBoundary>
+          </WriteQueueProvider>
         </SessionProvider>
       </StorageProvider>
     </QueryClientProvider>
@@ -63,7 +76,7 @@ interface ApiBoundaryProps {
 /**
  * Construye el cliente con el token de la sesión actual. Cambia con el token, y al
  * cerrar sesión se vacía la caché: los datos de un usuario no pueden asomar en la
- * pantalla del siguiente.
+ * pantalla del siguiente. Es también quien conecta la cola offline a la cuenta y la drena.
  */
 function ApiBoundary({ apiBaseUrl, fetchImpl, queryClient, children }: ApiBoundaryProps) {
   const { session, signOut, renew } = useSession();
@@ -86,6 +99,13 @@ function ApiBoundary({ apiBaseUrl, fetchImpl, queryClient, children }: ApiBounda
   useEffect(() => {
     if (token === null) queryClient.clear();
   }, [queryClient, token]);
+
+  // Lo que la cola manda después cambia la sesión, el peso habitual y las marcas igual que
+  // escribirlo en el momento, así que se relee lo mismo que tras una escritura directa.
+  const refreshAfterDrain = useCallback(() => {
+    void invalidateTrainingData(queryClient);
+  }, [queryClient]);
+  useQueueDrainer({ client, userId: session?.user.id ?? null, onSettled: refreshAfterDrain });
 
   return <ApiClientProvider client={client}>{children}</ApiClientProvider>;
 }

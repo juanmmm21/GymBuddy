@@ -1,6 +1,5 @@
 import type {
   Locale,
-  LogSetResponse,
   PersonalRecord,
   ResourceId,
   Routine,
@@ -11,7 +10,7 @@ import type {
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useStartSession } from '../../api/mutations';
-import { useActiveSession, useRoutines, useTrackedExercises } from '../../api/queries';
+import { useRoutines, useTrackedExercises } from '../../api/queries';
 import { ScreenHeader, type BackLink } from '../../app/ScreenHeader';
 import { useStorage } from '../../app/StorageProvider';
 import { useSession } from '../../auth/SessionProvider';
@@ -28,6 +27,7 @@ import {
 } from '../../lib/format';
 import { newResourceId, parseResourceId } from '../../lib/ids';
 import { elapsedSecondsSince } from '../../lib/time';
+import { useOpenSession } from '../../offline/use-open-session';
 import { RECORD_LABELS } from '../exercises/labels';
 import { LiveMascot } from '../mascot/LiveMascot';
 import { openSessionSignals, sessionDeviceSignals } from '../mascot/mascot-signals';
@@ -63,7 +63,8 @@ export function SessionScreen() {
   const [searchParams] = useSearchParams();
   const { session: authSession } = useSession();
   const locale = authSession?.user.locale ?? 'es';
-  const active = useActiveSession();
+  // Con lo que espera en la cola offline encima: sin cobertura, lo registrado se sigue viendo.
+  const active = useOpenSession();
   // Con los archivados: una serie de un ejercicio archivado a media sesión seguiría
   // necesitando su nombre para pintarse, y el selector ya filtra lo que se puede elegir.
   const exercises = useTrackedExercises({ includeArchived: true });
@@ -82,14 +83,14 @@ export function SessionScreen() {
   const [restTarget, setRestTarget] = useState<RestTargetSeconds>(DEFAULT_REST_TARGET_SECONDS);
   const [records, setRecords] = useState<readonly PersonalRecord[]>([]);
 
-  const handleLogged = (response: LogSetResponse): void => {
-    setRecords((current) => [...current, ...response.records]);
+  const handleLogged = (fresh: readonly PersonalRecord[]): void => {
+    setRecords((current) => [...current, ...fresh]);
     setLogging(null);
   };
 
   // Corregir al alza también bate marcas, así que se celebran igual que al registrar.
-  const handleCorrected = (response: LogSetResponse): void => {
-    setRecords((current) => [...current, ...response.records]);
+  const handleCorrected = (fresh: readonly PersonalRecord[]): void => {
+    setRecords((current) => [...current, ...fresh]);
     setEditing(null);
   };
 
@@ -110,6 +111,7 @@ export function SessionScreen() {
                   // Una por sesión: la rutina que recuerda es de esta, no de la siguiente.
                   key={workout.id}
                   session={workout}
+                  pendingSetIds={data.pendingSetIds}
                   exercises={items}
                   locale={locale}
                   records={records}
@@ -179,9 +181,11 @@ interface StartSessionPanelProps {
 function StartSessionPanel({ routineId, routine }: StartSessionPanelProps) {
   const start = useStartSession();
   const storage = useStorage();
+  // Fijado al montar y no al pulsar: reintentar tras un fallo, o un doble toque sin red, es la
+  // misma apertura y no dos sesiones.
+  const [sessionId] = useState(newResourceId);
 
   const handleStart = (): void => {
-    const sessionId = newResourceId();
     // Se recuerda antes de mandar y con el id que pone el cliente: si el alta sale bien la
     // sesión lleva ese id, y este panel se desmonta en cuanto aparece la sesión abierta, así
     // que un `onSuccess` de aquí podría no llegar a ejecutarse.
@@ -223,6 +227,8 @@ function StartSessionPanel({ routineId, routine }: StartSessionPanelProps) {
 
 interface ActiveSessionProps {
   readonly session: WorkoutSessionDetail;
+  /** Las series que se ven pero aún esperan en la cola offline. */
+  readonly pendingSetIds: ReadonlySet<ResourceId>;
   readonly exercises: readonly TrackedExercise[];
   readonly locale: Locale;
   readonly records: readonly PersonalRecord[];
@@ -236,16 +242,17 @@ interface ActiveSessionProps {
   readonly onRestTargetChange: (target: RestTargetSeconds) => void;
   readonly onOpenLog: (exerciseId: ResourceId | null) => void;
   readonly onCloseLog: () => void;
-  readonly onLogged: (response: LogSetResponse) => void;
+  readonly onLogged: (records: readonly PersonalRecord[]) => void;
   readonly onOpenEdit: (set: SetEntry) => void;
   readonly onCloseEdit: () => void;
-  readonly onCorrected: (response: LogSetResponse) => void;
+  readonly onCorrected: (records: readonly PersonalRecord[]) => void;
   readonly onOpenEnd: () => void;
   readonly onCloseEnd: () => void;
 }
 
 function ActiveSession({
   session,
+  pendingSetIds,
   exercises,
   locale,
   records,
@@ -367,6 +374,7 @@ function ActiveSession({
                   <SetRow
                     key={set.id}
                     set={set}
+                    pending={pendingSetIds.has(set.id)}
                     position={index + 1}
                     locale={locale}
                     onEdit={onOpenEdit}
@@ -443,13 +451,14 @@ function SessionClock({ session, locale }: SessionClockProps) {
 
 interface SetRowProps {
   readonly set: SetEntry;
+  readonly pending: boolean;
   readonly position: number;
   readonly locale: Locale;
   readonly onEdit: (set: SetEntry) => void;
 }
 
 /** La fila entera abre la corrección: en el gimnasio se toca con el pulgar y sin mirar. */
-function SetRow({ set, position, locale, onEdit }: SetRowProps) {
+function SetRow({ set, pending, position, locale, onEdit }: SetRowProps) {
   return (
     <li>
       <button
@@ -464,6 +473,7 @@ function SetRow({ set, position, locale, onEdit }: SetRowProps) {
           {formatWeightLabel(set.weight, locale)} × {set.reps}
         </span>
         <span className={styles.setMeta}>
+          {pending && <Badge tone="warning">Sin sincronizar</Badge>}
           {set.isWarmup && <Badge>Calentamiento</Badge>}
           {set.rpe !== null && <span>{formatRpe(set.rpe, locale)}</span>}
         </span>

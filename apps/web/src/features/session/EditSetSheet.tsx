@@ -2,12 +2,12 @@ import {
   formatGramsAsKilograms,
   parseKilogramsToGrams,
   type Locale,
-  type LogSetResponse,
+  type PersonalRecord,
   type ResourceId,
   type SetEntry,
 } from '@gymbuddy/shared';
 import { useState, type FormEvent } from 'react';
-import { useRemoveSet, useUpdateSet } from '../../api/mutations';
+import { freshRecords, useRemoveSet, useUpdateSet } from '../../api/mutations';
 import { Button, Notice, Sheet } from '../../components/index';
 import { describeError } from '../../lib/errors';
 import styles from './EditSetSheet.module.css';
@@ -20,7 +20,7 @@ export interface EditSetSheetProps {
   readonly exerciseName: string;
   readonly locale: Locale;
   readonly onClose: () => void;
-  readonly onUpdated: (response: LogSetResponse) => void;
+  readonly onUpdated: (records: readonly PersonalRecord[]) => void;
   readonly onRemoved: () => void;
 }
 
@@ -57,7 +57,7 @@ interface EditSetFormProps {
   readonly sessionId: ResourceId;
   readonly set: SetEntry;
   readonly locale: Locale;
-  readonly onUpdated: (response: LogSetResponse) => void;
+  readonly onUpdated: (records: readonly PersonalRecord[]) => void;
   readonly onRemoved: () => void;
 }
 
@@ -81,7 +81,11 @@ function EditSetForm({ sessionId, set, locale, onUpdated, onRemoved }: EditSetFo
           isWarmup: values.isWarmup,
         },
       },
-      { onSuccess: onUpdated },
+      {
+        onSuccess: (outcome) => {
+          onUpdated(freshRecords(outcome));
+        },
+      },
     );
   };
 
