@@ -78,8 +78,9 @@ import type { ApiClient } from './client';
  * `@gymbuddy/shared`: aquí no se declara ninguna forma de dato, solo se nombran rutas.
  */
 
-const trackedExerciseListSchema = z.array(trackedExerciseSchema);
-const routineListSchema = z.array(routineSchema);
+// Exportados: la instantánea offline valida lo guardado con la misma forma que la respuesta.
+export const trackedExerciseListSchema = z.array(trackedExerciseSchema);
+export const routineListSchema = z.array(routineSchema);
 const bodyPartListSchema = z.array(bodyPartSummarySchema);
 const catalogSummaryListSchema = z.array(catalogExerciseSummarySchema);
 
