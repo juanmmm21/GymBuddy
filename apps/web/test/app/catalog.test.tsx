@@ -187,9 +187,10 @@ describe('catálogo: ficha del ejercicio', () => {
     expect(
       await screen.findByRole('heading', { name: 'Press de banca con barra' }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('img', { name: 'Animación de Press de banca con barra' }),
-    ).toHaveAttribute('src', catalogBenchPressDetail.gifUrl);
+    const gif = screen.getByRole('img', { name: 'Animación de Press de banca con barra' });
+    expect(gif).toHaveAttribute('src', catalogBenchPressDetail.gifUrl);
+    // En modo CORS, para que el service worker guarde un 200 y no una respuesta opaca.
+    expect(gif).toHaveAttribute('crossorigin', 'anonymous');
 
     const tags = within(screen.getByRole('list', { name: 'Características' }));
     expect(tags.getByText('Pecho')).toBeInTheDocument();

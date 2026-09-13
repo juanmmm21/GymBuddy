@@ -15,6 +15,8 @@ type LoadState = 'loading' | 'loaded' | 'failed';
  * sitio (los GIFs son cuadrados) para que la ficha no salte al llegar, y si no llega se
  * dice: en el gimnasio sin cobertura, un hueco gris no explica nada.
  *
+ * Una animación ya vista sale de la caché del service worker aunque no haya red.
+ *
  * Quien lo monta debe darle `key={src}`: el estado de carga es por imagen.
  */
 export function ExerciseGif({ src, alt }: ExerciseGifProps) {
@@ -23,7 +25,7 @@ export function ExerciseGif({ src, alt }: ExerciseGifProps) {
   if (state === 'failed') {
     return (
       <Notice title="La animación no se pudo cargar">
-        Hace falta conexión para verla. El resto de la ficha sigue disponible.
+        Hace falta conexión para verla la primera vez. El resto de la ficha sigue disponible.
       </Notice>
     );
   }
@@ -38,6 +40,9 @@ export function ExerciseGif({ src, alt }: ExerciseGifProps) {
       <img
         src={src}
         alt={alt}
+        // En modo CORS la respuesta no es opaca y el service worker puede guardarla sabiendo
+        // que es un 200 (ver `offline/gif-cache.ts`); jsDelivr responde con el permiso.
+        crossOrigin="anonymous"
         decoding="async"
         className={cx(styles.image, state === 'loaded' && styles.imageVisible)}
         onLoad={() => {
