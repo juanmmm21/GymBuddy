@@ -2,6 +2,18 @@ import { z } from 'zod';
 import { isoDatetimeSchema } from './common';
 
 /**
+ * Tag del catálogo externo. Va anclado a propósito: la rama `main` del repo de origen
+ * está en desarrollo activo y regenera `api/` por completo, así que apuntar a `@main`
+ * es dejar que una regeneración aguas arriba rompa la app sin tocar nada aquí.
+ * Es la única constante que hay que cambiar para subir de versión (ver ADR 0001), y vive
+ * aquí porque la leen los dos lados: el Worker para sincronizar y la PWA para cachear
+ * solo los GIFs de este tag.
+ */
+export const CATALOG_VERSION = 'v1.1.0';
+
+export const CATALOG_BASE_URL = `https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@${CATALOG_VERSION}`;
+
+/**
  * Las siete partes del cuerpo por las que navega el usuario. No son los músculos:
  * el pecho es bodyPart "chest" y muscle "pectorals". Confundirlos rompe la navegación.
  */

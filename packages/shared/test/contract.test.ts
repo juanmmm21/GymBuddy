@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { apiError, apiErrorCodeSchema, apiErrorSchema, healthResponseSchema } from '../src/index';
+import {
+  CATALOG_BASE_URL,
+  CATALOG_VERSION,
+  apiError,
+  apiErrorCodeSchema,
+  apiErrorSchema,
+  healthResponseSchema,
+} from '../src/index';
 
 describe('apiError', () => {
   it('omite detail cuando no se pasa', () => {
@@ -74,5 +81,15 @@ describe('healthResponseSchema', () => {
     });
 
     expect(result.success).toBe(false);
+  });
+});
+
+describe('origen del catálogo', () => {
+  it('va anclado a un tag semántico, nunca a una rama', () => {
+    expect(CATALOG_VERSION).toMatch(/^v\d+\.\d+\.\d+$/);
+    expect(CATALOG_BASE_URL).toBe(
+      `https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@${CATALOG_VERSION}`,
+    );
+    expect(CATALOG_BASE_URL).not.toContain('@main');
   });
 });

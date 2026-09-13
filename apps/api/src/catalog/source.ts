@@ -1,15 +1,9 @@
 import { bodyPartSchema, muscleSchema } from '@gymbuddy/shared';
 import { z } from 'zod';
 
-/**
- * Tag del catálogo externo. Va anclado a propósito: la rama `main` del repo de origen
- * está en desarrollo activo y regenera `api/` por completo, así que apuntar a `@main`
- * es dejar que una regeneración aguas arriba rompa la app sin tocar nada aquí.
- * Es la única constante que hay que cambiar para subir de versión (ver ADR 0001).
- */
-export const CATALOG_VERSION = 'v1.1.0';
-
-export const CATALOG_BASE_URL = `https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@${CATALOG_VERSION}`;
+// El tag vive en `@gymbuddy/shared` porque la PWA también lo necesita; se reexporta para
+// que el resto del Worker siga leyéndolo del módulo del origen.
+export { CATALOG_BASE_URL, CATALOG_VERSION } from '@gymbuddy/shared';
 
 /**
  * Un ejercicio tal y como lo publica el CDN. Esto describe lo que *entra*; el contrato de

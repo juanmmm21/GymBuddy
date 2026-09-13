@@ -21,6 +21,8 @@ export type {
   WeightKilograms,
 } from './common';
 export {
+  CATALOG_BASE_URL,
+  CATALOG_VERSION,
   bodyPartSchema,
   bodyPartSummarySchema,
   catalogExercisePageSchema,
