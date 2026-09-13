@@ -1,0 +1,6 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-sm);
+  margin-bottom: var(--gb-space-lg);
+}

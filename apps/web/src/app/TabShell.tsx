@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { NavLink, Outlet } from 'react-router';
 import { cx } from '../lib/cx';
+import { SyncStatus } from '../offline/SyncStatus';
 import styles from './TabShell.module.css';
 
 interface Tab {
@@ -23,6 +24,7 @@ export function TabShell() {
   return (
     <div className={styles.shell}>
       <main className={styles.content}>
+        <SyncStatus />
         <Outlet />
       </main>
       <nav className={styles.tabBar} aria-label="Secciones">
