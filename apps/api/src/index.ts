@@ -9,6 +9,7 @@ import { adminRoute } from './routes/v1/admin';
 import { authRoute } from './routes/v1/auth';
 import { catalogRoute } from './routes/v1/catalog';
 import { exercisesRoute } from './routes/v1/exercises';
+import { exportRoute } from './routes/v1/export';
 import { healthRoute } from './routes/v1/health';
 import { historyRoute } from './routes/v1/history';
 import { routinesRoute } from './routes/v1/routines';
@@ -29,6 +30,7 @@ app.route('/api/v1', sessionsRoute);
 app.route('/api/v1', historyRoute);
 app.route('/api/v1', routinesRoute);
 app.route('/api/v1', statsRoute);
+app.route('/api/v1', exportRoute);
 app.route('/api/v1', adminRoute);
 
 /**
