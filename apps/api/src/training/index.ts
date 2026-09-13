@@ -36,3 +36,4 @@ export { getExerciseStats, getTrainingSignals, getWeeklyCalendar } from './stats
 export type { SessionPageQuery } from './history';
 export { getExportSnapshot, listExportSessionPage } from './export';
 export type { ExportSessionPageQuery } from './export';
+export { importExercises, importRoutines, importSessions } from './import';
