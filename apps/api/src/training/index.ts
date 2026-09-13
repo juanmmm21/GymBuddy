@@ -34,3 +34,5 @@ export { applyPersonalRecords, getCurrentRecords, toPersonalRecord } from './rec
 export { getExerciseHistory, listSessionPage } from './history';
 export { getExerciseStats, getTrainingSignals, getWeeklyCalendar } from './stats';
 export type { SessionPageQuery } from './history';
+export { getExportSnapshot, listExportSessionPage } from './export';
+export type { ExportSessionPageQuery } from './export';
