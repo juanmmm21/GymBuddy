@@ -173,3 +173,31 @@ export type {
   WeeklyCalendar,
   WeeklyCalendarDay,
 } from './stats';
+export {
+  EXPORT_FORMAT,
+  EXPORT_VERSION,
+  MAX_EXPORT_SESSION_PAGE_SIZE,
+  buildExportFile,
+  exportFileSchema,
+  exportSessionPageSchema,
+  exportSnapshotSchema,
+  exportedExerciseSchema,
+  exportedProfileSchema,
+  exportedRecordSchema,
+  exportedRoutineItemSchema,
+  exportedRoutineSchema,
+  exportedSessionSchema,
+  exportedSetSchema,
+} from './export';
+export type {
+  ExportFile,
+  ExportSessionPage,
+  ExportSnapshot,
+  ExportedExercise,
+  ExportedProfile,
+  ExportedRecord,
+  ExportedRoutine,
+  ExportedRoutineItem,
+  ExportedSession,
+  ExportedSet,
+} from './export';
