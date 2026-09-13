@@ -54,3 +54,26 @@ llega con otros datos), corregir manda los mismos valores, borrar una serie que 
     comienzo (`validation_failed`), y ese cierre se avisaría como rechazado.
 *   La cola solo cubre la sesión. Seguir un ejercicio, las rutinas o las invitaciones siguen
     necesitando red, y lo dicen al fallar.
+
+## Ampliación — abrir la app sin red (2026-09-13)
+
+La cola cubría registrar sin cobertura con la app ya abierta. Abrirla en frío sin red dejaba la
+sesión detrás de un spinner o de un error, porque la caché de lecturas vive en memoria.
+
+*   **Se guardan en el dispositivo cinco lecturas, y solo cinco:** la sesión abierta, los ejercicios
+    con los archivados, las rutinas, las señales y la semana. Es lo que piden Hoy y la sesión; el
+    catálogo y el historial pesan más y no hacen falta en mitad de una serie.
+*   **En `localStorage`, no en IndexedDB**, al revés que la cola: se lee de forma síncrona y entra en
+    la caché **antes del primer pintado**, así que la pantalla nunca pasa por el spinner. Son unas
+    decenas de kilobytes. Cada lectura va atada a la cuenta, se valida con el esquema del contrato
+    al leerla y se borra al cerrar sesión.
+*   **Se guarda escuchando la caché**, no desde cada consulta: lo que se relee tras una escritura o
+    tras drenar la cola queda guardado sin que ninguna pantalla tenga que acordarse.
+*   **Entra con la hora a la que respondió el Worker**, así que cuenta como vieja y se relee al
+    montar. Si la relectura falla, **los datos que hay mandan** y el fallo se avisa encima en
+    pequeño; solo sin datos es un error.
+*   **Las lecturas no se congelan sin red** (`networkMode: 'always'`). Con el modo por defecto,
+    TanStack Query deja en pausa lo que se pide mientras el navegador dice estar desconectado, y una
+    pantalla sin nada guardado se quedaba cargando para siempre en vez de decirlo.
+*   **Hoy decide «Seguir» o «Empezar» con la sesión y la cola encima**, no con las señales: una sesión
+    empezada sin red todavía no existe para el Worker y una cerrada sin red sigue abierta para él.
