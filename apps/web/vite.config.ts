@@ -1,6 +1,10 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+// Estas opciones leen el tag del catálogo de `@gymbuddy/shared`, que se publica como TypeScript sin
+// compilar. Por eso los scripts arrancan Vite con `--configLoader runner`: el cargador por
+// defecto deja el paquete fuera del bundle de la configuración y Node no resuelve sus imports.
+import { workboxOptions } from './src/offline/service-worker';
 
 /** Puerto de `wrangler dev`; en desarrollo la PWA habla con el Worker a través del proxy. */
 const LOCAL_WORKER_URL = 'http://127.0.0.1:8787';
@@ -30,12 +34,7 @@ export default defineConfig({
           { src: 'pwa-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
-      workbox: {
-        // El shell se precachea entero; la caché de GIFs y la cola offline llegan en la fase 13.
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
-        // Una petición a la API que falle no puede responderse con el index.html del shell.
-        navigateFallbackDenylist: [/^\/api\//],
-      },
+      workbox: workboxOptions,
       devOptions: { enabled: false },
     }),
   ],
