@@ -68,3 +68,9 @@
   color: var(--gb-color-text-secondary);
   line-height: var(--gb-type-body-line);
 }
+
+.installLink {
+  align-self: center;
+  color: var(--gb-color-accent);
+  font-weight: var(--gb-type-body-strong-weight);
+}

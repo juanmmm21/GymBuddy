@@ -14,6 +14,8 @@ import {
 } from '../../lib/format';
 import { BACKUP_PATH } from '../backup/paths';
 import { DEVICES_PATH } from '../devices/paths';
+import { useInstallGuide } from '../install/InstallProvider';
+import { INSTALL_PATH } from '../install/paths';
 import { INVITE_PATH } from '../invitations/paths';
 import { RECORD_LABELS } from '../exercises/labels';
 import { LiveMascot } from '../mascot/LiveMascot';
@@ -28,6 +30,7 @@ import styles from './HomeScreen.module.css';
 export function HomeScreen() {
   const { session, signOut } = useSession();
   const signals = useTrainingSignals();
+  const { situation } = useInstallGuide();
   const displayName = session?.user.displayName ?? '';
   const locale = session?.user.locale ?? 'es';
 
@@ -46,6 +49,11 @@ export function HomeScreen() {
             <Link to={BACKUP_PATH} className={styles.accountLink}>
               Copia de seguridad
             </Link>
+            {situation.kind !== 'installed' && (
+              <Link to={INSTALL_PATH} className={styles.accountLink}>
+                Instalar la app
+              </Link>
+            )}
             <Button variant="ghost" onClick={signOut}>
               Salir
             </Button>

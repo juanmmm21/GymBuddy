@@ -5,7 +5,11 @@ import {
   invitationCodeSchema,
 } from '@gymbuddy/shared';
 import { useState, type FormEvent } from 'react';
+import { Link } from 'react-router';
 import { Button, Notice, Surface, TextField, type NoticeTone } from '../components/index';
+import { useInstallGuide } from '../features/install/InstallProvider';
+import { inAppBrowserTitle, RECOMMENDED_BROWSER } from '../features/install/labels';
+import { INSTALL_PATH } from '../features/install/paths';
 import { localeFromLanguage } from '../lib/locale';
 import styles from './LoginScreen.module.css';
 import {
@@ -82,6 +86,7 @@ const LOGIN_CANCELLED_TEXT: FailureText = {
 export function LoginScreen() {
   const entry = usePasskeyEntry(localeFromLanguage(navigator.language));
   const [mode, setMode] = useState<Mode>('login');
+  const { situation } = useInstallGuide();
 
   const switchTo = (next: Mode): void => {
     entry.reset();
@@ -94,6 +99,21 @@ export function LoginScreen() {
         <h1 className={styles.title}>GymBuddy</h1>
         <p className={styles.tagline}>Tu registro de entrenamiento, sin contraseñas.</p>
       </div>
+
+      {/* Desde el navegador de un chat tampoco se crea la llave: mejor saberlo antes de pulsar. */}
+      {situation.kind === 'in_app_browser' && (
+        <Notice
+          tone="warning"
+          title={inAppBrowserTitle(situation.app)}
+          action={
+            <Link to={INSTALL_PATH} className={styles.installLink}>
+              Cómo abrirla en {RECOMMENDED_BROWSER[situation.platform]}
+            </Link>
+          }
+        >
+          Desde aquí no vas a poder entrar ni crear tu llave de acceso.
+        </Notice>
+      )}
 
       <Surface raised padding="lg" className={styles.card}>
         {mode === 'login' && (
@@ -124,6 +144,12 @@ export function LoginScreen() {
           />
         )}
       </Surface>
+
+      {situation.kind !== 'installed' && situation.kind !== 'in_app_browser' && (
+        <Link to={INSTALL_PATH} className={styles.installLink}>
+          Cómo instalarla en el móvil
+        </Link>
+      )}
     </main>
   );
 }
