@@ -12,6 +12,7 @@ import { exercisesRoute } from './routes/v1/exercises';
 import { exportRoute } from './routes/v1/export';
 import { healthRoute } from './routes/v1/health';
 import { historyRoute } from './routes/v1/history';
+import { importRoute } from './routes/v1/import';
 import { routinesRoute } from './routes/v1/routines';
 import { sessionsRoute } from './routes/v1/sessions';
 import { statsRoute } from './routes/v1/stats';
@@ -31,6 +32,7 @@ app.route('/api/v1', historyRoute);
 app.route('/api/v1', routinesRoute);
 app.route('/api/v1', statsRoute);
 app.route('/api/v1', exportRoute);
+app.route('/api/v1', importRoute);
 app.route('/api/v1', adminRoute);
 
 /**
