@@ -81,3 +81,30 @@ superficie, y ahora la única.
 *   La **Telegram Mini App** sigue descartada, y ahora con más motivo: no queda nada de Telegram.
 *   La fricción de la identidad que señalaba la revisión anterior desaparece: para entrar ya no hay
     que instalar nada más que la propia app.
+
+## La pantalla de instalación guiada — 2026-09-13
+
+Es la consecuencia de la revisión del 2026-09-09, ya hecha. Vive en `/install` y **no exige
+sesión**: quien más la necesita es quien acaba de recibir una invitación y todavía no tiene cuenta.
+Se llega desde la entrada («Cómo instalarla en el móvil») y desde Hoy («Instalar la app»), y los dos
+enlaces desaparecen cuando la app ya se abre desde la pantalla de inicio.
+
+*   **Qué navegador hay delante lo decide una función pura** (`detectInstallSituation`), a partir del
+    user agent, de `maxTouchPoints` y de si la app corre en modo `standalone`. El resultado es una de
+    seis situaciones: ya instalada, navegador interno de una app, Safari de iOS, otro navegador de
+    iOS, Android y escritorio. Se prueba con user agents reales de cada navegador.
+*   **El navegador interno de un chat va primero**, porque desde ahí no se instala ni **se crea la
+    passkey**. Se reconoce por nombre cuando la app se anuncia (Instagram, Facebook, Messenger,
+    Telegram, WhatsApp, TikTok…) y, sin nombre, por la huella del WebView: `; wv)` en Android y la
+    ausencia de `Safari/` en iOS. Por eso la entrada también avisa, antes de pulsar «Entrar».
+*   **Lo que no se puede detectar:** en iOS, WhatsApp y Telegram abren los enlaces en
+    `SFSafariViewController`, que se anuncia exactamente igual que Safari. Ahí la pantalla enseña los
+    pasos de Safari y añade qué hacer si «Añadir a pantalla de inicio» no aparece.
+*   **`beforeinstallprompt` se captura antes de montar React** (`captureInstallPrompt` en `main.tsx`):
+    Chrome lo lanza una sola vez y pronto, y un listener registrado desde un componente lo pierde. Se
+    le hace `preventDefault()` para que Chrome no ponga su propia barra, y el evento **se gasta al
+    abrir el diálogo**: si la persona dice que no, la pantalla pasa a los pasos del menú «⋮».
+*   **En iOS la app instalada no hereda lo guardado en Safari**, así que la primera vez pide entrar
+    otra vez. La pantalla lo avisa: la llave es la misma y entrar son dos toques.
+*   **La dirección siempre se ve escrita** junto al botón de copiarla: el portapapeles no está en
+    todos los navegadores internos.
