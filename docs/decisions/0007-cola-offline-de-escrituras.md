@@ -77,3 +77,30 @@ sesión detrás de un spinner o de un error, porque la caché de lecturas vive e
     pantalla sin nada guardado se quedaba cargando para siempre en vez de decirlo.
 *   **Hoy decide «Seguir» o «Empezar» con la sesión y la cola encima**, no con las señales: una sesión
     empezada sin red todavía no existe para el Worker y una cerrada sin red sigue abierta para él.
+
+## Ampliación — los GIFs ya vistos, en la caché del service worker (2026-09-13)
+
+Con la sesión y sus lecturas en el dispositivo, lo único que seguía pidiendo red en mitad de una
+serie era la animación del ejercicio.
+
+*   **Solo lo ya visto, nunca precacheado.** El `sw.js` guarda un GIF cuando el navegador ya lo ha
+    descargado al abrir una ficha. Ninguno entra en el build: el catálogo no se vendoriza
+    (ADR 0001), y guardar en el navegador de quien lo mira lo que ese navegador ya bajó no es
+    distribuirlo. Un test vigila que los patrones del precache no nombren GIFs.
+*   **`CacheFirst`, anclado al tag.** La regla casa solo con `CATALOG_BASE_URL` seguido de
+    `músculo/fichero.gif`: otra rama, otro tag, otro host o los JSON del mismo tag no entran. Dentro
+    de un tag un GIF no cambia, así que no hace falta revalidarlo, y una versión nueva del catálogo
+    es otra URL y otra caché (`catalog-gifs-<tag>`). Por eso `CATALOG_VERSION` se mudó a
+    `packages/shared`: la leen el Worker para sincronizar y la PWA para esta regla, y sigue siendo
+    una sola constante.
+*   **La `<img>` pide en modo CORS** (`crossOrigin="anonymous"`) y solo se guardan respuestas 200.
+    Sin el atributo la petición es `no-cors` y la respuesta, opaca: el service worker no sabría si
+    guarda un GIF o un error, y Chrome cuenta cada respuesta opaca como varios megas de cuota.
+    jsDelivr responde con `Access-Control-Allow-Origin: *` (comprobado contra el CDN), así que el
+    atributo no cuesta nada.
+*   **Ciento cincuenta GIFs y noventa días**, con limpieza si falta espacio. Pesan entre 200 y 650 KB:
+    unas decenas de megas, suficientes para lo que alguien sigue y ojea.
+
+Lo que queda fuera: un GIF que nunca se abrió con red no se ve sin ella, y la ficha lo dice. El
+patrón es una `RegExp` y no una función porque workbox serializa la regla con `toString()` al
+generar el `sw.js`, y una función perdería la constante del tag.
