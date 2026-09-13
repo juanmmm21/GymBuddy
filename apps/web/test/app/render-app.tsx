@@ -8,11 +8,17 @@ import {
 } from '../../src/auth/passkey-authenticator';
 import { SESSION_STORAGE_KEY } from '../../src/auth/session-store';
 import type { StorageLike } from '../../src/lib/storage';
+import {
+  createMemoryWriteQueueStore,
+  type MemoryWriteQueueStore,
+} from '../../src/offline/write-queue-store';
 import { createFakeFetch, type FakeFetch } from '../fake-fetch';
 
 export interface RenderedApp {
   readonly fake: FakeFetch;
   readonly storage: StorageLike & { readonly data: Map<string, string> };
+  /** La cola offline guardada en el dispositivo, para ver qué se encoló y qué se retiró. */
+  readonly queueStore: MemoryWriteQueueStore;
 }
 
 /**
@@ -32,6 +38,8 @@ export function renderApp(options: {
   /** Lo que ya estaba guardado en el dispositivo al abrir la app, aparte de la sesión. */
   readonly stored?: Readonly<Record<string, string>>;
   readonly authenticator?: PasskeyAuthenticator;
+  /** Escrituras que quedaron en la cola la última vez que se abrió la app. */
+  readonly queued?: readonly unknown[];
   readonly setup?: (fake: FakeFetch) => void;
 }): RenderedApp {
   const fake = createFakeFetch();
@@ -46,6 +54,8 @@ export function renderApp(options: {
     removeItem: (key: string) => void data.delete(key),
   };
 
+  const queueStore = createMemoryWriteQueueStore(options.queued);
+
   render(
     <App
       apiBaseUrl=""
@@ -53,8 +63,9 @@ export function renderApp(options: {
       router={createTestRouter(options.path)}
       fetchImpl={fake.fetch}
       authenticator={options.authenticator ?? noPasskeys}
+      writeQueueStore={queueStore}
     />,
   );
 
-  return { fake, storage };
+  return { fake, storage, queueStore };
 }

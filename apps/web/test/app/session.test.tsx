@@ -1,4 +1,5 @@
 import type {
+  EndSessionRequest,
   LogSetRequest,
   SetEntry,
   StartSessionRequest,
@@ -20,6 +21,7 @@ import {
 import { renderApp } from './render-app';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 
 /** Una sesión abierta con sus ejercicios: el punto de partida de casi todo lo de aquí. */
 function serveActiveSession(fake: FakeFetch, current: WorkoutSessionDetail = activeSession): void {
@@ -53,7 +55,7 @@ describe('sesión: sin ninguna abierta', () => {
     expect(body.id).toMatch(UUID);
   });
 
-  it('un fallo al empezar se ve y deja reintentar', async () => {
+  it('un rechazo al empezar se ve y deja reintentar', async () => {
     const user = userEvent.setup();
     renderApp({
       path: '/session',
@@ -61,7 +63,10 @@ describe('sesión: sin ninguna abierta', () => {
       setup: (fake) => {
         fake.on('GET', '/sessions/active', () => jsonResponse({ session: null }));
         fake.on('GET', '/exercises', () => jsonResponse([benchPress]));
-        fake.on('POST', '/sessions', () => errorResponse('internal_error', 500, 'Se rompió'));
+        // Un 4xx es un rechazo del Worker: repetirlo daría lo mismo, así que no se encola.
+        fake.on('POST', '/sessions', () =>
+          errorResponse('validation_failed', 400, 'Las notas son demasiado largas'),
+        );
       },
     });
 
@@ -243,7 +248,12 @@ describe('sesión: terminarla', () => {
 
     expect(await screen.findByRole('heading', { name: /Hola/ })).toBeInTheDocument();
     const end = fake.requests.find((request) => request.path.endsWith('/end'));
-    expect(end?.body).toEqual({ notes: 'Buen día' });
+    // La hora de cierre la pone el móvil al pulsar: si la petición saliera tarde desde la cola
+    // offline, la sesión tiene que cerrarse cuando se cerró y no cuando volvió la red.
+    const endBody = end?.body as EndSessionRequest;
+    expect(Object.keys(endBody).sort()).toEqual(['endedAt', 'notes']);
+    expect(endBody.notes).toBe('Buen día');
+    expect(endBody.endedAt).toMatch(ISO_INSTANT);
   });
 
   it('una sesión sin series avisa de que se cierra vacía', async () => {
