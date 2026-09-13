@@ -11,6 +11,9 @@ import {
 } from '../auth/passkey-authenticator';
 import { SessionProvider, useSession } from '../auth/SessionProvider';
 import { loadStoredSession } from '../auth/session-store';
+import { unavailableInstallPrompt } from '../features/install/install-prompt';
+import { InstallProvider, type InstallSupport } from '../features/install/InstallProvider';
+import { readBrowserEnvironment } from '../features/install/platform';
 import type { StorageLike } from '../lib/storage';
 import {
   clearDeviceSnapshot,
@@ -33,6 +36,8 @@ export interface AppProps {
   readonly authenticator?: PasskeyAuthenticator;
   /** Y con la cola offline: los tests la guardan en memoria para leer lo que se encoló. */
   readonly writeQueueStore?: WriteQueueStore;
+  /** El entorno del navegador y el diálogo de instalación; los tests simulan un iPhone o un chat. */
+  readonly install?: InstallSupport;
 }
 
 /** Medio minuto sin volver a pedir lo mismo: entre pantalla y pantalla no cambia nada. */
@@ -45,6 +50,7 @@ export function App({
   fetchImpl,
   authenticator = browserPasskeyAuthenticator,
   writeQueueStore,
+  install,
 }: AppProps) {
   const [queryClient] = useState(() => {
     const client = new QueryClient({
@@ -60,6 +66,10 @@ export function App({
     return client;
   });
   const [appRouter] = useState(() => router ?? createAppRouter());
+  const [installSupport] = useState<InstallSupport>(
+    () =>
+      install ?? { environment: readBrowserEnvironment(window), prompt: unavailableInstallPrompt },
+  );
   // Una sola cola por app: lee lo que quedó guardado al abrirla y no se rehace con el token.
   const [writeQueue] = useState(
     () => new WriteQueue({ store: writeQueueStore ?? createBrowserWriteQueueStore() }),
@@ -72,7 +82,9 @@ export function App({
           <WriteQueueProvider queue={writeQueue}>
             <ApiBoundary apiBaseUrl={apiBaseUrl} fetchImpl={fetchImpl} queryClient={queryClient}>
               <AuthenticatorProvider authenticator={authenticator}>
-                <RouterProvider router={appRouter} />
+                <InstallProvider support={installSupport}>
+                  <RouterProvider router={appRouter} />
+                </InstallProvider>
               </AuthenticatorProvider>
             </ApiBoundary>
           </WriteQueueProvider>
