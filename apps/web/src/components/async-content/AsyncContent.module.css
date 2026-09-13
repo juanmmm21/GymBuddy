@@ -3,3 +3,7 @@
   justify-content: center;
   padding: var(--gb-space-xxxl) 0;
 }
+
+.stale {
+  margin-bottom: var(--gb-space-sm);
+}

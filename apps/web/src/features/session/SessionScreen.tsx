@@ -105,7 +105,8 @@ export function SessionScreen() {
           if (workout === null) return <StartSessionCard routineId={requestedRoutineId} />;
 
           return (
-            <AsyncContent query={exercises}>
+            // Sin red fallan las dos relecturas a la vez: el aviso de la sesión ya lo cuenta.
+            <AsyncContent query={exercises} quietRefetchError>
               {(items) => (
                 <ActiveSession
                   // Una por sesión: la rutina que recuerda es de esta, no de la siguiente.
@@ -339,7 +340,7 @@ function ActiveSession({
       )}
 
       {routineId !== null && (
-        <AsyncContent query={routines}>
+        <AsyncContent query={routines} quietRefetchError>
           {() =>
             routine === null || progress === null ? (
               <Notice tone="warning" title="No encontramos la rutina de esta sesión">
