@@ -216,8 +216,8 @@ describe('planImport', () => {
   });
 
   it('corta las sesiones por filas: series y marcas cuentan', () => {
-    const heavy = session(0, [...setsFor(99), set(99, '2026-09-04T18:10:00.000Z', 2)]);
-    expect(sessionImportRows(heavy)).toBe(103);
+    const heavy = session(0, [...setsFor(59), set(59, '2026-09-04T18:10:00.000Z', 2)]);
+    expect(sessionImportRows(heavy)).toBe(63);
 
     const plan = planImport({
       exercises: [],
@@ -303,8 +303,8 @@ describe('peticiones de importación', () => {
   });
 
   it('rechaza sesiones o rutinas que pasan del tope de filas', () => {
-    const fits = [session(0, setsFor(100)), session(1, setsFor(100))];
-    const overflows = [...fits, session(2, setsFor(100))];
+    const fits = [session(0, setsFor(60)), session(1, setsFor(60))];
+    const overflows = [...fits, session(2, setsFor(60))];
 
     expect(importSessionsRequestSchema.safeParse({ sessions: fits }).success).toBe(true);
     expect(importSessionsRequestSchema.safeParse({ sessions: overflows }).success).toBe(false);
@@ -314,7 +314,7 @@ describe('peticiones de importación', () => {
     );
     expect(
       importRoutinesRequestSchema.safeParse({
-        routines: Array.from({ length: 9 }, (_unused, index) => routine(index, 30)),
+        routines: Array.from({ length: 5 }, (_unused, index) => routine(index, 30)),
       }).success,
     ).toBe(false);
   });

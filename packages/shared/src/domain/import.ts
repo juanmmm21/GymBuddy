@@ -25,10 +25,11 @@ export const MAX_IMPORT_SESSIONS_PER_BATCH = 20;
 
 /**
  * Filas que escribe una petición de rutinas o de sesiones. Con 10 ms de CPU por invocación, lo
- * que cuesta es derivar un id y armar la sentencia por fila; doscientas cincuenta caben con
- * holgura, y una sesión normal no pasa de cincuenta.
+ * que cuesta es validar el cuerpo y derivar un id por fila: medido en local, doscientas cincuenta
+ * filas se llevaban unos 5,5 ms en frío antes de armar ninguna sentencia, sin margen para un
+ * servidor más lento. Ciento cincuenta dejan la mitad libre, y una sesión normal no pasa de cincuenta.
  */
-export const MAX_IMPORT_ROWS_PER_BATCH = 250;
+export const MAX_IMPORT_ROWS_PER_BATCH = 150;
 
 const IMPORT_ID_NAMESPACE = 'gymbuddy-import';
 
