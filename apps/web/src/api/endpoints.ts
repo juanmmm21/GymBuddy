@@ -9,6 +9,7 @@ import {
   exerciseStatsSchema,
   exportSessionPageSchema,
   exportSnapshotSchema,
+  importExercisesResponseSchema,
   invitationSchema,
   invitationStatusSchema,
   loginOptionsResponseSchema,
@@ -40,6 +41,10 @@ import {
   type ExerciseStats,
   type ExportSessionPage,
   type ExportSnapshot,
+  type ImportExercisesRequest,
+  type ImportExercisesResponse,
+  type ImportRoutinesRequest,
+  type ImportSessionsRequest,
   type Invitation,
   type InvitationStatus,
   type Locale,
@@ -470,4 +475,40 @@ export function fetchExportSessionPage(
 /** Copia de seguridad: perfil, ejercicios y rutinas. Se pide después de las sesiones. */
 export function fetchExportSnapshot(client: ApiClient): Promise<ExportSnapshot> {
   return client.request({ method: 'GET', path: '/export/snapshot', schema: exportSnapshotSchema });
+}
+
+/**
+ * Recuperar una copia: un lote de ejercicios. Responde los del catálogo que entraron como
+ * propios porque el catálogo de esta cuenta todavía no los tiene.
+ */
+export function importExercises(
+  client: ApiClient,
+  body: ImportExercisesRequest,
+): Promise<ImportExercisesResponse> {
+  return client.request({
+    method: 'POST',
+    path: '/import/exercises',
+    schema: importExercisesResponseSchema,
+    body,
+  });
+}
+
+/** Recuperar una copia: un lote de rutinas con sus líneas. Van después de los ejercicios. */
+export function importRoutines(client: ApiClient, body: ImportRoutinesRequest): Promise<null> {
+  return client.request({
+    method: 'POST',
+    path: '/import/routines',
+    schema: noContentSchema,
+    body,
+  });
+}
+
+/** Recuperar una copia: un lote de sesiones con sus series y marcas. Van al final. */
+export function importSessions(client: ApiClient, body: ImportSessionsRequest): Promise<null> {
+  return client.request({
+    method: 'POST',
+    path: '/import/sessions',
+    schema: noContentSchema,
+    body,
+  });
 }
