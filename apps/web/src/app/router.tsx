@@ -9,6 +9,7 @@ import { TrackedExerciseScreen } from '../features/exercises/TrackedExerciseScre
 import { HistoryScreen } from '../features/history/HistoryScreen';
 import { SessionDetailScreen } from '../features/history/SessionDetailScreen';
 import { HomeScreen } from '../features/home/HomeScreen';
+import { InstallScreen } from '../features/install/InstallScreen';
 import { InviteFriendScreen } from '../features/invitations/InviteFriendScreen';
 import { RoutineScreen } from '../features/routines/RoutineScreen';
 import { RoutinesScreen } from '../features/routines/RoutinesScreen';
@@ -19,6 +20,8 @@ import { TabShell } from './TabShell';
 
 export const routes: RouteObject[] = [
   { path: '/login', element: <LoginRoute /> },
+  // Fuera de la sesión a propósito: quien más la necesita es un invitado que aún no tiene cuenta.
+  { path: '/install', element: <InstallScreen /> },
   {
     element: <RequireSession />,
     children: [
