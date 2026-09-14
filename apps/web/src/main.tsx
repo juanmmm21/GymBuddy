@@ -5,6 +5,8 @@ import { App } from './app/App';
 import { installTheme, watchColorScheme } from './design/theme';
 import { captureInstallPrompt } from './features/install/install-prompt';
 import { readBrowserEnvironment } from './features/install/platform';
+// Archivo con su eje de anchura: la fuente de títulos y cifras viaja en el bundle y se precachea.
+import '@fontsource-variable/archivo/wdth.css';
 import './design/global.css';
 
 // Los tokens se aplican antes del primer render: sin ellos no hay ni un color en pantalla.
