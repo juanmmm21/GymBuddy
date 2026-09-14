@@ -143,9 +143,9 @@ export async function createRoutine(
 }
 
 /**
- * Cambia el nombre, la descripción, la lista de ejercicios y el archivado. La baja es
- * blanda: borrar la fila se llevaría por delante las líneas y, con ellas, la rutina que el
- * usuario quizá quiera recuperar la semana que viene.
+ * Cambia el nombre, la descripción, la lista de ejercicios y el archivado. Archivar es la
+ * baja blanda, la que se puede recuperar la semana que viene; borrar del todo es
+ * `deleteRoutine`.
  *
  * `items` se reemplaza entero, y el borrado y la inserción viajan en el mismo `batch` para
  * que la rutina no se quede vacía si algo falla a mitad. El orden lo da la posición en la
@@ -191,6 +191,22 @@ export async function updateRoutine(
   if (updated === null) throw routineNotFound(routineId);
 
   return updated;
+}
+
+/**
+ * Borra la rutina del todo; sus líneas se van con ella por la cascada de `routine_item`, que D1
+ * aplica. Ninguna sesión ni serie apunta a una rutina, así que el historial no se toca: lo único
+ * que cambia fuera de aquí es el rango del estancamiento, que se lee de las rutinas que queden.
+ *
+ * Una sola sentencia filtrada por el usuario, sin leer antes: si no existe o es ajena no borra
+ * nada, y quien llama responde 204 igual (repetirlo no falla y no confirma lo de otro).
+ */
+export async function deleteRoutine(
+  db: Database,
+  userId: string,
+  routineId: string,
+): Promise<void> {
+  await db.delete(routine).where(and(eq(routine.id, routineId), eq(routine.userId, userId)));
 }
 
 /**

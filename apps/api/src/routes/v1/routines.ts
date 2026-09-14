@@ -6,6 +6,7 @@ import { requireUser, type AuthenticatedEnv } from '../../http/current-user';
 import { parseJsonBody, parseQuery } from '../../http/query';
 import {
   createRoutine,
+  deleteRoutine,
   findRoutine,
   listRoutines,
   routineNotFound,
@@ -58,7 +59,7 @@ export const routinesRoute = new Hono<AuthenticatedEnv>()
     return c.json(routine);
   })
 
-  /** No hay `DELETE`: la baja es blanda y se pide con `{"archived": true}`. */
+  /** La baja blanda, la que se recupera, se pide con `{"archived": true}`. */
   .patch('/routines/:id', async (c) => {
     const request = await parseJsonBody(c, updateRoutineRequestSchema);
 
@@ -71,4 +72,11 @@ export const routinesRoute = new Hono<AuthenticatedEnv>()
         new Date(),
       ),
     );
+  })
+
+  // 204 también si ya no estaba o es ajena: se repite sin miedo (ver `deleteRoutine`).
+  .delete('/routines/:id', async (c) => {
+    await deleteRoutine(createDatabase(c.env.DB), c.get('user').id, c.req.param('id'));
+
+    return c.body(null, 204);
   });

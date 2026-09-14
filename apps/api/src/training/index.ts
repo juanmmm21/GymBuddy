@@ -26,6 +26,7 @@ export {
 } from './sessions';
 export {
   createRoutine,
+  deleteRoutine,
   findRoutine,
   listRoutines,
   routineNotFound,
