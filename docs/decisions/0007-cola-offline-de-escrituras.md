@@ -104,3 +104,13 @@ serie era la animación del ejercicio.
 Lo que queda fuera: un GIF que nunca se abrió con red no se ve sin ella, y la ficha lo dice. El
 patrón es una `RegExp` y no una función porque workbox serializa la regla con `toString()` al
 generar el `sw.js`, y una función perdería la constante del tag.
+
+## Miniaturas del catálogo fuera de la caché — 2026-09-14
+
+Las listas del catálogo enseñan la animación de cada ejercicio en pequeño (lo pidió Juan tras la
+primera prueba). **Esas miniaturas no entran en la caché de GIFs**: se piden con `?preview`, que
+jsDelivr ignora (mismo fichero, 200 y CORS abierto) y que hace que la URL no case con el patrón de
+`offline/service-worker.ts`. La caché tiene tope (150 entradas) y echa lo menos usado: si guardase lo
+que se ojea, bastaría con recorrer una parte del cuerpo para expulsar los GIFs de los ejercicios que se
+entrenan sin cobertura. Las miniaturas se piden con `loading="lazy"`, así que solo baja lo que se ve, y
+el coste en datos móviles se aceptó a sabiendas.
