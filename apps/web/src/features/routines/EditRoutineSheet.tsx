@@ -9,6 +9,7 @@ import { useUpdateRoutine } from '../../api/mutations';
 import { Button, Notice, Sheet, TextArea, TextField } from '../../components/index';
 import { describeError } from '../../lib/errors';
 import { normalizeNotes } from '../../lib/notes';
+import { DeleteRoutinePanel } from './DeleteRoutinePanel';
 import styles from './EditRoutineSheet.module.css';
 
 export interface EditRoutineSheetProps {
@@ -25,7 +26,10 @@ export interface EditRoutineSheetProps {
 export function EditRoutineSheet({ routine, open, onClose }: EditRoutineSheetProps) {
   return (
     <Sheet open={open} onClose={onClose} title="Editar rutina">
-      <EditRoutineForm routine={routine} onDone={onClose} />
+      <div className={styles.content}>
+        <EditRoutineForm routine={routine} onDone={onClose} />
+        <DeleteRoutinePanel routine={routine} />
+      </div>
     </Sheet>
   );
 }

@@ -392,8 +392,8 @@ function ActiveSession({
           {() =>
             routine === null || progress === null ? (
               <Notice tone="warning" title="No encontramos la rutina de esta sesión">
-                No está entre tus rutinas. La sesión sigue abierta: registra lo que hagas como
-                siempre.
+                No está entre tus rutinas: quizá se borró desde otro móvil. La sesión sigue abierta:
+                registra lo que hagas como siempre.
               </Notice>
             ) : (
               <RoutineGuide
