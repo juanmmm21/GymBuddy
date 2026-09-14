@@ -1,4 +1,4 @@
-import type { BodyPart, Locale, Muscle } from '@gymbuddy/shared';
+import type { BodyPart, CatalogFilters, Locale, Muscle } from '@gymbuddy/shared';
 import {
   keepPreviousData,
   useInfiniteQuery,
@@ -80,14 +80,22 @@ export const queryKeys = {
   catalog: {
     all: ['catalog'] as const,
     bodyParts: (lang: Locale | undefined) => ['catalog', 'bodyparts', lang ?? 'default'] as const,
-    exercises: (bodyPart: BodyPart, lang: Locale | undefined) =>
-      ['catalog', 'bodypart', bodyPart, lang ?? 'default'] as const,
-    search: (q: string, lang: Locale | undefined) =>
-      ['catalog', 'search', q, lang ?? 'default'] as const,
+    exercises: (bodyPart: BodyPart, lang: Locale | undefined, filters: CatalogFilters) =>
+      ['catalog', 'bodypart', bodyPart, lang ?? 'default', ...filterKey(filters)] as const,
+    search: (q: string, lang: Locale | undefined, filters: CatalogFilters) =>
+      ['catalog', 'search', q, lang ?? 'default', ...filterKey(filters)] as const,
     exercise: (muscle: Muscle, slug: string, lang: Locale | undefined) =>
       ['catalog', 'exercise', muscle, slug, lang ?? 'default'] as const,
   },
 };
+
+/**
+ * Los filtros entran en la clave como dos valores fijos y no como el objeto: `{}` y
+ * `{ equipment: undefined }` son el mismo «sin filtro» y tienen que compartir caché.
+ */
+function filterKey(filters: CatalogFilters): readonly [string, string] {
+  return [filters.equipment ?? 'any-equipment', filters.muscle ?? 'any-muscle'];
+}
 
 /** Lo que cabe de un tirón en el móvil; coincide con el tamaño por defecto del Worker. */
 export const CATALOG_PAGE_SIZE = 50;
@@ -263,12 +271,18 @@ export function useBodyParts(lang?: Locale): UseQueryResult<BodyPartSummary[]> {
 export function useCatalogExercises(
   bodyPart: BodyPart,
   lang?: Locale,
+  filters: CatalogFilters = {},
 ): UseInfiniteQueryResult<InfiniteData<CatalogExercisePage>> {
   const client = useApiClient();
   return useInfiniteQuery({
-    queryKey: queryKeys.catalog.exercises(bodyPart, lang),
+    queryKey: queryKeys.catalog.exercises(bodyPart, lang, filters),
     queryFn: ({ pageParam }) =>
-      listCatalogExercises(client, bodyPart, { lang, limit: CATALOG_PAGE_SIZE, offset: pageParam }),
+      listCatalogExercises(client, bodyPart, {
+        lang,
+        filters,
+        limit: CATALOG_PAGE_SIZE,
+        offset: pageParam,
+      }),
     initialPageParam: 0,
     getNextPageParam: nextPageOffset,
     retry: shouldRetryRequest,
@@ -283,12 +297,13 @@ export function useCatalogExercises(
 export function useCatalogSearch(
   q: string,
   lang?: Locale,
+  filters: CatalogFilters = {},
 ): UseQueryResult<CatalogExerciseSummary[]> {
   const client = useApiClient();
   const term = q.trim();
   return useQuery({
-    queryKey: queryKeys.catalog.search(term, lang),
-    queryFn: () => searchCatalog(client, term, { lang }),
+    queryKey: queryKeys.catalog.search(term, lang, filters),
+    queryFn: () => searchCatalog(client, term, { lang, filters }),
     enabled: term.length >= MIN_SEARCH_LENGTH,
     placeholderData: keepPreviousData,
     retry: shouldRetryRequest,

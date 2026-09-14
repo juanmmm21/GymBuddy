@@ -31,6 +31,7 @@ import {
   type BodyPartSummary,
   type CatalogExercise,
   type CatalogExercisePage,
+  type CatalogFilters,
   type CatalogExerciseSummary,
   type CreateRoutineRequest,
   type CreateTrackedExerciseRequest,
@@ -406,6 +407,7 @@ export function listBodyParts(client: ApiClient, lang?: Locale): Promise<BodyPar
 
 export interface CatalogPageOptions {
   readonly lang?: Locale | undefined;
+  readonly filters?: CatalogFilters;
   readonly limit?: number;
   readonly offset?: number;
 }
@@ -420,12 +422,19 @@ export function listCatalogExercises(
     method: 'GET',
     path: `/catalog/bodyparts/${bodyPart}`,
     schema: catalogExercisePageSchema,
-    query: { lang: options.lang, limit: options.limit, offset: options.offset },
+    query: {
+      lang: options.lang,
+      limit: options.limit,
+      offset: options.offset,
+      equipment: options.filters?.equipment,
+      muscle: options.filters?.muscle,
+    },
   });
 }
 
 export interface CatalogSearchOptions {
   readonly lang?: Locale | undefined;
+  readonly filters?: CatalogFilters;
   readonly limit?: number;
 }
 
@@ -438,7 +447,13 @@ export function searchCatalog(
     method: 'GET',
     path: '/catalog/search',
     schema: catalogSummaryListSchema,
-    query: { q, lang: options.lang, limit: options.limit },
+    query: {
+      q,
+      lang: options.lang,
+      limit: options.limit,
+      equipment: options.filters?.equipment,
+      muscle: options.filters?.muscle,
+    },
   });
 }
 
