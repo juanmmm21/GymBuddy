@@ -15,6 +15,7 @@ import {
   type WorkoutSessionDetail,
 } from '@gymbuddy/shared';
 import { and, desc, eq, isNull, sql } from 'drizzle-orm';
+import { runBatch } from '../db/batching';
 import type { Database } from '../db/client';
 import { listSetsForSession } from '../db/queries';
 import {
@@ -26,7 +27,7 @@ import {
 } from '../db/schema';
 import { ApiException } from '../http/errors';
 import { assertTrackedExerciseBelongsToUser } from './exercises';
-import { applyPersonalRecords } from './records';
+import { applyPersonalRecords, personalRecordRewriteStatements } from './records';
 
 /**
  * Abre la sesión. El identificador lo trae el cliente, así que reenviar la apertura
@@ -225,7 +226,8 @@ export async function updateSet(
 
 /**
  * Borra una serie de una sesión abierta. Las marcas que puso se van con ella por la clave
- * ajena (`on delete cascade`), así que no hay que limpiarlas a mano.
+ * ajena (`on delete cascade`), y en el mismo lote se reescriben las que vinieron detrás: si
+ * era la del récord, la siguiente mejor serie pasa a tenerlo.
  *
  * Es idempotente a propósito: borrar una serie que ya no está responde igual que borrarla,
  * porque es lo que hará la cola offline al reintentar un borrado que sí llegó. El hueco
@@ -240,7 +242,40 @@ export async function removeSet(
 ): Promise<void> {
   await requireWritableSession(db, userId, sessionId, { kind: 'correct' });
 
-  await db.delete(setEntry).where(and(eq(setEntry.id, setId), eq(setEntry.sessionId, sessionId)));
+  const stored = await findSetInSession(db, sessionId, setId);
+  if (stored === null) return;
+
+  await runBatch(db, [
+    db.delete(setEntry).where(and(eq(setEntry.id, setId), eq(setEntry.sessionId, sessionId))),
+    ...(await personalRecordRewriteStatements(db, userId, [stored])),
+  ]);
+}
+
+/**
+ * Borra un entrenamiento entero, abierto o cerrado: sus series y sus marcas se van por la clave
+ * ajena, y en el mismo lote se reescriben las marcas que vinieron después en los ejercicios que
+ * tocaba. Lo que la sesión recordaba en el dispositivo (rutina, ajustes) no vive en el Worker.
+ *
+ * Idempotente como borrar una serie: una sesión que ya no está —o que nunca fue de este usuario—
+ * responde igual, porque la cola offline o un segundo toque repiten el borrado y un 404 ahí no
+ * contaría nada útil; y a quien no es su dueño no le confirma que exista.
+ */
+export async function deleteWorkoutSession(
+  db: Database,
+  userId: string,
+  sessionId: string,
+): Promise<void> {
+  const session = await findSessionRow(db, userId, sessionId);
+  if (session === null) return;
+
+  const sets = await listSetsForSession(db, userId, sessionId);
+
+  await runBatch(db, [
+    db
+      .delete(workoutSession)
+      .where(and(eq(workoutSession.id, sessionId), eq(workoutSession.userId, userId))),
+    ...(await personalRecordRewriteStatements(db, userId, sets)),
+  ]);
 }
 
 /**

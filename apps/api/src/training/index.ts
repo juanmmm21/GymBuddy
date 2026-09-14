@@ -12,6 +12,7 @@ export {
 export type { ListTrackedExercisesOptions, TrackedExerciseFacts } from './exercises';
 export {
   closeIdleSession,
+  deleteWorkoutSession,
   endWorkoutSession,
   findActiveSession,
   findSessionDetail,

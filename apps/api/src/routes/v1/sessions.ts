@@ -12,6 +12,7 @@ import { closeIdleSessions } from '../../http/close-idle-session';
 import { requireUser, type AuthenticatedEnv } from '../../http/current-user';
 import { parseJsonBody } from '../../http/query';
 import {
+  deleteWorkoutSession,
   endWorkoutSession,
   findActiveSession,
   findSessionDetail,
@@ -58,6 +59,13 @@ export const sessionsRoute = new Hono<AuthenticatedEnv>()
     if (session === null) throw sessionNotFound(sessionId);
 
     return c.json(session);
+  })
+
+  // 204 también si ya no estaba: el borrado se repite sin miedo (ver `deleteWorkoutSession`).
+  .delete('/sessions/:id', async (c) => {
+    await deleteWorkoutSession(createDatabase(c.env.DB), c.get('user').id, c.req.param('id'));
+
+    return c.body(null, 204);
   })
 
   .post('/sessions/:id/sets', async (c) => {

@@ -2,13 +2,22 @@ import {
   detectPersonalRecords,
   formatGramsAsVolumeKilograms,
   oneRepMaxFromEpleyNumerator,
+  replayPersonalRecords,
   type PersonalRecord,
   type PersonalRecordBests,
   type PersonalRecordKind,
   type ProgressionSet,
 } from '@gymbuddy/shared';
+import { and, eq, inArray } from 'drizzle-orm';
+import type { BatchItem } from 'drizzle-orm/batch';
+import { chunk, MAX_PARAMS_PER_LOOKUP } from '../db/batching';
 import type { Database } from '../db/client';
-import { findRecordBests, listRecordsForExercise } from '../db/queries';
+import {
+  findRecordBests,
+  listRecordReplaySets,
+  listRecordsForExercise,
+  listRecordsForExercises,
+} from '../db/queries';
 import { personalRecord, type PersonalRecordRow, type SetEntryRow } from '../db/schema';
 
 /** Los tres tipos de marca. Estar los tres es lo que hace fiable la tabla como caché. */
@@ -51,6 +60,109 @@ export async function applyPersonalRecords(
   await db.insert(personalRecord).values(rows);
 
   return rows.map(toPersonalRecord);
+}
+
+/** Filas de marca por sentencia de inserción: siete columnas bajo los cien parámetros de D1. */
+const RECORD_ROWS_PER_INSERT = 14;
+
+/**
+ * Las sentencias que dejan bien las marcas de los ejercicios tocados por un borrado de series, para
+ * mandarlas **en el mismo lote** que el borrado: D1 ejecuta un lote como una transacción, así que
+ * no puede quedar la serie borrada con las marcas de antes ni al revés.
+ *
+ * Se calculan antes de borrar y sin las series que se van: por cada ejercicio, desde la más antigua
+ * de ellas se retiran las marcas guardadas y se vuelven a escribir las que salen de recorrer lo que
+ * queda (`replayPersonalRecords`). Lo anterior no depende de lo borrado y no se toca. El
+ * calentamiento y las series sin peso nunca marcaron, así que borrarlos no reescribe nada.
+ */
+export async function personalRecordRewriteStatements(
+  db: Database,
+  userId: string,
+  removedSets: readonly SetEntryRow[],
+): Promise<BatchItem<'sqlite'>[]> {
+  const fromByExercise = earliestRecordRemovals(removedSets);
+  if (fromByExercise.size === 0) return [];
+
+  const exerciseIds = [...fromByExercise.keys()];
+  const removedIds = new Set(removedSets.map((set) => set.id));
+  const remainingSets = (await listRecordReplaySets(db, userId, exerciseIds)).filter(
+    (set) => !removedIds.has(set.id),
+  );
+  const storedRecords = await listRecordsForExercises(db, userId, exerciseIds);
+
+  const staleRecordIds: string[] = [];
+  const rewritten: PersonalRecordRow[] = [];
+  for (const [trackedExerciseId, from] of fromByExercise) {
+    const fromMs = Date.parse(from);
+    const records = storedRecords.filter(
+      (record) => record.trackedExerciseId === trackedExerciseId,
+    );
+    const kept = records.filter((record) => Date.parse(record.achievedAt) < fromMs);
+    staleRecordIds.push(
+      ...records.filter((record) => !kept.includes(record)).map((record) => record.id),
+    );
+
+    const replayed = replayPersonalRecords(
+      remainingSets.filter((set) => set.trackedExerciseId === trackedExerciseId),
+      { from, kept: bestsOf(kept) },
+    );
+    rewritten.push(
+      ...replayed.map((record) => ({
+        id: crypto.randomUUID(),
+        userId,
+        trackedExerciseId,
+        kind: record.kind,
+        valueGrams: record.valueGrams,
+        setEntryId: record.setId,
+        achievedAt: record.achievedAt,
+      })),
+    );
+  }
+
+  return [
+    ...chunk(staleRecordIds, MAX_PARAMS_PER_LOOKUP).map((ids) =>
+      db
+        .delete(personalRecord)
+        .where(and(eq(personalRecord.userId, userId), inArray(personalRecord.id, ids))),
+    ),
+    ...chunk(rewritten, RECORD_ROWS_PER_INSERT).map((rows) =>
+      db.insert(personalRecord).values(rows),
+    ),
+  ];
+}
+
+/**
+ * Desde qué serie hay que reescribir las marcas de cada ejercicio: la más antigua de las borradas
+ * que podía marcar. Se comparan instantes, no texto, porque el contrato admite desfase horario.
+ */
+function earliestRecordRemovals(removedSets: readonly SetEntryRow[]): Map<string, string> {
+  const earliest = new Map<string, string>();
+  for (const set of removedSets) {
+    if (set.isWarmup || set.weightGrams <= 0) continue;
+    const current = earliest.get(set.trackedExerciseId);
+    if (current === undefined || Date.parse(set.completedAt) < Date.parse(current)) {
+      earliest.set(set.trackedExerciseId, set.completedAt);
+    }
+  }
+  return earliest;
+}
+
+/** El valor más alto de cada tipo entre unas marcas guardadas. */
+function bestsOf(records: readonly PersonalRecordRow[]): PersonalRecordBests {
+  const highest = (kind: PersonalRecordKind): number | null =>
+    records.reduce<number | null>(
+      (best, record) =>
+        record.kind === kind && (best === null || record.valueGrams > best)
+          ? record.valueGrams
+          : best,
+      null,
+    );
+
+  return {
+    maxWeightGrams: highest('max_weight'),
+    estimatedOneRepMaxGrams: highest('estimated_1rm'),
+    maxVolumeGrams: highest('max_volume'),
+  };
 }
 
 /** Las marcas vigentes de un ejercicio: una por tipo, la de mayor valor. */

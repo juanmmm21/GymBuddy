@@ -1,5 +1,6 @@
 import { EPLEY_REP_DIVISOR } from '@gymbuddy/shared';
 import { and, asc, desc, eq, getTableColumns, gt, gte, inArray, lt, ne, sql } from 'drizzle-orm';
+import { chunk, MAX_PARAMS_PER_LOOKUP } from './batching';
 import type { Database } from './client';
 import {
   catalogExercise,
@@ -352,6 +353,78 @@ export async function findRecordBests(
     );
 
   return row ?? { maxWeightGrams: null, maxEpleyNumerator: null, maxVolumeGrams: null };
+}
+
+/** Una serie que puede marcar récord, con lo que hace falta para recorrerlas en orden. */
+export interface RecordReplaySetRow {
+  id: string;
+  trackedExerciseId: string;
+  orderIndex: number;
+  weightGrams: number;
+  reps: number;
+  isWarmup: boolean;
+  completedAt: string;
+}
+
+/**
+ * Las series que pueden marcar récord de unos ejercicios: sin calentamiento y con peso, que son
+ * las únicas que `detectPersonalRecords` tiene en cuenta. Solo se pide al borrar, que es raro, y
+ * la PWA nunca manda más ejercicios que los de una sesión; aun así se trocea por los cien
+ * parámetros de D1.
+ */
+export async function listRecordReplaySets(
+  db: Database,
+  userId: string,
+  trackedExerciseIds: readonly string[],
+): Promise<RecordReplaySetRow[]> {
+  const rows: RecordReplaySetRow[] = [];
+  for (const ids of chunk(trackedExerciseIds, MAX_PARAMS_PER_LOOKUP)) {
+    rows.push(
+      ...(await db
+        .select({
+          id: setEntry.id,
+          trackedExerciseId: setEntry.trackedExerciseId,
+          orderIndex: setEntry.orderIndex,
+          weightGrams: setEntry.weightGrams,
+          reps: setEntry.reps,
+          isWarmup: setEntry.isWarmup,
+          completedAt: setEntry.completedAt,
+        })
+        .from(setEntry)
+        .innerJoin(workoutSession, eq(workoutSession.id, setEntry.sessionId))
+        .where(
+          and(
+            eq(workoutSession.userId, userId),
+            inArray(setEntry.trackedExerciseId, ids),
+            eq(setEntry.isWarmup, false),
+            gt(setEntry.weightGrams, 0),
+          ),
+        )),
+    );
+  }
+
+  return rows;
+}
+
+/** Las marcas guardadas de unos ejercicios, troceado igual que sus series. */
+export async function listRecordsForExercises(
+  db: Database,
+  userId: string,
+  trackedExerciseIds: readonly string[],
+): Promise<(typeof personalRecord.$inferSelect)[]> {
+  const rows: (typeof personalRecord.$inferSelect)[] = [];
+  for (const ids of chunk(trackedExerciseIds, MAX_PARAMS_PER_LOOKUP)) {
+    rows.push(
+      ...(await db
+        .select()
+        .from(personalRecord)
+        .where(
+          and(eq(personalRecord.userId, userId), inArray(personalRecord.trackedExerciseId, ids)),
+        )),
+    );
+  }
+
+  return rows;
 }
 
 /**
