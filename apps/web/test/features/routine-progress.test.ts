@@ -133,6 +133,45 @@ describe('routineProgress', () => {
   });
 });
 
+describe('routineProgress con los ajustes de la sesión', () => {
+  it('una línea con otro ejercicio reparte las series del sustituto', () => {
+    const adjustments = [{ itemId: BENCH.id, trackedExerciseId: customCurl.id, targetSets: null }];
+    const progress = routineProgress([BENCH, SQUAT], [setOf(customCurl.id)], adjustments);
+    const line = progress.lines[0];
+
+    expect(line?.item.trackedExerciseId).toBe(customCurl.id);
+    expect(line?.planned.trackedExerciseId).toBe(benchPress.id);
+    expect(line?.adjusted).toBe(true);
+    expect(line?.doneSets).toBe(1);
+  });
+
+  it('las series ya hechas del ejercicio de la rutina siguen contando tras cambiarlo', () => {
+    // Una de banca, la máquina se ocupa, y se sigue con el sustituto.
+    const sets = [setOf(benchPress.id), setOf(customCurl.id)];
+    const adjustments = [{ itemId: BENCH.id, trackedExerciseId: customCurl.id, targetSets: null }];
+    const progress = routineProgress([BENCH, SQUAT], sets, adjustments);
+
+    expect(progress.lines[0]?.doneSets).toBe(2);
+    expect(progress.lines[0]?.complete).toBe(true);
+  });
+
+  it('otro número de series cambia cuándo se da la línea por hecha', () => {
+    const sets = [setOf(benchPress.id), setOf(benchPress.id)];
+    const adjustments = [{ itemId: BENCH.id, trackedExerciseId: null, targetSets: 4 }];
+    const progress = routineProgress([BENCH, SQUAT], sets, adjustments);
+
+    expect(progress.lines[0]?.item.targetSets).toBe(4);
+    expect(progress.lines[0]?.complete).toBe(false);
+    expect(progress.current?.item.id).toBe(BENCH.id);
+  });
+
+  it('sin ajustes ninguna línea sale ajustada', () => {
+    const progress = routineProgress([BENCH, SQUAT], []);
+
+    expect(progress.lines.map((line) => line.adjusted)).toEqual([false, false]);
+  });
+});
+
 describe('lineForNextSet', () => {
   it('apunta al primer bloque sin terminar del ejercicio', () => {
     const progress = routineProgress([BENCH, SQUAT, BENCH_AGAIN], [setOf(benchPress.id)]);

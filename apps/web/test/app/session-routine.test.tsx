@@ -15,6 +15,7 @@ import {
   activeSession,
   archivedLegRoutine,
   benchPress,
+  customCurl,
   pastSession,
   pushRoutine,
   session,
@@ -167,6 +168,7 @@ describe('sesión guiada por una rutina: entrar', () => {
     expect(JSON.parse(storage.data.get(SESSION_ROUTINE_STORAGE_KEY) ?? 'null')).toEqual({
       sessionId: body.id,
       routineId: pushRoutine.id,
+      adjustments: [],
     });
   });
 
@@ -334,6 +336,113 @@ describe('sesión guiada por una rutina: seguir el guion', () => {
     expect(
       await screen.findByRole('button', { name: 'Registrar Sentadilla con barra, 0 de 3 series' }),
     ).toBeInTheDocument();
+  });
+});
+
+describe('sesión guiada por una rutina: cambiarla solo para hoy', () => {
+  it('cambiar el ejercicio de una línea registra el sustituto y no toca la rutina', async () => {
+    const user = userEvent.setup();
+    const { fake, storage } = renderApp({
+      path: GUIDED_PATH,
+      session,
+      setup: (fake) => {
+        serveWorker(fake, {
+          session: activeSession,
+          exercises: [benchPress, squat, customCurl],
+        });
+      },
+    });
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Cambiar Sentadilla con barra solo para hoy' }),
+    );
+    expect(screen.getByText('En la rutina: Sentadilla con barra')).toBeInTheDocument();
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Ejercicio' }), customCurl.id);
+    await user.click(screen.getByRole('button', { name: 'Guardar para hoy' }));
+
+    const guide = within(screen.getByRole('list', { name: 'Guion de la rutina' }));
+    const swapped = guide.getByRole('button', {
+      name: `Registrar ${customCurl.name}, 0 de 3 series`,
+    });
+    expect(within(swapped).getByText('Solo hoy')).toBeInTheDocument();
+
+    await user.click(swapped);
+    expect(screen.getByRole('combobox', { name: 'Ejercicio' })).toHaveValue(customCurl.id);
+    // Nunca registrado: no hay serie anterior que proponer.
+    await user.type(screen.getByLabelText('Peso'), '20');
+    await user.type(screen.getByLabelText('Repeticiones'), '10');
+    await user.click(screen.getAllByRole('button', { name: 'Registrar serie' })[1] as HTMLElement);
+
+    expect(
+      await screen.findByRole('button', { name: `Registrar ${customCurl.name}, 1 de 3 series` }),
+    ).toHaveAttribute('aria-current', 'step');
+    const logged = fake.requests.find((request) => request.path.endsWith('/sets'));
+    expect((logged?.body as LogSetRequest).trackedExerciseId).toBe(customCurl.id);
+    // La rutina guardada no se toca: el cambio vive en el dispositivo, con la sesión.
+    expect(fake.requests.some((request) => request.method === 'PATCH')).toBe(false);
+    expect(JSON.parse(storage.data.get(SESSION_ROUTINE_STORAGE_KEY) ?? 'null')).toEqual({
+      sessionId: activeSession.id,
+      routineId: pushRoutine.id,
+      adjustments: [
+        { itemId: pushRoutine.items[1]?.id, trackedExerciseId: customCurl.id, targetSets: null },
+      ],
+    });
+  });
+
+  it('cambiar el número de series de hoy cambia el objetivo de la línea', async () => {
+    const user = userEvent.setup();
+    renderApp({
+      path: GUIDED_PATH,
+      session,
+      setup: (fake) => {
+        serveWorker(fake, { session: activeSession });
+      },
+    });
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Cambiar Sentadilla con barra solo para hoy' }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Sumar una a series' }));
+    await user.click(screen.getByRole('button', { name: 'Guardar para hoy' }));
+
+    expect(
+      await screen.findByRole('button', { name: 'Registrar Sentadilla con barra, 0 de 4 series' }),
+    ).toBeInTheDocument();
+  });
+
+  it('los cambios se recuerdan al volver, y «Volver a lo de la rutina» los quita', async () => {
+    const user = userEvent.setup();
+    const squatLineId = pushRoutine.items[1]?.id;
+    const { storage } = renderApp({
+      path: '/session',
+      session,
+      stored: {
+        [SESSION_ROUTINE_STORAGE_KEY]: JSON.stringify({
+          sessionId: activeSession.id,
+          routineId: pushRoutine.id,
+          adjustments: [{ itemId: squatLineId, trackedExerciseId: null, targetSets: 5 }],
+        }),
+      },
+      setup: (fake) => {
+        serveWorker(fake, { session: activeSession });
+      },
+    });
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Cambiar Sentadilla con barra solo para hoy' }),
+    );
+    expect(screen.getByLabelText('Series')).toHaveValue('5');
+    await user.click(screen.getByRole('button', { name: 'Volver a lo de la rutina' }));
+
+    const restored = await screen.findByRole('button', {
+      name: 'Registrar Sentadilla con barra, 0 de 3 series',
+    });
+    expect(within(restored).queryByText('Solo hoy')).not.toBeInTheDocument();
+    expect(JSON.parse(storage.data.get(SESSION_ROUTINE_STORAGE_KEY) ?? 'null')).toEqual({
+      sessionId: activeSession.id,
+      routineId: pushRoutine.id,
+      adjustments: [],
+    });
   });
 });
 
