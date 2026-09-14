@@ -43,6 +43,7 @@ export const benchPress: TrackedExercise = {
   muscle: 'pectorals',
   bodyPart: 'chest',
   gifUrl: 'https://cdn.jsdelivr.net/gh/x/y@v1.1.0/pectorals/barbell-bench-press.gif',
+  equipment: 'barbell',
   notes: null,
   workingWeight: {
     weight: '82.50',
@@ -62,6 +63,7 @@ export const customCurl: TrackedExercise = {
   muscle: null,
   bodyPart: 'arms',
   gifUrl: null,
+  equipment: null,
   notes: null,
   workingWeight: null,
   createdAt: '2026-08-02T10:00:00.000Z',
@@ -261,6 +263,7 @@ export const squat: TrackedExercise = {
   muscle: 'quads',
   bodyPart: 'legs',
   gifUrl: 'https://cdn.jsdelivr.net/gh/x/y@v1.1.0/quads/barbell-full-squat.gif',
+  equipment: 'barbell',
   notes: 'Barra baja, mirada al frente.',
   workingWeight: {
     weight: '100.00',

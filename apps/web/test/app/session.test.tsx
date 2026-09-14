@@ -83,6 +83,10 @@ describe('sesión en curso', () => {
 
     expect(await screen.findByRole('heading', { name: 'Press de banca' })).toBeInTheDocument();
     expect(screen.getByText('82,5 kg × 8')).toBeInTheDocument();
+    // El press de banca es con barra olímpica: 82,5 kg son 31,25 kg por lado.
+    expect(
+      screen.getByRole('img', { name: 'Por lado: 25 kg, 5 kg y 1,25 kg' }),
+    ).toBeInTheDocument();
     expect(screen.getByText('En curso')).toBeInTheDocument();
 
     const rest = within(screen.getByRole('region', { name: 'Descanso' }));
