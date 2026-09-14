@@ -37,6 +37,12 @@ export const trackedExerciseSchema = z.object({
   muscle: muscleSchema.nullable(),
   bodyPart: bodyPartSchema.nullable(),
   gifUrl: z.url().nullable(),
+  /**
+   * El equipamiento del catálogo («barbell», «dumbbell»…), o nulo en uno propio. Es texto y no un
+   * enum por lo mismo que en el catálogo: una versión nueva puede traer etiquetas nuevas. La PWA lo
+   * mira para dibujar los discos solo en los ejercicios con barra olímpica.
+   */
+  equipment: z.string().min(1).nullable(),
   notes: z.string().nullable(),
   workingWeight: workingWeightSchema.nullable(),
   createdAt: isoDatetimeSchema,

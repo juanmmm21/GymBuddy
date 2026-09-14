@@ -81,6 +81,8 @@ describe('api de entrenamiento', () => {
     // El nombre y el GIF salen del catálogo en el idioma del perfil, no se copian al alta.
     expect(exercise.name).toBe('Press de banca con barra');
     expect(exercise.bodyPart).toBe('chest');
+    // El equipamiento sale del catálogo: la PWA dibuja los discos solo con barra olímpica.
+    expect(exercise.equipment).toBe('barbell');
     expect(exercise.workingWeight).toBeNull();
 
     const sessionId = uuid();

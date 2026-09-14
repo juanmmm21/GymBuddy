@@ -26,6 +26,7 @@ const catalogColumns = {
   muscle: catalogExercise.muscle,
   bodyPart: catalogExercise.bodyPart,
   gifUrl: catalogExercise.gifUrl,
+  equipment: catalogExercise.equipment,
 };
 
 type CatalogFields = { [K in keyof typeof catalogColumns]: string };
@@ -418,6 +419,7 @@ function toTrackedExercise(
     muscle: parseNullableMuscle(fromCatalog ? catalog.muscle : exercise.customMuscle),
     bodyPart: parseNullableBodyPart(fromCatalog ? catalog.bodyPart : exercise.customBodyPart),
     gifUrl: fromCatalog ? catalog.gifUrl : null,
+    equipment: fromCatalog ? catalog.equipment : null,
     notes: exercise.notes,
     workingWeight: workingWeight ?? null,
     createdAt: exercise.createdAt,

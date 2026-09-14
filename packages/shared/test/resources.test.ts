@@ -305,6 +305,7 @@ describe('ejercicio seguido', () => {
       muscle: null,
       bodyPart: 'back',
       gifUrl: null,
+      equipment: null,
       notes: null,
       workingWeight: null,
       createdAt: '2026-09-07T18:00:00.000Z',
@@ -341,6 +342,7 @@ describe('ejercicio seguido', () => {
       muscle: 'pectorals',
       bodyPart: 'chest',
       gifUrl: null,
+      equipment: null,
       notes: null,
       workingWeight: {
         weight: '82.50',
