@@ -266,6 +266,59 @@ export async function listTopSetsPerSession(
   );
 }
 
+export interface LastEffectiveSetRow {
+  trackedExerciseId: string;
+  weightGrams: number;
+  reps: number;
+  completedAt: string;
+}
+
+/**
+ * La última serie efectiva de cada ejercicio del usuario, sin calentamiento: una fila por
+ * ejercicio en una sola consulta, no su historial entero. Se ordena por `completed_at` como texto
+ * porque la PWA la sella en UTC (`toISOString`); el `order_index` y el id desempatan dos series del
+ * mismo instante para que el resultado no cambie de una consulta a otra.
+ */
+export async function listLastEffectiveSets(
+  db: Database,
+  userId: string,
+  trackedExerciseId?: string,
+): Promise<LastEffectiveSetRow[]> {
+  const ranked = db
+    .select({
+      trackedExerciseId: setEntry.trackedExerciseId,
+      weightGrams: setEntry.weightGrams,
+      reps: setEntry.reps,
+      completedAt: setEntry.completedAt,
+      position:
+        sql<number>`row_number() over (partition by ${setEntry.trackedExerciseId} order by ${setEntry.completedAt} desc, ${setEntry.orderIndex} desc, ${setEntry.id} desc)`.as(
+          'position',
+        ),
+    })
+    .from(setEntry)
+    .innerJoin(workoutSession, eq(workoutSession.id, setEntry.sessionId))
+    .where(
+      and(
+        eq(workoutSession.userId, userId),
+        eq(setEntry.isWarmup, false),
+        trackedExerciseId === undefined
+          ? undefined
+          : eq(setEntry.trackedExerciseId, trackedExerciseId),
+      ),
+    )
+    .as('ranked');
+
+  return db
+    .select({
+      trackedExerciseId: ranked.trackedExerciseId,
+      weightGrams: ranked.weightGrams,
+      reps: ranked.reps,
+      completedAt: ranked.completedAt,
+    })
+    .from(ranked)
+    .where(sql`${ranked.position} = 1`);
+}
+
 /**
  * Las marcas del historial de un ejercicio, saltándose una serie concreta. La exclusión es
  * lo que permite preguntar "¿qué había antes de esta?" cuando la serie ya está insertada,

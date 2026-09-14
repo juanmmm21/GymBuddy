@@ -11,11 +11,12 @@ import {
   type SessionTopSet,
   type TrackedExercise,
   type UpdateTrackedExerciseRequest,
+  type LastSet,
   type WorkingWeight,
 } from '@gymbuddy/shared';
 import { and, eq, getTableColumns, inArray, isNull } from 'drizzle-orm';
 import type { Database } from '../db/client';
-import { listTopSetsPerSession } from '../db/queries';
+import { listLastEffectiveSets, listTopSetsPerSession } from '../db/queries';
 import { catalogExercise, trackedExercise, type TrackedExerciseRow } from '../db/schema';
 import { ApiException } from '../http/errors';
 
@@ -55,7 +56,7 @@ export async function listTrackedExercises(
     ? eq(trackedExercise.userId, userId)
     : and(eq(trackedExercise.userId, userId), isNull(trackedExercise.archivedAt));
 
-  const [rows, workingWeights] = await Promise.all([
+  const [rows, workingWeights, lastSets] = await Promise.all([
     db
       .select({ exercise: getTableColumns(trackedExercise), catalog: catalogColumns })
       .from(trackedExercise)
@@ -63,10 +64,16 @@ export async function listTrackedExercises(
       .where(filter)
       .orderBy(trackedExercise.createdAt),
     findWorkingWeightsByExercise(db, userId),
+    findLastSetsByExercise(db, userId),
   ]);
 
   return rows.map((row) =>
-    toTrackedExercise(row, options.locale, workingWeights.get(row.exercise.id)),
+    toTrackedExercise(
+      row,
+      options.locale,
+      workingWeights.get(row.exercise.id),
+      lastSets.get(row.exercise.id),
+    ),
   );
 }
 
@@ -79,9 +86,12 @@ export async function findTrackedExercise(
   const row = await findTrackedExerciseJoin(db, userId, exerciseId);
   if (row === null) return null;
 
-  const workingWeights = await findWorkingWeightsByExercise(db, userId, exerciseId);
+  const [workingWeights, lastSets] = await Promise.all([
+    findWorkingWeightsByExercise(db, userId, exerciseId),
+    findLastSetsByExercise(db, userId, exerciseId),
+  ]);
 
-  return toTrackedExercise(row, locale, workingWeights.get(exerciseId));
+  return toTrackedExercise(row, locale, workingWeights.get(exerciseId), lastSets.get(exerciseId));
 }
 
 /**
@@ -143,10 +153,13 @@ export async function createTrackedExercise(
     });
   }
 
-  const workingWeights = await findWorkingWeightsByExercise(db, userId, row.id);
+  const [workingWeights, lastSets] = await Promise.all([
+    findWorkingWeightsByExercise(db, userId, row.id),
+    findLastSetsByExercise(db, userId, row.id),
+  ]);
 
   return {
-    exercise: toTrackedExercise(existing, locale, workingWeights.get(row.id)),
+    exercise: toTrackedExercise(existing, locale, workingWeights.get(row.id), lastSets.get(row.id)),
     created: false,
   };
 }
@@ -333,6 +346,26 @@ async function findWorkingWeightsByExercise(
   return workingWeights;
 }
 
+/** La última serie efectiva de cada ejercicio, que es lo que precarga el registro de una serie. */
+async function findLastSetsByExercise(
+  db: Database,
+  userId: string,
+  exerciseId?: string,
+): Promise<Map<string, LastSet>> {
+  const rows = await listLastEffectiveSets(db, userId, exerciseId);
+
+  return new Map(
+    rows.map((row) => [
+      row.trackedExerciseId,
+      {
+        weight: formatGramsAsKilograms(row.weightGrams),
+        reps: row.reps,
+        completedAt: row.completedAt,
+      },
+    ]),
+  );
+}
+
 async function findTrackedExerciseJoin(
   db: Database,
   userId: string,
@@ -403,6 +436,7 @@ function toTrackedExercise(
   row: TrackedExerciseJoin,
   locale: Locale,
   workingWeight: WorkingWeight | undefined,
+  lastSet: LastSet | undefined,
 ): TrackedExercise {
   const { exercise, catalog } = row;
   const fromCatalog = exercise.catalogId !== null && catalog !== null;
@@ -422,6 +456,7 @@ function toTrackedExercise(
     equipment: fromCatalog ? catalog.equipment : null,
     notes: exercise.notes,
     workingWeight: workingWeight ?? null,
+    lastSet: lastSet ?? null,
     createdAt: exercise.createdAt,
     archivedAt: exercise.archivedAt,
   };
