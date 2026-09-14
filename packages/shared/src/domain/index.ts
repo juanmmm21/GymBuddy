@@ -49,11 +49,18 @@ export {
   NO_DEVICE_SIGNALS,
   NUDGE_AFTER_DAYS,
   SLEEPY_AFTER_DAYS,
-  STALE_SESSION_HOURS,
   mascotState,
 } from './mascot';
 export type { MascotDeviceSignals, MascotMood, MascotState, MascotTrainingSignals } from './mascot';
 export { NO_PERSONAL_RECORDS, detectPersonalRecords } from './records';
+export {
+  SESSION_IDLE_LIMIT_MINUTES,
+  SESSION_IDLE_LIMIT_MS,
+  continuesIdleSession,
+  idleSessionEndAt,
+  lastSessionActivityAt,
+} from './session-idle';
+export type { SessionActivity } from './session-idle';
 export type { DetectedRecord, PersonalRecordBests } from './records';
 export {
   STAGNATION_SESSIONS,
