@@ -79,6 +79,51 @@ describe('rutas del catálogo', () => {
     expect(apiErrorSchema.parse(body).error.code).toBe('validation_failed');
   });
 
+  it('filtra la página por equipamiento, y el total cuenta solo lo filtrado', async () => {
+    const { status, body } = await getJson('/catalog/bodyparts/chest?equipment=barbell');
+
+    expect(status).toBe(200);
+    const page = catalogExercisePageSchema.parse(body);
+    expect(page.total).toBe(1);
+    expect(page.items.map((item) => item.catalogId)).toEqual(['pectorals/barbell-bench-press']);
+  });
+
+  it('suma el filtro de músculo al de equipamiento', async () => {
+    const { body } = await getJson(
+      '/catalog/bodyparts/chest?muscle=pectorals&equipment=bodyweight',
+    );
+
+    const page = catalogExercisePageSchema.parse(body);
+    expect(page.items.map((item) => item.catalogId)).toEqual(['pectorals/archer-push-up']);
+  });
+
+  it('un equipamiento que ningún ejercicio tiene da una página vacía, no un error', async () => {
+    const { status, body } = await getJson('/catalog/bodyparts/chest?equipment=sled');
+
+    expect(status).toBe(200);
+    expect(catalogExercisePageSchema.parse(body)).toMatchObject({ items: [], total: 0 });
+  });
+
+  it('rechaza un músculo de otra parte del cuerpo', async () => {
+    const { status, body } = await getJson('/catalog/bodyparts/chest?muscle=quads');
+
+    expect(status).toBe(400);
+    const error = apiErrorSchema.parse(body).error;
+    expect(error.code).toBe('validation_failed');
+    expect(error.detail).toEqual([
+      { path: 'muscle', message: 'Ese músculo no es de la parte del cuerpo "chest"' },
+    ]);
+  });
+
+  it('rechaza un filtro fuera de contrato', async () => {
+    const wrongMuscle = await getJson('/catalog/bodyparts/chest?muscle=chest');
+    const wrongEquipment = await getJson('/catalog/bodyparts/chest?equipment=Polea%25');
+
+    expect(wrongMuscle.status).toBe(400);
+    expect(wrongEquipment.status).toBe(400);
+    expect(apiErrorSchema.parse(wrongEquipment.body).error.code).toBe('validation_failed');
+  });
+
   it('trata un músculo colado donde va una parte del cuerpo como ruta inexistente', async () => {
     const { status, body } = await getJson('/catalog/bodyparts/pectorals');
 
@@ -155,6 +200,25 @@ describe('búsqueda del catálogo', () => {
     const results = summaryListSchema.parse(body);
     expect(results.map((item) => item.catalogId).sort()).toEqual([
       'abductors/side-hip-abduction',
+      'levator-scapulae/neck-side-stretch',
+    ]);
+  });
+
+  it('filtra la búsqueda por músculo y por equipamiento', async () => {
+    const byMuscle = await getJson('/catalog/search?q=lateral&muscle=abductors');
+    const byEquipment = await getJson('/catalog/search?q=press&equipment=bodyweight');
+
+    expect(summaryListSchema.parse(byMuscle.body).map((item) => item.catalogId)).toEqual([
+      'abductors/side-hip-abduction',
+    ]);
+    expect(summaryListSchema.parse(byEquipment.body)).toEqual([]);
+  });
+
+  it('en la búsqueda el músculo no depende de ninguna parte del cuerpo', async () => {
+    const { status, body } = await getJson('/catalog/search?q=lateral&muscle=levator-scapulae');
+
+    expect(status).toBe(200);
+    expect(summaryListSchema.parse(body).map((item) => item.catalogId)).toEqual([
       'levator-scapulae/neck-side-stretch',
     ]);
   });

@@ -1,3 +1,4 @@
+import type { CatalogFilters } from '@gymbuddy/shared';
 import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
@@ -48,7 +49,7 @@ function catalogEntry(
 }
 
 const search = (db: Database, query: string) =>
-  searchCatalogExercises(db, { query, locale: 'es', limit: 20 });
+  searchCatalogExercises(db, { query, filters: {}, locale: 'es', limit: 20 });
 
 describe('buildSearchTerms', () => {
   it('parte la consulta en palabras normalizadas', () => {
@@ -147,7 +148,12 @@ describe('orden de los resultados', () => {
       },
     });
 
-    const results = await searchCatalogExercises(db, { query: 'press', locale: 'es', limit: 2 });
+    const results = await searchCatalogExercises(db, {
+      query: 'press',
+      filters: {},
+      locale: 'es',
+      limit: 2,
+    });
 
     expect(results).toHaveLength(2);
   });
@@ -239,7 +245,10 @@ describe('búsqueda libre', () => {
       },
       glutes: {
         es: muscleFile('glutes', [
-          catalogEntry('glutes', 'legs', 'band-hip-thrust', 'Hip thrust con banda elástica'),
+          {
+            ...catalogEntry('glutes', 'legs', 'band-hip-thrust', 'Hip thrust con banda elástica'),
+            equipment: 'band',
+          },
           catalogEntry('glutes', 'legs', 'barbell-glute-bridge', 'Puente de glúteos con barra'),
         ]),
         en: muscleFile('glutes', []),
@@ -270,5 +279,36 @@ describe('búsqueda libre', () => {
 
   it('seis palabras con alias y partes del cuerpo caben en los parámetros de D1', async () => {
     expect(await ids('face pull espalda pecho pierna brazos')).toEqual([]);
+  });
+
+  const filtered = async (query: string, filters: CatalogFilters) =>
+    (await searchCatalogExercises(db, { query, filters, locale: 'es', limit: 20 })).map(
+      (item) => item.catalogId,
+    );
+
+  it('el equipamiento recorta lo que casa con el texto: «hip thrust» con banda', async () => {
+    expect(await filtered('hip thrust', { equipment: 'band' })).toEqual(['glutes/band-hip-thrust']);
+  });
+
+  it('el músculo recorta lo que casa con el texto: «remo» de espalda alta', async () => {
+    expect(await filtered('remo', { muscle: 'upper-back' })).toEqual([
+      'upper-back/cable-seated-row',
+    ]);
+  });
+
+  it('los dos filtros se suman, y si no casa nada la lista sale vacía', async () => {
+    expect(await filtered('hip thrust', { equipment: 'band', muscle: 'glutes' })).toEqual([
+      'glutes/band-hip-thrust',
+    ]);
+    expect(await filtered('hip thrust', { equipment: 'band', muscle: 'quads' })).toEqual([]);
+  });
+
+  it('seis palabras con alias, partes del cuerpo y los dos filtros siguen cabiendo en D1', async () => {
+    expect(
+      await filtered('face pull espalda pecho pierna brazos', {
+        equipment: 'cable',
+        muscle: 'delts',
+      }),
+    ).toEqual([]);
   });
 });
