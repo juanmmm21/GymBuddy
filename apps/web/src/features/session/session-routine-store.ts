@@ -1,6 +1,7 @@
 import { resourceIdSchema, type ResourceId } from '@gymbuddy/shared';
 import { z } from 'zod';
 import type { StorageLike } from '../../lib/storage';
+import { routineLineAdjustmentSchema } from './routine-adjustments';
 
 /** Una sola clave: solo puede haber una sesión abierta, así que solo hay una rutina que recordar. */
 export const SESSION_ROUTINE_STORAGE_KEY = 'gymbuddy.session-routine';
@@ -13,16 +14,24 @@ export const SESSION_ROUTINE_STORAGE_KEY = 'gymbuddy.session-routine';
 const sessionRoutineSchema = z.object({
   sessionId: resourceIdSchema,
   routineId: resourceIdSchema,
+  // Lo guardado antes de que existieran los ajustes no los trae: se lee como la rutina tal cual.
+  adjustments: z.array(routineLineAdjustmentSchema).default([]),
 });
 
 export type SessionRoutineLink = z.infer<typeof sessionRoutineSchema>;
 
+/** Lo recordado de la sesión abierta: qué rutina la guía y lo que se cambió de ella para hoy. */
+export type StoredSessionRoutine = Omit<SessionRoutineLink, 'sessionId'>;
+
 /**
- * La rutina que guía esa sesión, o `null`. Lo guardado para otra sesión no vale: esa se
- * cerró —quizá desde otro móvil— y la abierta es otra. No se borra, porque la próxima rutina
- * que se empiece la sustituye y cerrar la sesión desde aquí ya la olvida.
+ * La rutina que guía esa sesión con sus ajustes, o `null`. Lo guardado para otra sesión no
+ * vale: esa se cerró —quizá desde otro móvil— y la abierta es otra. No se borra, porque la
+ * próxima rutina que se empiece la sustituye y cerrar la sesión desde aquí ya la olvida.
  */
-export function loadSessionRoutine(storage: StorageLike, sessionId: ResourceId): ResourceId | null {
+export function loadSessionRoutine(
+  storage: StorageLike,
+  sessionId: ResourceId,
+): StoredSessionRoutine | null {
   let raw: string | null;
   try {
     raw = storage.getItem(SESSION_ROUTINE_STORAGE_KEY);
@@ -48,7 +57,8 @@ export function loadSessionRoutine(storage: StorageLike, sessionId: ResourceId):
     return null;
   }
 
-  return parsed.data.sessionId === sessionId ? parsed.data.routineId : null;
+  const { sessionId: storedSessionId, ...stored } = parsed.data;
+  return storedSessionId === sessionId ? stored : null;
 }
 
 export function saveSessionRoutine(storage: StorageLike, link: SessionRoutineLink): void {

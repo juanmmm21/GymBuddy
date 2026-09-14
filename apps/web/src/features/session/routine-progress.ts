@@ -1,10 +1,21 @@
 import type { ResourceId, RoutineItem, SetEntry } from '@gymbuddy/shared';
 import type { RestKind } from './rest';
 import { formatRepsRange } from '../routines/items';
+import {
+  adjustRoutineItems,
+  NO_ADJUSTMENTS,
+  type AdjustedRoutineItem,
+  type RoutineLineAdjustment,
+} from './routine-adjustments';
 
 /** Una línea de la rutina con las series de la sesión que le han tocado. */
 export interface RoutineLineProgress {
+  /** La línea como se entrena hoy: con los ajustes de la sesión ya aplicados. */
   readonly item: RoutineItem;
+  /** La línea como está guardada en la rutina. */
+  readonly planned: RoutineItem;
+  /** Si hoy se entrena distinta de la rutina (otro ejercicio u otras series). */
+  readonly adjusted: boolean;
   /**
    * Series efectivas repartidas a esta línea. Puede pasar del objetivo en el último bloque
    * de un ejercicio: lo que se hace de más se cuenta ahí en vez de perderse.
@@ -30,14 +41,18 @@ export interface RoutineProgress {
  * ejercicio: sus series llenan la primera hasta su objetivo y el resto pasa a la siguiente.
  * El calentamiento no cuenta, y una serie de un ejercicio que no está en la rutina se hizo
  * fuera del guion y no se reparte.
+ *
+ * Los ajustes de la sesión cambian el ejercicio o las series de una línea. Una línea con otro
+ * ejercicio sigue contando las series del que pedía la rutina: si la máquina se ocupa a mitad
+ * y se sigue con mancuernas, las series ya hechas no pueden desaparecer del guion.
  */
 export function routineProgress(
   items: readonly RoutineItem[],
   sets: readonly SetEntry[],
+  adjustments: readonly RoutineLineAdjustment[] = NO_ADJUSTMENTS,
 ): RoutineProgress {
-  const counts = [...items]
-    .sort((left, right) => left.orderIndex - right.orderIndex)
-    .map((item) => ({ item, doneSets: 0 }));
+  const ordered = [...items].sort((left, right) => left.orderIndex - right.orderIndex);
+  const counts = adjustRoutineItems(ordered, adjustments).map((line) => ({ ...line, doneSets: 0 }));
   const effective = sets
     .filter((set) => !set.isWarmup)
     .sort((left, right) => left.orderIndex - right.orderIndex);
@@ -54,6 +69,8 @@ export function routineProgress(
 
   const lines = counts.map((line): RoutineLineProgress => ({
     item: line.item,
+    planned: line.planned,
+    adjusted: line.adjusted,
     doneSets: line.doneSets,
     complete: line.doneSets >= line.item.targetSets,
   }));
@@ -108,13 +125,16 @@ export function describeNextSet(line: RoutineLineProgress): string {
 }
 
 function blockIndexFor(
-  lines: readonly { readonly item: RoutineItem; readonly doneSets: number }[],
+  lines: readonly (Pick<AdjustedRoutineItem, 'item' | 'planned'> & { readonly doneSets: number })[],
   trackedExerciseId: ResourceId,
 ): number | null {
   let last: number | null = null;
 
   for (const [index, line] of lines.entries()) {
-    if (line.item.trackedExerciseId !== trackedExerciseId) continue;
+    const matches =
+      line.item.trackedExerciseId === trackedExerciseId ||
+      line.planned.trackedExerciseId === trackedExerciseId;
+    if (!matches) continue;
     if (line.doneSets < line.item.targetSets) return index;
     last = index;
   }
