@@ -135,10 +135,12 @@ describe('catálogo: búsqueda', () => {
     await screen.findByRole('link', { name: /Pecho/ });
     await user.type(screen.getByRole('searchbox', { name: 'Buscar ejercicio' }), 'press banca');
 
-    expect(await screen.findByRole('link', { name: /Press de banca con barra/ })).toHaveAttribute(
-      'href',
-      DETAIL_PATH,
-    );
+    const result = await screen.findByRole('link', { name: /Press de banca con barra/ });
+    expect(result).toHaveAttribute('href', DETAIL_PATH);
+    // La miniatura baja solo al verse y con la dirección que la deja fuera de la caché offline.
+    const thumb = result.querySelector('img');
+    expect(thumb).toHaveAttribute('src', `${catalogBenchPress.gifUrl}?preview`);
+    expect(thumb).toHaveAttribute('loading', 'lazy');
     expect(screen.queryByRole('link', { name: /Pecho/ })).not.toBeInTheDocument();
 
     const searches = fake.requests.filter((r) => r.path.startsWith('/catalog/search'));

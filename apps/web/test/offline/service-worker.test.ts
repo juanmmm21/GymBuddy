@@ -8,6 +8,7 @@ import {
   catalogGifRuntimeCaching,
   workboxOptions,
 } from '../../src/offline/service-worker';
+import { previewGifUrl } from '../../src/features/catalog/preview';
 import { catalogBenchPressDetail } from '../fixtures';
 
 const PINNED_GIF = `${CATALOG_BASE_URL}/pectorals/archer-push-up.gif`;
@@ -26,6 +27,11 @@ describe('qué GIFs guarda el service worker', () => {
 
   it('guarda la URL tal y como la sirve el contrato del catálogo', () => {
     expect(matchesGif(catalogBenchPressDetail.gifUrl)).toBe(true);
+  });
+
+  it('no guarda las miniaturas del catálogo: ojear no puede echar los GIFs que se entrenan', () => {
+    expect(matchesGif(previewGifUrl(PINNED_GIF))).toBe(false);
+    expect(previewGifUrl(PINNED_GIF).startsWith(PINNED_GIF)).toBe(true);
   });
 
   it('no guarda nada de otra rama ni de otro tag', () => {
