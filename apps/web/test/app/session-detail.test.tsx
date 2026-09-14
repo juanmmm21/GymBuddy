@@ -1,7 +1,17 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
+import type { PendingWrite } from '../../src/offline/pending-write';
 import { errorResponse, jsonResponse } from '../fake-fetch';
-import { benchPress, pastSession, session, squat } from '../fixtures';
+import {
+  benchPress,
+  pastSession,
+  session,
+  sessionHistoryPage,
+  sessionSummaries,
+  squat,
+  user,
+} from '../fixtures';
 import { renderApp } from './render-app';
 
 describe('detalle de una sesión pasada', () => {
@@ -58,6 +68,133 @@ describe('detalle de una sesión pasada', () => {
     });
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Esa sesión no existe');
+  });
+
+  it('borra el entrenamiento tras confirmarlo y vuelve al historial sin él', async () => {
+    const actor = userEvent.setup();
+    let deleted = false;
+    const { fake } = renderApp({
+      path: `/history/${pastSession.id}`,
+      session,
+      setup: (fake) => {
+        fake.on('GET', `/sessions/${pastSession.id}`, () => jsonResponse(pastSession));
+        fake.on('GET', '/exercises', () => jsonResponse([benchPress, squat]));
+        fake.on('DELETE', `/sessions/${pastSession.id}`, () => {
+          deleted = true;
+          return new Response(null, { status: 204 });
+        });
+        fake.on('GET', '/history/sessions', () =>
+          jsonResponse(
+            deleted ? sessionHistoryPage([], 0) : sessionHistoryPage(sessionSummaries(3), 3),
+          ),
+        );
+      },
+    });
+
+    await actor.click(await screen.findByRole('button', { name: 'Borrar entrenamiento' }));
+    expect(screen.getByText('¿Borrar este entrenamiento?')).toBeInTheDocument();
+    expect(screen.getByText(/y con él 2 series/)).toBeInTheDocument();
+    // Pedir la confirmación todavía no borra nada.
+    expect(fake.requests.some((request) => request.method === 'DELETE')).toBe(false);
+
+    await actor.click(screen.getByRole('button', { name: 'Sí, borrarlo' }));
+
+    expect(await screen.findByText('Aún no hay sesiones')).toBeInTheDocument();
+    expect(
+      fake.requests.filter((request) => request.method === 'DELETE').map((request) => request.path),
+    ).toEqual([`/sessions/${pastSession.id}`]);
+    // El detalle borrado no se relee antes de irse: sería un «no existe» a destiempo.
+    expect(
+      fake.requests.filter(
+        (request) => request.method === 'GET' && request.path === `/sessions/${pastSession.id}`,
+      ),
+    ).toHaveLength(1);
+  });
+
+  it('cancelar la confirmación deja el entrenamiento como estaba', async () => {
+    const actor = userEvent.setup();
+    const { fake } = renderApp({
+      path: `/history/${pastSession.id}`,
+      session,
+      setup: (fake) => {
+        fake.on('GET', `/sessions/${pastSession.id}`, () => jsonResponse(pastSession));
+        fake.on('GET', '/exercises', () => jsonResponse([benchPress, squat]));
+      },
+    });
+
+    await actor.click(await screen.findByRole('button', { name: 'Borrar entrenamiento' }));
+    await actor.click(screen.getByRole('button', { name: 'Cancelar' }));
+
+    expect(screen.queryByText('¿Borrar este entrenamiento?')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Borrar entrenamiento' })).toBeInTheDocument();
+    expect(fake.requests.some((request) => request.method === 'DELETE')).toBe(false);
+  });
+
+  it('si el Worker no puede borrarlo lo dice y se queda en la pantalla', async () => {
+    const actor = userEvent.setup();
+    renderApp({
+      path: `/history/${pastSession.id}`,
+      session,
+      setup: (fake) => {
+        fake.on('GET', `/sessions/${pastSession.id}`, () => jsonResponse(pastSession));
+        fake.on('GET', '/exercises', () => jsonResponse([benchPress, squat]));
+        fake.on('DELETE', `/sessions/${pastSession.id}`, () =>
+          errorResponse('internal_error', 500, 'Algo falló al borrar'),
+        );
+      },
+    });
+
+    await actor.click(await screen.findByRole('button', { name: 'Borrar entrenamiento' }));
+    await actor.click(screen.getByRole('button', { name: 'Sí, borrarlo' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(within(alert).getByText('No se pudo borrar')).toBeInTheDocument();
+    expect(screen.getByText('1 h 5 min')).toBeInTheDocument();
+  });
+
+  it('una sesión todavía abierta no ofrece borrarse desde el historial', async () => {
+    renderApp({
+      path: `/history/${pastSession.id}`,
+      session,
+      setup: (fake) => {
+        fake.on('GET', `/sessions/${pastSession.id}`, () =>
+          jsonResponse({ ...pastSession, endedAt: null }),
+        );
+        fake.on('GET', '/exercises', () => jsonResponse([benchPress, squat]));
+      },
+    });
+
+    expect(await screen.findByText('Esta sesión sigue abierta')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Borrar entrenamiento' })).not.toBeInTheDocument();
+  });
+
+  it('con cambios de esa sesión en la cola espera a que lleguen antes de dejar borrarla', async () => {
+    const queuedEnd: PendingWrite = {
+      sequence: 0,
+      userId: user.id,
+      queuedAt: '2026-09-08T19:10:00.000Z',
+      write: {
+        kind: 'end_session',
+        sessionId: pastSession.id,
+        body: { endedAt: '2026-09-08T19:10:00.000Z' },
+      },
+    };
+    renderApp({
+      path: `/history/${pastSession.id}`,
+      session,
+      queued: [queuedEnd],
+      setup: (fake) => {
+        fake.on('GET', `/sessions/${pastSession.id}`, () => jsonResponse(pastSession));
+        fake.on('GET', '/exercises', () => jsonResponse([benchPress, squat]));
+        // El Worker no contesta: el cierre se queda esperando en la cola.
+        fake.on('POST', `/sessions/${pastSession.id}/end`, () =>
+          errorResponse('internal_error', 503, 'Caído'),
+        );
+      },
+    });
+
+    expect(await screen.findByText(/sin sincronizar\. Podrás borrarlo/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Borrar entrenamiento' })).not.toBeInTheDocument();
   });
 
   it('un identificador que no es un UUID no llega al Worker', async () => {
