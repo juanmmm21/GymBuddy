@@ -1,4 +1,10 @@
-import { bodyPartSchema, localeSchema, muscleSchema } from '@gymbuddy/shared';
+import {
+  bodyPartSchema,
+  catalogFiltersSchema,
+  isMuscleInBodyPart,
+  localeSchema,
+  muscleSchema,
+} from '@gymbuddy/shared';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import {
@@ -20,13 +26,13 @@ const MAX_SEARCH_LIMIT = 50;
 /** El idioma del catálogo. Si no se pide ninguno se sirve español, que es el del usuario. */
 const langSchema = localeSchema.default('es');
 
-const pageQuerySchema = z.object({
+const pageQuerySchema = catalogFiltersSchema.extend({
   lang: langSchema,
   limit: z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).default(DEFAULT_PAGE_SIZE),
   offset: z.coerce.number().int().min(0).default(0),
 });
 
-const searchQuerySchema = z.object({
+const searchQuerySchema = catalogFiltersSchema.extend({
   q: z.string().min(1, 'Hace falta algo que buscar'),
   lang: langSchema,
   limit: z.coerce.number().int().min(1).max(MAX_SEARCH_LIMIT).default(DEFAULT_SEARCH_LIMIT),
@@ -43,11 +49,19 @@ export const catalogRoute = new Hono<{ Bindings: Env }>()
       bodyPartSchema,
       'No existe esa parte del cuerpo',
     );
-    const { lang, limit, offset } = parseQuery(c, pageQuerySchema);
+    const { lang, limit, offset, equipment, muscle } = parseQuery(c, pageQuerySchema);
+    // Un músculo de otra parte del cuerpo no es «ningún resultado» sino una petición mal armada: la
+    // PWA solo ofrece los de esta parte, y responder una lista vacía escondería el fallo.
+    if (!isMuscleInBodyPart(muscle, bodyPart)) {
+      throw new ApiException('validation_failed', 'Parámetros de consulta inválidos', [
+        { path: 'muscle', message: `Ese músculo no es de la parte del cuerpo "${bodyPart}"` },
+      ]);
+    }
 
     return c.json(
       await listExercisesByBodyPart(createDatabase(c.env.DB), {
         bodyPart,
+        filters: { equipment, muscle },
         locale: lang,
         limit,
         offset,
@@ -71,9 +85,14 @@ export const catalogRoute = new Hono<{ Bindings: Env }>()
   })
 
   .get('/catalog/search', async (c) => {
-    const { q, lang, limit } = parseQuery(c, searchQuerySchema);
+    const { q, lang, limit, equipment, muscle } = parseQuery(c, searchQuerySchema);
 
     return c.json(
-      await searchCatalogExercises(createDatabase(c.env.DB), { query: q, locale: lang, limit }),
+      await searchCatalogExercises(createDatabase(c.env.DB), {
+        query: q,
+        filters: { equipment, muscle },
+        locale: lang,
+        limit,
+      }),
     );
   });

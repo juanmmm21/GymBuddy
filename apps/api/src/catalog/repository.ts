@@ -4,6 +4,7 @@ import {
   type BodyPart,
   type BodyPartSummary,
   type CatalogExercise,
+  type CatalogFilters,
   type CatalogExercisePage,
   type CatalogExerciseSummary,
   type Locale,
@@ -48,17 +49,24 @@ export async function listBodyPartSummaries(db: Database): Promise<BodyPartSumma
 
 export interface CatalogPageQuery {
   readonly bodyPart: BodyPart;
+  readonly filters: CatalogFilters;
   readonly locale: Locale;
   readonly limit: number;
   readonly offset: number;
 }
 
-/** Una página de ejercicios de una parte del cuerpo, ordenada por nombre en el idioma pedido. */
+/**
+ * Una página de ejercicios de una parte del cuerpo, ordenada por nombre en el idioma pedido. Los
+ * filtros recortan la página y también el total, que es lo que decide si hay «Cargar más».
+ */
 export async function listExercisesByBodyPart(
   db: Database,
   query: CatalogPageQuery,
 ): Promise<CatalogExercisePage> {
-  const filter = eq(catalogExercise.bodyPart, query.bodyPart);
+  const filter = and(
+    eq(catalogExercise.bodyPart, query.bodyPart),
+    ...filterConditions(query.filters),
+  );
   const nameColumn = query.locale === 'es' ? catalogExercise.nameEs : catalogExercise.nameEn;
 
   // El total y la página salen en un solo viaje a D1: dos consultas sueltas doblarían la
@@ -99,6 +107,7 @@ export async function findCatalogExercise(
 
 export interface CatalogSearchQuery {
   readonly query: string;
+  readonly filters: CatalogFilters;
   readonly locale: Locale;
   readonly limit: number;
 }
@@ -124,7 +133,7 @@ export async function searchCatalogExercises(
   const rows = await db
     .select(summaryColumns)
     .from(catalogExercise)
-    .where(or(...matches))
+    .where(and(or(...matches), ...filterConditions(search.filters)))
     .orderBy(
       // Lo que empieza por lo tecleado va primero; después, el nombre más corto, que es el
       // ejercicio base frente a sus veinte variantes. El nombre final desempata sin azar.
@@ -135,6 +144,21 @@ export async function searchCatalogExercises(
     .limit(search.limit);
 
   return rows.map((row) => toSummary(row, search.locale));
+}
+
+/**
+ * Cada filtro es una igualdad con un parámetro: dos más como mucho, lejos de los cien de D1 aunque
+ * la búsqueda ya gaste los suyos. Sin filtros no añade nada y la consulta queda como estaba.
+ */
+function filterConditions(filters: CatalogFilters): SQL[] {
+  const conditions: SQL[] = [];
+  if (filters.equipment !== undefined) {
+    conditions.push(eq(catalogExercise.equipment, filters.equipment));
+  }
+  if (filters.muscle !== undefined) {
+    conditions.push(eq(catalogExercise.muscle, filters.muscle));
+  }
+  return conditions;
 }
 
 /** Un ejercicio casa con una lectura de la consulta si casa con todas sus palabras. */
