@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isMuscleInBodyPart } from '../domain/muscles';
 import { bodyPartSchema, muscleSchema } from './catalog';
 import { isoDatetimeSchema, resourceIdSchema, weightKilogramsSchema } from './common';
 
@@ -72,14 +73,21 @@ export const createTrackedExerciseRequestSchema = z.discriminatedUnion('origin',
     catalogId: z.string().min(1),
     notes: z.string().max(500).nullish(),
   }),
-  z.object({
-    id: resourceIdSchema,
-    origin: z.literal('custom'),
-    name: trackedExerciseNameSchema,
-    muscle: muscleSchema.nullish(),
-    bodyPart: bodyPartSchema.nullish(),
-    notes: z.string().max(500).nullish(),
-  }),
+  z
+    .object({
+      id: resourceIdSchema,
+      origin: z.literal('custom'),
+      name: trackedExerciseNameSchema,
+      muscle: muscleSchema.nullish(),
+      bodyPart: bodyPartSchema.nullish(),
+      notes: z.string().max(500).nullish(),
+    })
+    // Un músculo solo vive en una parte del cuerpo (`MUSCLE_BODY_PART`): «glúteos» en pecho
+    // agruparía la ficha y el calendario donde no toca, y no hay forma de corregirlo después.
+    .refine((request) => isMuscleInBodyPart(request.muscle, request.bodyPart), {
+      message: 'El músculo no pertenece a esa parte del cuerpo',
+      path: ['muscle'],
+    }),
 ]);
 
 /**

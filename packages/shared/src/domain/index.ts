@@ -97,3 +97,9 @@ export {
   sessionImportRows,
 } from './import';
 export type { AccountExerciseRef, ImportPlan, OversizedImportEntry } from './import';
+export {
+  MUSCLE_BODY_PART,
+  bodyPartOfMuscle,
+  isMuscleInBodyPart,
+  musclesOfBodyPart,
+} from './muscles';
