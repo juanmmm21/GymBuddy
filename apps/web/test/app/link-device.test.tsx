@@ -30,7 +30,8 @@ describe('añadir otro dispositivo', () => {
       },
     });
 
-    await user.click(await screen.findByRole('link', { name: 'Añadir otro dispositivo' }));
+    await user.click(await screen.findByRole('link', { name: 'Ajustes' }));
+    await user.click(await screen.findByRole('link', { name: /^Añadir otro dispositivo/ }));
 
     expect(
       await screen.findByRole('heading', { name: 'Añadir otro dispositivo' }),

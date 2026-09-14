@@ -229,7 +229,8 @@ describe('lo que se guarda en el dispositivo', () => {
       expect(storage.data.get(keyFor(queryKeys.sessions.active))).toBeDefined();
     });
 
-    await actor.click(screen.getByRole('button', { name: 'Salir' }));
+    await actor.click(screen.getByRole('link', { name: 'Ajustes' }));
+    await actor.click(await screen.findByRole('button', { name: 'Salir' }));
 
     await waitFor(() => {
       expect(

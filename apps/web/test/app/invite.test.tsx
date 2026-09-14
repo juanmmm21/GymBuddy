@@ -46,7 +46,8 @@ describe('invitar a un amigo', () => {
       },
     });
 
-    await user.click(await screen.findByRole('link', { name: 'Invitar a un amigo' }));
+    await user.click(await screen.findByRole('link', { name: 'Ajustes' }));
+    await user.click(await screen.findByRole('link', { name: /^Invitar a un amigo/ }));
 
     expect(await screen.findByRole('heading', { name: 'Invitar a un amigo' })).toBeInTheDocument();
     expect(

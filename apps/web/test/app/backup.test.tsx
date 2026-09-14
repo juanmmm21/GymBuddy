@@ -56,7 +56,8 @@ describe('copia de seguridad', () => {
       },
     });
 
-    await user.click(await screen.findByRole('link', { name: 'Copia de seguridad' }));
+    await user.click(await screen.findByRole('link', { name: 'Ajustes' }));
+    await user.click(await screen.findByRole('link', { name: /^Copia de seguridad/ }));
 
     expect(await screen.findByRole('heading', { name: 'Copia de seguridad' })).toBeInTheDocument();
     expect(fake.requests.some((request) => request.path.startsWith('/export/'))).toBe(false);

@@ -158,6 +158,7 @@ describe('pantallas del shell', () => {
       },
     });
 
+    await user.click(await screen.findByRole('link', { name: 'Ajustes' }));
     await user.click(await screen.findByRole('button', { name: 'Salir' }));
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Entrar' })).toBeInTheDocument();

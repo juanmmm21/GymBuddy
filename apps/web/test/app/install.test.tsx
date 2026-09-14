@@ -166,17 +166,18 @@ describe('dónde se llega a la guía', () => {
       },
     });
 
-    await user.click(await screen.findByRole('link', { name: 'Instalar la app' }));
+    await user.click(await screen.findByRole('link', { name: 'Ajustes' }));
+    await user.click(await screen.findByRole('link', { name: /^Instalar la app/ }));
     expect(await screen.findByRole('heading', { name: 'Instalar GymBuddy' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('link', { name: /Hoy/ }));
-    expect(await screen.findByRole('link', { name: 'Instalar la app' })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'Ajustes' })).toBeInTheDocument();
   });
 
-  it('ya instalada, ni Hoy ni la entrada ofrecen instalarla', async () => {
+  it('ya instalada, Ajustes no ofrece instalarla', async () => {
     const installed = installSupport(USER_AGENTS.androidChrome, { standalone: true });
     renderApp({
-      path: '/',
+      path: '/settings',
       session,
       install: installed,
       setup: (fake) => {
@@ -184,8 +185,8 @@ describe('dónde se llega a la guía', () => {
       },
     });
 
-    expect(await screen.findByRole('link', { name: 'Invitar a un amigo' })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Instalar la app' })).not.toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: /^Invitar a un amigo/ })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /^Instalar la app/ })).not.toBeInTheDocument();
   });
 
   it('ya instalada, la entrada tampoco la ofrece', async () => {
