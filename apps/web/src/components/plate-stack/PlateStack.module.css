@@ -1,0 +1,72 @@
+.stack {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--gb-space-xxs);
+  height: var(--gb-space-xl);
+}
+
+/* El tramo de barra entre la mano y el primer disco, y el manguito que asoma por fuera. */
+.bar,
+.sleeve {
+  height: var(--gb-space-xxs);
+  border-radius: var(--gb-space-xxs);
+  background: var(--gb-color-plate-bar);
+}
+
+.bar {
+  width: var(--gb-space-sm);
+}
+
+.sleeve {
+  width: var(--gb-space-xs);
+}
+
+.plate {
+  width: var(--gb-space-xs);
+  border-radius: var(--gb-space-xxs);
+}
+
+/* El alto sigue al diámetro real: los de 25, 20 y 15 kg son discos grandes y los pequeños, pequeños. */
+.plate25 {
+  height: var(--gb-space-xl);
+  background: var(--gb-color-plate25);
+}
+
+.plate20 {
+  height: var(--gb-space-xl);
+  background: var(--gb-color-plate20);
+}
+
+.plate15 {
+  height: calc(var(--gb-space-lg) + var(--gb-space-xs));
+  background: var(--gb-color-plate15);
+}
+
+.plate10 {
+  height: var(--gb-space-lg);
+  background: var(--gb-color-plate10);
+}
+
+.plate5 {
+  height: var(--gb-space-md);
+  background: var(--gb-color-plate5);
+  box-shadow: inset 0 0 0 var(--gb-size-border-width) var(--gb-color-border-strong);
+}
+
+.plate2p5 {
+  height: calc(var(--gb-space-sm) + var(--gb-space-xxs));
+  background: var(--gb-color-plate2p5);
+}
+
+.plate1p25 {
+  height: var(--gb-space-sm);
+  background: var(--gb-color-plate1p25);
+}
+
+.remainder {
+  margin-left: var(--gb-space-xs);
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-caption-size);
+  line-height: var(--gb-type-caption-line);
+}

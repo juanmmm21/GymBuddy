@@ -8,6 +8,8 @@ export { Notice } from './notice/Notice';
 export type { NoticeProps, NoticeTone } from './notice/Notice';
 export { NumberField } from './number-field/NumberField';
 export type { NumberFieldProps } from './number-field/NumberField';
+export { PlateStack } from './plate-stack/PlateStack';
+export type { PlateStackProps } from './plate-stack/PlateStack';
 export { Select } from './select/Select';
 export type { SelectOption, SelectProps } from './select/Select';
 export { SearchField } from './search-field/SearchField';

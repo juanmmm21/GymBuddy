@@ -38,6 +38,19 @@ export type ColorTokens = {
   readonly record: string;
   /** Texto encima de `record`. */
   readonly onRecord: string;
+  /**
+   * Los discos de la barra con su color de competición, para dibujarlos. No son texto sobre fondo y
+   * no pasan por la regla de contraste; en oscuro se aclaran lo justo para no perderse en el fondo.
+   */
+  readonly plate25: string;
+  readonly plate20: string;
+  readonly plate15: string;
+  readonly plate10: string;
+  readonly plate5: string;
+  readonly plate2p5: string;
+  readonly plate1p25: string;
+  /** La barra y su manguito, que asoman a los lados de los discos. */
+  readonly plateBar: string;
   readonly focusRing: string;
   /** Velo detrás de una hoja modal. */
   readonly overlay: string;
@@ -73,6 +86,14 @@ export const colors: Readonly<Record<ColorScheme, ColorTokens>> = {
     dangerSoft: '#fde8eb',
     record: '#d7263d',
     onRecord: '#ffffff',
+    plate25: '#d7263d',
+    plate20: '#1f5fbf',
+    plate15: '#e8a900',
+    plate10: '#2e9e5b',
+    plate5: '#f4f5f7',
+    plate2p5: '#2b3140',
+    plate1p25: '#9aa3b0',
+    plateBar: '#8f98a6',
     focusRing: '#1f5fbf',
     overlay: 'rgba(18, 24, 38, 0.55)',
   },
@@ -98,6 +119,14 @@ export const colors: Readonly<Record<ColorScheme, ColorTokens>> = {
     dangerSoft: '#3a1419',
     record: '#ff5a6e',
     onRecord: '#1f0006',
+    plate25: '#f0485c',
+    plate20: '#4f86e8',
+    plate15: '#f2b705',
+    plate10: '#3fb872',
+    plate5: '#e9ecf1',
+    plate2p5: '#6b7484',
+    plate1p25: '#c3cad5',
+    plateBar: '#6b7484',
     focusRing: '#6f9dff',
     overlay: 'rgba(0, 0, 0, 0.6)',
   },
