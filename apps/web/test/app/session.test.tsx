@@ -128,7 +128,11 @@ describe('sesión en curso', () => {
             completedAt: '2026-09-08T18:30:00.000Z',
           };
           current = { ...current, sets: [...current.sets, entry] };
-          return jsonResponse({ set: entry, records: [newMaxWeightRecord] });
+          // Recién batida: el aviso de récord dura lo que la celebración de la mascota.
+          return jsonResponse({
+            set: entry,
+            records: [{ ...newMaxWeightRecord, achievedAt: new Date().toISOString() }],
+          });
         });
       },
     });
@@ -328,7 +332,10 @@ describe('corregir una serie desde la sesión', () => {
       setup: (fake) => {
         serveActiveSession(fake);
         fake.on('PATCH', `/sessions/${activeSession.id}/sets/${loggedSet?.id ?? ''}`, () =>
-          jsonResponse({ set: loggedSet, records: [newMaxWeightRecord] }),
+          jsonResponse({
+            set: loggedSet,
+            records: [{ ...newMaxWeightRecord, achievedAt: new Date().toISOString() }],
+          }),
         );
       },
     });

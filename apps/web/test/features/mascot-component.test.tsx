@@ -19,7 +19,7 @@ const STATES: readonly MascotState[] = [
 
 function renderMascot(state: MascotState) {
   const message = mascotMessage(state, { locale: 'es', now: NOW, stalled: [] });
-  const view = render(<Mascot state={state} message={message} />);
+  const view = render(<Mascot state={state} message={message} layout="tip" />);
   return { ...view, message };
 }
 
@@ -55,9 +55,30 @@ describe('Mascot', () => {
       <Mascot
         state={idle}
         message={mascotMessage(idle, { locale: 'es', now: NOW, stalled: [] })}
+        layout="tip"
       />,
     );
     expect(container.querySelector('g[transform^="rotate(0 "]')).not.toBeNull();
     expect(screen.getByRole('img', { name: MASCOT_MOOD_LABELS.idle })).toBeInTheDocument();
+  });
+
+  it('el aviso de récord lleva dentro lo que se le pase, como las marcas batidas', () => {
+    const state: MascotState = {
+      mood: 'celebrating',
+      recordAchievedAt: '2026-09-11T19:59:50.000Z',
+    };
+    render(
+      <Mascot
+        state={state}
+        message={mascotMessage(state, { locale: 'es', now: NOW, stalled: [] })}
+        layout="toast"
+      >
+        <p>Peso máximo: 90 kg</p>
+      </Mascot>,
+    );
+
+    expect(
+      within(screen.getByRole('region', { name: 'Tu compañero' })).getByText('Peso máximo: 90 kg'),
+    ).toBeInTheDocument();
   });
 });

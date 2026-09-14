@@ -115,7 +115,7 @@ describe('la mascota en Hoy', () => {
     expect(mascotCard().getByText(/^8 días sin vernos/)).toBeInTheDocument();
   });
 
-  it('sin haber entrenado nunca saluda y no reprocha nada', async () => {
+  it('sin haber entrenado nunca no ocupa sitio en Hoy', async () => {
     renderApp({
       path: '/',
       session,
@@ -131,8 +131,9 @@ describe('la mascota en Hoy', () => {
       },
     });
 
-    expect(await screen.findByText('¡Buenas! Aquí estoy')).toBeInTheDocument();
-    expect(screen.getByText('Todavía no has entrenado')).toBeInTheDocument();
+    // Sin nada que decir no ocupa sitio en Hoy: solo sale con un consejo, una ausencia o un récord.
+    expect(await screen.findByText('Todavía no has entrenado')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Tu compañero' })).not.toBeInTheDocument();
   });
 });
 
