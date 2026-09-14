@@ -315,13 +315,19 @@ export const pastSession: WorkoutSessionDetail = {
   ],
 };
 
+/** Un instante `minutes` antes de que se cargue el módulo de fixtures. */
+const minutesBeforeLoad = (minutes: number): string =>
+  new Date(Date.now() - minutes * 60_000).toISOString();
+
 /**
- * Una sesión abierta con una serie de press de banca ya registrada. La fecha está en el
- * pasado a propósito: el descanso sale cumplido y el cronómetro no depende del reloj.
+ * Una sesión abierta con una serie de press de banca ya registrada. Va respecto al reloj real:
+ * empezada hace quince minutos y con la serie hace cinco. Más atrás, la regla de inactividad
+ * (ADR 0008) ya la daría por cerrada y no sería una sesión en curso. Con cinco minutos el
+ * descanso sale cumplido igualmente.
  */
 export const activeSession: WorkoutSessionDetail = {
   id: 'e19a7b3c-4d5e-4f61-9a2b-3c4d5e6f7a8b',
-  startedAt: '2026-09-08T18:00:00.000Z',
+  startedAt: minutesBeforeLoad(15),
   endedAt: null,
   notes: null,
   sets: [
@@ -333,7 +339,7 @@ export const activeSession: WorkoutSessionDetail = {
       reps: 8,
       rpe: null,
       isWarmup: false,
-      completedAt: '2026-09-08T18:10:00.000Z',
+      completedAt: minutesBeforeLoad(5),
     },
   ],
 };

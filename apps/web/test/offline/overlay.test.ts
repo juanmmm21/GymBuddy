@@ -1,6 +1,6 @@
 import type { SetEntry, WorkoutSessionDetail } from '@gymbuddy/shared';
 import { describe, expect, it } from 'vitest';
-import { applyPendingWrites } from '../../src/offline/overlay';
+import { applyPendingWrites, withoutIdleSession } from '../../src/offline/overlay';
 import type { SessionWrite } from '../../src/offline/pending-write';
 import { activeSession, benchPress, squat } from '../fixtures';
 
@@ -178,5 +178,46 @@ describe('applyPendingWrites', () => {
     ]);
 
     expect(view.session).toBe(activeSession);
+  });
+});
+
+describe('withoutIdleSession', () => {
+  const at = (iso: string, minutes: number): Date => new Date(Date.parse(iso) + minutes * 60_000);
+  const session: WorkoutSessionDetail = {
+    ...activeSession,
+    startedAt: '2026-09-08T18:00:00.000Z',
+    sets: [{ ...LOGGED_SET, completedAt: '2026-09-08T18:10:00.000Z' }],
+  };
+
+  it('con actividad hace menos de veinte minutos deja la sesión como está', () => {
+    const current = applyPendingWrites(session, []);
+
+    expect(withoutIdleSession(current, at('2026-09-08T18:10:00.000Z', 19))).toBe(current);
+  });
+
+  it('a los veinte minutos sin actividad la sesión deja de estar en curso', () => {
+    const result = withoutIdleSession(
+      applyPendingWrites(session, []),
+      at('2026-09-08T18:10:00.000Z', 20),
+    );
+
+    expect(result.session).toBeNull();
+    expect(result.pendingSetIds.size).toBe(0);
+  });
+
+  it('una serie que espera en la cola cuenta como actividad', () => {
+    const current = applyPendingWrites(session, [
+      logSet(QUEUED_SET_ID, { completedAt: '2026-09-08T18:25:00.000Z' }),
+    ]);
+
+    expect(withoutIdleSession(current, at('2026-09-08T18:10:00.000Z', 30)).session?.id).toBe(
+      OPEN_ID,
+    );
+  });
+
+  it('sin sesión abierta no hace nada', () => {
+    const current = applyPendingWrites(null, []);
+
+    expect(withoutIdleSession(current, at('2026-09-08T18:10:00.000Z', 600))).toBe(current);
   });
 });

@@ -53,7 +53,8 @@ function serveWorker(fake: FakeFetch, options: WorkerOptions): void {
     const body = request.body as StartSessionRequest;
     current = {
       id: body.id,
-      startedAt: '2026-09-08T18:00:00.000Z',
+      // Recién abierta: con la hora de las fixtures ya se daría por cerrada (ADR 0008).
+      startedAt: new Date().toISOString(),
       endedAt: null,
       notes: null,
       sets: [],
@@ -75,7 +76,7 @@ function serveWorker(fake: FakeFetch, options: WorkerOptions): void {
       reps: body.reps,
       rpe: body.rpe ?? null,
       isWarmup: body.isWarmup ?? false,
-      completedAt: '2026-09-08T18:30:00.000Z',
+      completedAt: new Date().toISOString(),
     };
     current = { ...current, sets: [...current.sets, entry] };
     return jsonResponse({ set: entry, records: [] });

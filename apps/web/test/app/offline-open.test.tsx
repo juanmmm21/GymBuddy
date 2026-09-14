@@ -23,6 +23,10 @@ const OFFLINE_SESSION_ID = 'c0ffee00-1234-4abc-9def-0123456789ab';
 const QUEUED_SET_ID = '9cd37e5f-8a01-4c23-9e4f-6a7b8c9d0e1f';
 const SAVED_AT = '2026-09-08T18:15:00.000Z';
 
+// Lo encolado va respecto al reloj real: una sesión de hace días ya se daría por cerrada (ADR 0008).
+const QUEUED_START_AT = new Date(Date.now() - 10 * 60_000).toISOString();
+const QUEUED_SET_AT = new Date(Date.now() - 3 * 60_000).toISOString();
+
 /** La clave del dispositivo de la lectura con esa clave de caché. */
 function keyFor(queryKey: readonly unknown[]): string {
   const entry = SNAPSHOT_ENTRIES.find(
@@ -76,10 +80,10 @@ function queuedStart(): PendingWrite {
   return {
     sequence: 0,
     userId: user.id,
-    queuedAt: '2026-09-09T07:00:00.000Z',
+    queuedAt: QUEUED_START_AT,
     write: {
       kind: 'start_session',
-      body: { id: OFFLINE_SESSION_ID, startedAt: '2026-09-09T07:00:00.000Z' },
+      body: { id: OFFLINE_SESSION_ID, startedAt: QUEUED_START_AT },
     },
   };
 }
@@ -88,7 +92,7 @@ function queuedSet(sequence: number, sessionId: string = OFFLINE_SESSION_ID): Pe
   return {
     sequence,
     userId: user.id,
-    queuedAt: '2026-09-09T07:10:00.000Z',
+    queuedAt: QUEUED_SET_AT,
     write: {
       kind: 'log_set',
       sessionId,
@@ -97,7 +101,7 @@ function queuedSet(sequence: number, sessionId: string = OFFLINE_SESSION_ID): Pe
         trackedExerciseId: squat.id,
         weight: '100.00',
         reps: 5,
-        completedAt: '2026-09-09T07:10:00.000Z',
+        completedAt: QUEUED_SET_AT,
       },
     },
   };
@@ -158,6 +162,21 @@ describe('abrir la app sin red', () => {
       await screen.findByRole('heading', { name: 'Sentadilla con barra' }),
     ).toBeInTheDocument();
     expect(screen.getByText('Sin sincronizar')).toBeInTheDocument();
+  });
+
+  it('sin red, una sesión parada más de veinte minutos ya no se ofrece seguir (ADR 0008)', async () => {
+    const minutesAgo = (minutes: number): string =>
+      new Date(Date.now() - minutes * 60_000).toISOString();
+    const abandoned: WorkoutSessionDetail = {
+      ...activeSession,
+      startedAt: minutesAgo(70),
+      sets: activeSession.sets.map((set) => ({ ...set, completedAt: minutesAgo(45) })),
+    };
+
+    renderApp({ path: '/', session, stored: deviceSnapshot(abandoned), setup: offline });
+
+    expect(await screen.findByRole('link', { name: 'Empezar a entrenar' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Seguir' })).not.toBeInTheDocument();
   });
 
   it('una sesión cerrada sin red ya no se ofrece seguir: Hoy ofrece empezar otra', async () => {
