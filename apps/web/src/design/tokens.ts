@@ -39,6 +39,13 @@ export type ColorTokens = {
   /** Texto encima de `record`. */
   readonly onRecord: string;
   /**
+   * La superficie que manda en una pantalla —la sesión en curso en Hoy—: oscura en el tema claro y
+   * azul profundo en el oscuro, para que destaque en los dos.
+   */
+  readonly inverseSurface: string;
+  readonly onInverse: string;
+  readonly onInverseMuted: string;
+  /**
    * Los discos de la barra con su color de competición, para dibujarlos. No son texto sobre fondo y
    * no pasan por la regla de contraste; en oscuro se aclaran lo justo para no perderse en el fondo.
    */
@@ -86,6 +93,9 @@ export const colors: Readonly<Record<ColorScheme, ColorTokens>> = {
     dangerSoft: '#fde8eb',
     record: '#d7263d',
     onRecord: '#ffffff',
+    inverseSurface: '#121826',
+    onInverse: '#ffffff',
+    onInverseMuted: '#b9c2d3',
     plate25: '#d7263d',
     plate20: '#1f5fbf',
     plate15: '#e8a900',
@@ -119,6 +129,9 @@ export const colors: Readonly<Record<ColorScheme, ColorTokens>> = {
     dangerSoft: '#3a1419',
     record: '#ff5a6e',
     onRecord: '#1f0006',
+    inverseSurface: '#1a2b4c',
+    onInverse: '#eef1f6',
+    onInverseMuted: '#aebbd2',
     plate25: '#f0485c',
     plate20: '#4f86e8',
     plate15: '#f2b705',
