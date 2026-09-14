@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   clearSessionRoutine,
+  forgetSessionRoutineFor,
   loadSessionRoutine,
   saveSessionRoutine,
   SESSION_ROUTINE_STORAGE_KEY,
@@ -145,6 +146,36 @@ describe('session-routine-store', () => {
     clearSessionRoutine(storage);
 
     expect(storage.data.has(SESSION_ROUTINE_STORAGE_KEY)).toBe(false);
+  });
+
+  it('olvidar una rutina borrada limpia lo guardado solo si es esa', () => {
+    const storage = memoryStorage();
+    saveSessionRoutine(storage, {
+      sessionId: activeSession.id,
+      routineId: pushRoutine.id,
+      adjustments: [],
+    });
+
+    forgetSessionRoutineFor(storage, crypto.randomUUID());
+    expect(loadSessionRoutine(storage, activeSession.id)).not.toBeNull();
+
+    // Sea cual sea la sesión que guiaba: la rutina ya no existe para ninguna.
+    forgetSessionRoutineFor(storage, pushRoutine.id);
+    expect(storage.data.has(SESSION_ROUTINE_STORAGE_KEY)).toBe(false);
+  });
+
+  it('olvidar una rutina sin nada guardado, o con algo ilegible, no toca nada ni lanza', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const empty = memoryStorage();
+    expect(() => {
+      forgetSessionRoutineFor(empty, pushRoutine.id);
+    }).not.toThrow();
+
+    const broken = memoryStorage({ [SESSION_ROUTINE_STORAGE_KEY]: '{no es json' });
+    forgetSessionRoutineFor(broken, pushRoutine.id);
+    expect(broken.data.get(SESSION_ROUTINE_STORAGE_KEY)).toBe('{no es json');
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
   });
 
   it('un almacenamiento que lanza deja la sesión sin guía, no rota', () => {

@@ -10,6 +10,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { errorResponse, jsonResponse, type FakeFetch, type RecordedRequest } from '../fake-fetch';
 import {
+  activeSession,
   archivedLegRoutine,
   benchPress,
   customCurl,
@@ -17,6 +18,7 @@ import {
   session,
   squat,
 } from '../fixtures';
+import { SESSION_ROUTINE_STORAGE_KEY } from '../../src/features/session/session-routine-store';
 import { renderApp } from './render-app';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -68,6 +70,10 @@ function serveRoutines(
       const updated = applyPatch(existing, body);
       routines = routines.map((candidate, position) => (position === index ? updated : candidate));
       return jsonResponse(updated);
+    });
+    fake.on('DELETE', `/routines/${routine.id}`, () => {
+      routines = routines.filter((candidate) => candidate.id !== routine.id);
+      return new Response(null, { status: 204 });
     });
   }
 
@@ -470,6 +476,103 @@ describe('rutinas: editor', () => {
       { archived: true },
       { archived: false },
     ]);
+  });
+
+  it('borra la rutina tras confirmar y vuelve a la lista sin ella', async () => {
+    const user = userEvent.setup();
+    const { fake } = renderApp({
+      path: EDITOR_PATH,
+      session,
+      setup: (fake) => {
+        serveRoutines(fake, [pushRoutine, archivedLegRoutine]);
+      },
+    });
+
+    await user.click(await screen.findByRole('button', { name: 'Editar' }));
+    await user.click(screen.getByRole('button', { name: 'Borrar rutina' }));
+
+    expect(screen.getByText('¿Borrar esta rutina?')).toBeInTheDocument();
+    expect(screen.getByText(/con 2 ejercicios en su orden/)).toBeInTheDocument();
+    // Pedir la confirmación todavía no borra nada.
+    expect(fake.requests.some((request) => request.method === 'DELETE')).toBe(false);
+
+    await user.click(screen.getByRole('button', { name: 'Sí, borrarla' }));
+
+    expect(await screen.findByRole('heading', { name: 'Rutinas' })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole('link', { name: /Empuje/ })).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole('link', { name: /Pierna vieja/ })).toBeInTheDocument();
+    expect(
+      fake.requests.filter((request) => request.method === 'DELETE').map((request) => request.path),
+    ).toEqual([EDITOR_PATH]);
+    expect(patches(fake.requests)).toEqual([]);
+  });
+
+  it('cancelar la confirmación no borra nada', async () => {
+    const user = userEvent.setup();
+    const { fake } = renderApp({
+      path: EDITOR_PATH,
+      session,
+      setup: (fake) => {
+        serveRoutines(fake, [pushRoutine]);
+      },
+    });
+
+    await user.click(await screen.findByRole('button', { name: 'Editar' }));
+    await user.click(screen.getByRole('button', { name: 'Borrar rutina' }));
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+
+    expect(screen.queryByText('¿Borrar esta rutina?')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Borrar rutina' })).toBeInTheDocument();
+    expect(fake.requests.some((request) => request.method === 'DELETE')).toBe(false);
+  });
+
+  it('si el Worker no puede borrarla lo dice y se queda en el editor', async () => {
+    const user = userEvent.setup();
+    renderApp({
+      path: EDITOR_PATH,
+      session,
+      setup: (fake) => {
+        serveRoutines(fake, [pushRoutine]);
+        fake.on('DELETE', EDITOR_PATH, () =>
+          errorResponse('internal_error', 500, 'Algo falló al borrar'),
+        );
+      },
+    });
+
+    await user.click(await screen.findByRole('button', { name: 'Editar' }));
+    await user.click(screen.getByRole('button', { name: 'Borrar rutina' }));
+    await user.click(screen.getByRole('button', { name: 'Sí, borrarla' }));
+
+    expect(await screen.findByText('No se pudo borrar')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Empuje' })).toBeInTheDocument();
+  });
+
+  it('borrar la rutina que guía la sesión abierta la olvida en el dispositivo', async () => {
+    const user = userEvent.setup();
+    const { storage } = renderApp({
+      path: EDITOR_PATH,
+      session,
+      stored: {
+        [SESSION_ROUTINE_STORAGE_KEY]: JSON.stringify({
+          sessionId: activeSession.id,
+          routineId: pushRoutine.id,
+          adjustments: [],
+        }),
+      },
+      setup: (fake) => {
+        serveRoutines(fake, [pushRoutine]);
+      },
+    });
+
+    await user.click(await screen.findByRole('button', { name: 'Editar' }));
+    await user.click(screen.getByRole('button', { name: 'Borrar rutina' }));
+    await user.click(screen.getByRole('button', { name: 'Sí, borrarla' }));
+
+    await waitFor(() => {
+      expect(storage.data.has(SESSION_ROUTINE_STORAGE_KEY)).toBe(false);
+    });
   });
 
   it('un identificador que no es un UUID avisa sin preguntar al Worker', async () => {
