@@ -4,7 +4,7 @@
   font-weight: var(--gb-type-label-weight);
   letter-spacing: var(--gb-type-label-tracking);
   text-transform: uppercase;
-  margin-bottom: var(--gb-space-sm);
+  margin-bottom: var(--gb-space-md);
 }
 
 /* Siete columnas iguales: los días caben todos o no cabe ninguno. */
@@ -21,8 +21,57 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--gb-space-xxs);
+  gap: var(--gb-space-xs);
   min-width: 0;
+}
+
+/* Cada día es un botón cuadrado que se toca con el pulgar para ver su detalle debajo. */
+.mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: var(--gb-size-control-height);
+  aspect-ratio: 1;
+  padding: 0;
+  border: var(--gb-size-border-width) solid transparent;
+  border-radius: var(--gb-radius-sm);
+  background: var(--gb-color-surface-sunken);
+  color: var(--gb-color-text-muted);
+  transition:
+    background-color var(--gb-duration-fast) var(--gb-ease-standard),
+    border-color var(--gb-duration-fast) var(--gb-ease-standard);
+}
+
+.markTrained {
+  background: var(--gb-color-accent-soft);
+  color: var(--gb-color-accent);
+}
+
+.markToday {
+  border-color: var(--gb-color-accent);
+}
+
+/* El día cuyo detalle se lee debajo va macizo: se sabe qué columna describe el texto. */
+.markSelected.markTrained {
+  background: var(--gb-color-accent);
+  color: var(--gb-color-on-accent);
+}
+
+.markSelected:not(.markTrained) {
+  border-color: var(--gb-color-border-strong);
+}
+
+.icon {
+  width: 60%;
+  height: 60%;
+}
+
+.restDash {
+  width: 30%;
+  height: var(--gb-space-xxs);
+  border-radius: var(--gb-space-xxs);
+  background: var(--gb-color-border-strong);
 }
 
 .weekday {
@@ -38,36 +87,15 @@
   color: var(--gb-color-accent);
 }
 
-/*
- * La etiqueta de la parte del cuerpo. En una columna de un séptimo del ancho no cabe
- * "Hombros" entero en pantallas estrechas, así que se recorta con puntos suspensivos en
- * vez de partirse: el tooltip y el texto para lectores llevan el detalle completo.
- */
-.trained {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--gb-color-text);
+.detail {
+  margin-top: var(--gb-space-md);
+  color: var(--gb-color-text-secondary);
   font-size: var(--gb-type-caption-size);
-  font-weight: var(--gb-type-body-strong-weight);
   line-height: var(--gb-type-caption-line);
+  text-align: center;
 }
 
-.rest {
-  composes: trained;
-  color: var(--gb-color-text-muted);
-  font-weight: var(--gb-type-body-weight);
-}
-
-/* Se lee, no se ve: el nombre del día que la inicial no dice en voz alta. */
-.visuallyHidden {
-  position: absolute;
-  width: var(--gb-size-border-width);
-  height: var(--gb-size-border-width);
-  padding: 0;
-  margin: calc(-1 * var(--gb-size-border-width));
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
+.detailDay {
+  color: var(--gb-color-text);
+  font-weight: var(--gb-type-body-strong-weight);
 }
