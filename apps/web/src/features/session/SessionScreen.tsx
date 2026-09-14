@@ -15,7 +15,7 @@ import { ScreenHeader, type BackLink } from '../../app/ScreenHeader';
 import { useStorage } from '../../app/StorageProvider';
 import { useSession } from '../../auth/SessionProvider';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
-import { Badge, Button, Notice, Surface } from '../../components/index';
+import { Badge, Button, Notice, PlateStack, Surface } from '../../components/index';
 import { useNow } from '../../hooks/use-now';
 import { describeError } from '../../lib/errors';
 import {
@@ -47,6 +47,7 @@ import {
 } from './session-routine-store';
 import { groupSetsByExercise, latestSetCompletedAt, type SessionExerciseGroup } from './summary';
 import styles from './SessionScreen.module.css';
+import { usesOlympicBar } from '../exercises/equipment';
 
 const BACK_TO_HOME: BackLink = { to: '/', label: 'Hoy' };
 
@@ -375,6 +376,7 @@ function ActiveSession({
                   <SetRow
                     key={set.id}
                     set={set}
+                    plates={usesOlympicBar(group.equipment)}
                     pending={pendingSetIds.has(set.id)}
                     position={index + 1}
                     locale={locale}
@@ -452,6 +454,8 @@ function SessionClock({ session, locale }: SessionClockProps) {
 
 interface SetRowProps {
   readonly set: SetEntry;
+  /** Si se dibujan los discos: solo en ejercicios con barra olímpica. */
+  readonly plates: boolean;
   readonly pending: boolean;
   readonly position: number;
   readonly locale: Locale;
@@ -459,7 +463,7 @@ interface SetRowProps {
 }
 
 /** La fila entera abre la corrección: en el gimnasio se toca con el pulgar y sin mirar. */
-function SetRow({ set, pending, position, locale, onEdit }: SetRowProps) {
+function SetRow({ set, plates, pending, position, locale, onEdit }: SetRowProps) {
   return (
     <li>
       <button
@@ -470,6 +474,7 @@ function SetRow({ set, pending, position, locale, onEdit }: SetRowProps) {
         }}
       >
         <span className={styles.setPosition}>{position}</span>
+        {plates && <PlateStack weight={set.weight} locale={locale} />}
         <span className={styles.setValue}>
           {formatWeightLabel(set.weight, locale)} × {set.reps}
         </span>

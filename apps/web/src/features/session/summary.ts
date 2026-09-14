@@ -9,6 +9,8 @@ import {
 export interface SessionExerciseGroup {
   readonly trackedExerciseId: ResourceId;
   readonly name: string;
+  /** El del catálogo, o nulo en uno propio o en uno que no está en el listado. */
+  readonly equipment: string | null;
   readonly sets: readonly SetEntry[];
 }
 
@@ -28,7 +30,7 @@ export function groupSetsByExercise(
   sets: readonly SetEntry[],
   exercises: readonly TrackedExercise[],
 ): readonly SessionExerciseGroup[] {
-  const names = new Map(exercises.map((exercise) => [exercise.id, exercise.name]));
+  const byId = new Map(exercises.map((exercise) => [exercise.id, exercise]));
   const order: ResourceId[] = [];
   const buckets = new Map<ResourceId, SetEntry[]>();
 
@@ -44,7 +46,8 @@ export function groupSetsByExercise(
 
   return order.map((trackedExerciseId) => ({
     trackedExerciseId,
-    name: names.get(trackedExerciseId) ?? UNKNOWN_EXERCISE_NAME,
+    name: byId.get(trackedExerciseId)?.name ?? UNKNOWN_EXERCISE_NAME,
+    equipment: byId.get(trackedExerciseId)?.equipment ?? null,
     sets: buckets.get(trackedExerciseId) ?? [],
   }));
 }

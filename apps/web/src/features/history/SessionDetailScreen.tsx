@@ -10,7 +10,7 @@ import { useSessionDetail, useTrackedExercises } from '../../api/queries';
 import { useSession } from '../../auth/SessionProvider';
 import { ScreenHeader, type BackLink } from '../../app/ScreenHeader';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
-import { Badge, Notice, Surface } from '../../components/index';
+import { Badge, Notice, PlateStack, Surface } from '../../components/index';
 import {
   formatDuration,
   formatRpe,
@@ -27,6 +27,7 @@ import { SESSION_PATH } from '../session/paths';
 import { groupSetsByExercise, summarizeSession } from '../session/summary';
 import { HISTORY_PATH } from './paths';
 import styles from './SessionDetailScreen.module.css';
+import { usesOlympicBar } from '../exercises/equipment';
 
 const BACK_TO_HISTORY: BackLink = { to: HISTORY_PATH, label: 'Historial' };
 
@@ -139,7 +140,13 @@ function SessionBody({ session, exercises, locale }: SessionBodyProps) {
               </Link>
               <ol className={styles.sets}>
                 {group.sets.map((set, index) => (
-                  <SetRow key={set.id} set={set} position={index + 1} locale={locale} />
+                  <SetRow
+                    key={set.id}
+                    set={set}
+                    plates={usesOlympicBar(group.equipment)}
+                    position={index + 1}
+                    locale={locale}
+                  />
                 ))}
               </ol>
             </Surface>
@@ -161,15 +168,17 @@ function Metric({ label, value }: { readonly label: string; readonly value: stri
 
 interface SetRowProps {
   readonly set: SetEntry;
+  readonly plates: boolean;
   readonly position: number;
   readonly locale: Locale;
 }
 
 /** Una serie ya cerrada: se lee, no se toca. Corregirla solo se puede con la sesión abierta. */
-function SetRow({ set, position, locale }: SetRowProps) {
+function SetRow({ set, plates, position, locale }: SetRowProps) {
   return (
     <li className={styles.set}>
       <span className={styles.setPosition}>{position}</span>
+      {plates && <PlateStack weight={set.weight} locale={locale} />}
       <span className={styles.setValue}>
         {formatWeightLabel(set.weight, locale)} × {set.reps}
       </span>
