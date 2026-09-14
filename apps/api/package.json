@@ -11,7 +11,8 @@
     "db:migrate:local": "wrangler d1 migrations apply gymbuddy --local",
     "db:migrate:remote": "wrangler d1 migrations apply gymbuddy --remote",
     "typecheck": "wrangler types && tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "build": "wrangler deploy --dry-run --outdir dist"
   },
   "dependencies": {
     "@gymbuddy/shared": "workspace:*",
