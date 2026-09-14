@@ -175,6 +175,144 @@ describe('catálogo: búsqueda', () => {
   });
 });
 
+describe('catálogo: filtros', () => {
+  it('en una parte del cuerpo filtra por equipamiento y por sus músculos', async () => {
+    const user = userEvent.setup();
+    const { fake } = renderApp({
+      path: '/catalog/chest',
+      session,
+      setup: (fake) => {
+        fake.on('GET', '/catalog/bodyparts/chest', (request) =>
+          queryOf(request).get('equipment') === 'barbell'
+            ? jsonResponse(catalogPage([catalogBenchPress], 1))
+            : jsonResponse(catalogPage([catalogBenchPress, catalogArcherPushUp], 2)),
+        );
+      },
+    });
+
+    expect(await screen.findByText('2 ejercicios')).toBeInTheDocument();
+    const filters = screen.getByRole('region', { name: 'Filtros del catálogo' });
+    const muscle = within(filters).getByRole('combobox', { name: 'Músculo' });
+    // Pecho solo tiene pectorales y serrato: nada de «Cuádriceps» aquí.
+    expect(
+      within(muscle)
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual(['Todos', 'Pectorales', 'Serrato anterior']);
+    expect(within(filters).queryByRole('button', { name: 'Quitar filtros' })).toBeNull();
+
+    await user.selectOptions(
+      within(filters).getByRole('combobox', { name: 'Equipamiento' }),
+      'Barra',
+    );
+
+    expect(await screen.findByText('1 ejercicio')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Flexión del arquero/ })).not.toBeInTheDocument();
+    const last = fake.requests.filter((r) => r.path.startsWith('/catalog/bodyparts/chest')).at(-1);
+    expect(queryOf(last!).get('equipment')).toBe('barbell');
+    expect(queryOf(last!).has('muscle')).toBe(false);
+    expect(queryOf(last!).get('offset')).toBe('0');
+
+    await user.click(within(filters).getByRole('button', { name: 'Quitar filtros' }));
+    expect(await screen.findByText('2 ejercicios')).toBeInTheDocument();
+  });
+
+  it('lee los filtros de la URL y, si no queda nada, deja quitarlos', async () => {
+    const user = userEvent.setup();
+    const { fake } = renderApp({
+      path: '/catalog/back?equipment=cable&muscle=lats',
+      session,
+      setup: (fake) => {
+        fake.on('GET', '/catalog/bodyparts/back', (request) =>
+          queryOf(request).has('equipment')
+            ? jsonResponse(catalogPage([], 0))
+            : jsonResponse(catalogPage(catalogSummaries(3), 3)),
+        );
+      },
+    });
+
+    expect(await screen.findByText('Nada con «Polea · Dorsales»')).toBeInTheDocument();
+    const first = fake.requests.find((r) => r.path.startsWith('/catalog/bodyparts/back'));
+    expect(queryOf(first!).get('equipment')).toBe('cable');
+    expect(queryOf(first!).get('muscle')).toBe('lats');
+    expect(screen.getByRole('combobox', { name: 'Músculo' })).toHaveValue('lats');
+
+    // Uno en la barra y otro en el aviso: los dos hacen lo mismo.
+    const clearButtons = screen.getAllByRole('button', { name: 'Quitar filtros' });
+    expect(clearButtons).toHaveLength(2);
+    await user.click(clearButtons[1]!);
+
+    expect(await screen.findByText('3 ejercicios')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Equipamiento' })).toHaveValue('');
+  });
+
+  it('un músculo de otra parte en la URL se ignora y hombros no ofrece músculo', async () => {
+    const { fake } = renderApp({
+      path: '/catalog/shoulders?muscle=quads',
+      session,
+      setup: (fake) => {
+        fake.on('GET', '/catalog/bodyparts/shoulders', () =>
+          jsonResponse(catalogPage(catalogSummaries(1), 1)),
+        );
+      },
+    });
+
+    expect(await screen.findByText('1 ejercicio')).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Músculo' })).not.toBeInTheDocument();
+    const request = fake.requests.find((r) => r.path.startsWith('/catalog/bodyparts/shoulders'));
+    expect(queryOf(request!).has('muscle')).toBe(false);
+  });
+
+  it('la búsqueda se filtra, conserva los filtros al teclear y avisa si los filtros lo dejan fuera', async () => {
+    const user = userEvent.setup();
+    const { fake } = renderApp({
+      path: '/catalog',
+      session,
+      setup: (fake) => {
+        fake.on('GET', '/catalog/bodyparts', () => jsonResponse(bodyParts));
+        fake.on('GET', '/catalog/search', (request) =>
+          queryOf(request).get('muscle') === 'lats' && queryOf(request).get('q') === 'remo polea'
+            ? jsonResponse([])
+            : jsonResponse([catalogBenchPress]),
+        );
+      },
+    });
+
+    await screen.findByRole('link', { name: /Pecho/ });
+    // Sin buscar no hay filtros: la lista de partes del cuerpo no se filtra.
+    expect(screen.queryByRole('region', { name: 'Filtros del catálogo' })).toBeNull();
+
+    const box = screen.getByRole('searchbox', { name: 'Buscar ejercicio' });
+    await user.type(box, 'remo');
+    await screen.findByRole('link', { name: /Press de banca con barra/ });
+
+    const muscle = screen.getByRole('combobox', { name: 'Músculo' });
+    // En la búsqueda salen los diecinueve, agrupados por parte del cuerpo.
+    expect(within(muscle).getAllByRole('option')).toHaveLength(20);
+    await user.selectOptions(muscle, 'Dorsales');
+    await waitFor(() => {
+      const last = fake.requests.filter((r) => r.path.startsWith('/catalog/search')).at(-1);
+      expect(queryOf(last!).get('muscle')).toBe('lats');
+    });
+
+    await user.type(box, ' polea');
+    expect(
+      await screen.findByText('Nada que se llame «remo polea» con «Dorsales»'),
+    ).toBeInTheDocument();
+    const last = fake.requests.filter((r) => r.path.startsWith('/catalog/search')).at(-1);
+    expect(queryOf(last!).get('q')).toBe('remo polea');
+    expect(queryOf(last!).get('muscle')).toBe('lats');
+    expect(screen.getByRole('button', { name: 'Crear «Remo polea»' })).toBeInTheDocument();
+
+    const buttons = screen.getAllByRole('button', { name: 'Quitar filtros' });
+    await user.click(buttons.at(-1)!);
+    expect(
+      await screen.findByRole('link', { name: /Press de banca con barra/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Músculo' })).toHaveValue('');
+  });
+});
+
 describe('catálogo: ficha del ejercicio', () => {
   it('pinta el GIF, las etiquetas, los músculos secundarios y las instrucciones', async () => {
     const { fake } = renderApp({
