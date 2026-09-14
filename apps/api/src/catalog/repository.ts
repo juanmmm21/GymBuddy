@@ -8,18 +8,11 @@ import {
   type CatalogExerciseSummary,
   type Locale,
 } from '@gymbuddy/shared';
-import { and, asc, count, eq, like, sql, type SQL } from 'drizzle-orm';
+import { and, asc, count, eq, like, or, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Database } from '../db/client';
 import { catalogExercise, type CatalogExerciseRow } from '../db/schema';
-import { normalizeSearchText } from './snapshot';
-
-/**
- * Tope de palabras que se tienen en cuenta al buscar. D1 admite cien parámetros por
- * consulta y cada palabra gasta uno: nadie escribe seis palabras en el buscador del
- * gimnasio, y así una consulta absurda no puede tumbar la petición.
- */
-const MAX_SEARCH_TERMS = 6;
+import { planCatalogSearch, type SearchTerm, type SearchVariant } from './search-query';
 
 const secondaryMusclesSchema = z.array(muscleSchema);
 
@@ -114,28 +107,28 @@ export interface CatalogSearchQuery {
  * Busca por nombre sobre `search_text`, que ya está en minúsculas y sin acentos: "biceps"
  * encuentra "bíceps" y "banca press" encuentra "press de banca" porque cada palabra se
  * exige por separado y el orden dentro de la frase da igual, que es como se teclea deprisa
- * en el buscador de la PWA.
+ * en el buscador de la PWA. Además tolera plurales, entiende unos cuantos nombres de gimnasio
+ * que el catálogo no usa y deja nombrar la parte del cuerpo (ver `planCatalogSearch`).
  */
 export async function searchCatalogExercises(
   db: Database,
   search: CatalogSearchQuery,
 ): Promise<CatalogExerciseSummary[]> {
-  const terms = buildSearchTerms(search.query);
-  if (terms.length === 0) return [];
-
-  const [firstTerm] = terms;
-  if (firstTerm === undefined) return [];
-
-  const conditions: SQL[] = terms.map((term) => like(catalogExercise.searchText, `%${term}%`));
+  const variants = planCatalogSearch(search.query);
+  const matches = variants.map(variantCondition);
+  const leading = variants.flatMap((variant) =>
+    variant[0] === undefined ? [] : [like(catalogExercise.searchText, `${variant[0].text}%`)],
+  );
+  if (matches.length === 0 || leading.length === 0) return [];
 
   const rows = await db
     .select(summaryColumns)
     .from(catalogExercise)
-    .where(and(...conditions))
+    .where(or(...matches))
     .orderBy(
       // Lo que empieza por lo tecleado va primero; después, el nombre más corto, que es el
       // ejercicio base frente a sus veinte variantes. El nombre final desempata sin azar.
-      sql`case when ${catalogExercise.searchText} like ${`${firstTerm}%`} then 0 else 1 end`,
+      sql`case when ${or(...leading)} then 0 else 1 end`,
       sql`length(${catalogExercise.searchText})`,
       asc(catalogExercise.nameEs),
     )
@@ -144,20 +137,16 @@ export async function searchCatalogExercises(
   return rows.map((row) => toSummary(row, search.locale));
 }
 
-/**
- * Parte la consulta en palabras normalizadas igual que `search_text`. Es pura y va aparte
- * porque es la mitad del comportamiento de la búsqueda y se prueba sin base de datos.
- */
-export function buildSearchTerms(query: string): string[] {
-  const normalized = normalizeSearchText(query);
-  if (normalized === '') return [];
+/** Un ejercicio casa con una lectura de la consulta si casa con todas sus palabras. */
+function variantCondition(variant: SearchVariant): SQL {
+  return and(...variant.map(termCondition)) ?? sql`0`;
+}
 
-  // La normalización ya deja fuera `%` y `_`, así que ningún término puede colarse como
-  // comodín dentro del LIKE.
-  return [...new Set(normalized.split(' ').filter((term) => term !== ''))].slice(
-    0,
-    MAX_SEARCH_TERMS,
-  );
+function termCondition(term: SearchTerm): SQL {
+  const inName = like(catalogExercise.searchText, `%${term.text}%`);
+  if (term.bodyPart === null) return inName;
+
+  return or(inName, eq(catalogExercise.bodyPart, term.bodyPart)) ?? inName;
 }
 
 function toSummary(row: SummaryRow, locale: Locale): CatalogExerciseSummary {
