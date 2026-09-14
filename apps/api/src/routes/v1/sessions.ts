@@ -8,6 +8,7 @@ import {
 } from '@gymbuddy/shared';
 import { Hono } from 'hono';
 import { createDatabase } from '../../db/client';
+import { closeIdleSessions } from '../../http/close-idle-session';
 import { requireUser, type AuthenticatedEnv } from '../../http/current-user';
 import { parseJsonBody } from '../../http/query';
 import {
@@ -22,8 +23,8 @@ import {
 } from '../../training/index';
 
 export const sessionsRoute = new Hono<AuthenticatedEnv>()
-  .use('/sessions', requireUser)
-  .use('/sessions/*', requireUser)
+  .use('/sessions', requireUser, closeIdleSessions)
+  .use('/sessions/*', requireUser, closeIdleSessions)
 
   .post('/sessions', async (c) => {
     const request = await parseJsonBody(c, startSessionRequestSchema);

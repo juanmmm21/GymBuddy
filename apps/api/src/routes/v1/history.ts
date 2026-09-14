@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { createDatabase } from '../../db/client';
+import { closeIdleSessions } from '../../http/close-idle-session';
 import { requireUser, type AuthenticatedEnv } from '../../http/current-user';
 import { parseQuery } from '../../http/query';
 import { getExerciseHistory, listSessionPage } from '../../training/index';
@@ -36,7 +37,7 @@ const exerciseHistoryQuerySchema = z.object({
 });
 
 export const historyRoute = new Hono<AuthenticatedEnv>()
-  .use('/history/*', requireUser)
+  .use('/history/*', requireUser, closeIdleSessions)
 
   .get('/history/sessions', async (c) => {
     const { limit, offset, from, to } = parseQuery(c, sessionPageQuerySchema);

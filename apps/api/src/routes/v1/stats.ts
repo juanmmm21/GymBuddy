@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { createDatabase } from '../../db/client';
+import { closeIdleSessions } from '../../http/close-idle-session';
 import { requireUser, type AuthenticatedEnv } from '../../http/current-user';
 import { parseQuery } from '../../http/query';
 import { getExerciseStats, getTrainingSignals, getWeeklyCalendar } from '../../training/index';
@@ -14,7 +15,7 @@ const exerciseStatsQuerySchema = z.object({
 });
 
 export const statsRoute = new Hono<AuthenticatedEnv>()
-  .use('/stats/*', requireUser)
+  .use('/stats/*', requireUser, closeIdleSessions)
 
   .get('/stats/exercise/:id', async (c) => {
     const { sessions } = parseQuery(c, exerciseStatsQuerySchema);

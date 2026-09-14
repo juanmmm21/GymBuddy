@@ -2,6 +2,7 @@ import { MAX_EXPORT_SESSION_PAGE_SIZE } from '@gymbuddy/shared';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { createDatabase } from '../../db/client';
+import { closeIdleSessions } from '../../http/close-idle-session';
 import { requireUser, type AuthenticatedEnv } from '../../http/current-user';
 import { parseQuery } from '../../http/query';
 import { getExportSnapshot, listExportSessionPage } from '../../training/index';
@@ -22,7 +23,7 @@ const sessionPageQuerySchema = z.object({
  * contexto: no hay forma de pedir la copia de otro.
  */
 export const exportRoute = new Hono<AuthenticatedEnv>()
-  .use('/export/*', requireUser)
+  .use('/export/*', requireUser, closeIdleSessions)
 
   .get('/export/sessions', async (c) => {
     const query = parseQuery(c, sessionPageQuerySchema);

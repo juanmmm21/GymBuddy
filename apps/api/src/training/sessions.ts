@@ -1,5 +1,7 @@
 import {
+  continuesIdleSession,
   formatGramsAsKilograms,
+  idleSessionEndAt,
   parseKilogramsToGrams,
   rpeToTenths,
   tenthsToRpe,
@@ -49,6 +51,7 @@ export async function startWorkoutSession(
     userId,
     startedAt: request.startedAt ?? now.toISOString(),
     endedAt: null,
+    endedAutomatically: false,
     notes: request.notes ?? null,
   };
 
@@ -111,7 +114,11 @@ export async function logSet(
   request: LogSetRequest,
   now: Date,
 ): Promise<{ set: SetEntry; records: PersonalRecord[]; created: boolean }> {
-  await requireOpenSession(db, userId, sessionId);
+  const completedAt = request.completedAt ?? now.toISOString();
+  const { reopened } = await requireWritableSession(db, userId, sessionId, {
+    kind: 'log',
+    at: completedAt,
+  });
 
   await assertTrackedExerciseBelongsToUser(db, userId, request.trackedExerciseId);
 
@@ -123,7 +130,7 @@ export async function logSet(
     reps: request.reps,
     rpeTenths: request.rpe === null || request.rpe === undefined ? null : rpeToTenths(request.rpe),
     isWarmup: request.isWarmup ?? false,
-    completedAt: request.completedAt ?? now.toISOString(),
+    completedAt,
   };
 
   const inserted = await db
@@ -134,6 +141,10 @@ export async function logSet(
     })
     .onConflictDoNothing({ target: setEntry.id })
     .returning();
+
+  // Una serie de la cola que reabrió la sesión puede ser ya vieja: si con ella la sesión sigue
+  // inactiva, se vuelve a cerrar, ahora a la hora de esta serie.
+  if (reopened) await closeIdleSession(db, userId, now);
 
   const [insertedRow] = inserted;
   if (insertedRow !== undefined) {
@@ -181,7 +192,7 @@ export async function updateSet(
   setId: string,
   request: UpdateSetRequest,
 ): Promise<{ set: SetEntry; records: PersonalRecord[] }> {
-  await requireOpenSession(db, userId, sessionId);
+  await requireWritableSession(db, userId, sessionId, { kind: 'correct' });
 
   const stored = await findSetInSession(db, sessionId, setId);
   if (stored === null) throw setNotFound(setId);
@@ -227,12 +238,17 @@ export async function removeSet(
   sessionId: string,
   setId: string,
 ): Promise<void> {
-  await requireOpenSession(db, userId, sessionId);
+  await requireWritableSession(db, userId, sessionId, { kind: 'correct' });
 
   await db.delete(setEntry).where(and(eq(setEntry.id, setId), eq(setEntry.sessionId, sessionId)));
 }
 
-/** Cierra la sesión. Cerrar una que ya lo estaba devuelve la misma: la cola offline reenvía. */
+/**
+ * Cierra la sesión. Cerrar una que ya lo estaba devuelve la misma: la cola offline reenvía.
+ *
+ * Si se cerró sola y el «Terminar» que llega de la cola cae dentro del margen de inactividad,
+ * manda la hora de quien entrenaba: pulsó a tiempo y la sesión no estaba abandonada.
+ */
 export async function endWorkoutSession(
   db: Database,
   userId: string,
@@ -242,6 +258,23 @@ export async function endWorkoutSession(
 ): Promise<WorkoutSessionDetail> {
   const session = await findSessionRow(db, userId, sessionId);
   if (session === null) throw sessionNotFound(sessionId);
+
+  if (
+    session.endedAt !== null &&
+    session.endedAutomatically &&
+    request.endedAt !== undefined &&
+    Date.parse(request.endedAt) > Date.parse(session.endedAt) &&
+    continuesIdleSession(session.endedAt, request.endedAt)
+  ) {
+    await db
+      .update(workoutSession)
+      .set({
+        endedAt: request.endedAt,
+        endedAutomatically: false,
+        notes: request.notes ?? session.notes,
+      })
+      .where(and(eq(workoutSession.id, sessionId), eq(workoutSession.userId, userId)));
+  }
 
   if (session.endedAt === null) {
     const endedAt = request.endedAt ?? now.toISOString();
@@ -331,22 +364,85 @@ async function findActiveSessionRow(
 }
 
 /**
- * La sesión sobre la que se puede escribir: existe, es de este usuario y sigue abierta.
- * Cerrada no se toca, ni para registrar ni para corregir; es lo que ve la cola offline
- * cuando reenvía sobre una sesión que se cerró desde otro móvil mientras no había red.
+ * Cierra la sesión abierta de ese usuario si lleva `SESSION_IDLE_LIMIT_MINUTES` sin actividad
+ * (ADR 0008), a la hora de su última actividad. Se llama antes de leer o escribir nada de
+ * entrenamiento, así que ninguna respuesta enseña abierta una sesión abandonada y abrir la
+ * siguiente no choca con ella. No hay barrido por Cron: los datos de un usuario solo los lee él.
+ *
+ * Las horas de las series se comparan en JavaScript y no en SQL porque el contrato admite
+ * desfase horario y como texto no ordenarían bien. Una sesión abierta tiene unas decenas de series.
  */
-async function requireOpenSession(
+export async function closeIdleSession(db: Database, userId: string, now: Date): Promise<void> {
+  const open = await findActiveSessionRow(db, userId);
+  if (open === null) return;
+
+  const sets = await db
+    .select({ completedAt: setEntry.completedAt })
+    .from(setEntry)
+    .where(eq(setEntry.sessionId, open.id));
+
+  const endedAt = idleSessionEndAt(
+    { startedAt: open.startedAt, setCompletedAts: sets.map((set) => set.completedAt) },
+    now,
+  );
+  if (endedAt === null) return;
+
+  await db
+    .update(workoutSession)
+    .set({ endedAt, endedAutomatically: true })
+    .where(
+      and(
+        eq(workoutSession.id, open.id),
+        eq(workoutSession.userId, userId),
+        isNull(workoutSession.endedAt),
+      ),
+    );
+}
+
+/** Qué se quiere escribir: una serie nueva, con su hora, o corregir lo que ya hay. */
+type SessionWriteIntent =
+  { readonly kind: 'log'; readonly at: string } | { readonly kind: 'correct' };
+
+/**
+ * La sesión sobre la que se puede escribir: existe, es de este usuario y sigue abierta. Una que
+ * cerró quien entrenaba no se toca; es lo que ve la cola offline cuando reenvía sobre una sesión
+ * que se cerró desde otro móvil mientras no había red.
+ *
+ * Una que **se cerró sola** es otra cosa: el Worker la dio por abandonada sin noticias, y las
+ * noticias pueden estar esperando en la cola de un móvil sin cobertura. Las correcciones entran
+ * sin más, y una serie nueva la reabre si su hora continúa la actividad y no hay otra sesión
+ * abierta; si no, ya era otro entrenamiento.
+ */
+async function requireWritableSession(
   db: Database,
   userId: string,
   sessionId: string,
-): Promise<WorkoutSessionRow> {
+  intent: SessionWriteIntent,
+): Promise<{ session: WorkoutSessionRow; reopened: boolean }> {
   const session = await findSessionRow(db, userId, sessionId);
   if (session === null) throw sessionNotFound(sessionId);
-  if (session.endedAt !== null) {
-    throw new ApiException('session_closed', 'Esa sesión ya está cerrada', { sessionId });
-  }
+  if (session.endedAt === null) return { session, reopened: false };
 
-  return session;
+  const closed = new ApiException('session_closed', 'Esa sesión ya está cerrada', { sessionId });
+  if (!session.endedAutomatically) throw closed;
+  if (intent.kind === 'correct') return { session, reopened: false };
+  if (!continuesIdleSession(session.endedAt, intent.at)) throw closed;
+
+  const active = await findActiveSessionRow(db, userId);
+  if (active !== null && active.id !== sessionId) throw closed;
+
+  await db
+    .update(workoutSession)
+    .set({ endedAt: null, endedAutomatically: false })
+    .where(
+      and(
+        eq(workoutSession.id, sessionId),
+        eq(workoutSession.userId, userId),
+        eq(workoutSession.endedAutomatically, true),
+      ),
+    );
+
+  return { session: { ...session, endedAt: null, endedAutomatically: false }, reopened: true };
 }
 
 /** Una serie dentro de una sesión ya comprobada: el usuario lo puso el paso anterior. */
