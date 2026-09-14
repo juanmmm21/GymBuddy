@@ -13,9 +13,7 @@ const invitation = (code: string = CODE): Invitation => ({
   expiresAt: '2026-09-19T10:00:00.000Z',
 });
 
-const status = (pending: number, limit = 3): InvitationStatus => ({
-  limit,
-  remaining: Math.max(limit - pending, 0),
+const status = (pending: number): InvitationStatus => ({
   pending: Array.from({ length: pending }, (_unused, index) => ({
     createdAt: `2026-09-${String(index + 10)}T10:00:00.000Z`,
     expiresAt: `2026-09-${String(index + 17)}T10:00:00.000Z`,
@@ -64,21 +62,20 @@ describe('invitar a un amigo', () => {
     expect(screen.getByText(/Caduca el/)).toBeInTheDocument();
   });
 
-  it('al llegar al tope no ofrece crear otra y lo explica', async () => {
+  it('con invitaciones sin usar sigue ofreciendo crear otra', async () => {
     renderApp({
       path: '/invite',
       session,
       setup: (fake) => {
-        fake.on('GET', '/auth/invitations', () => jsonResponse(status(3)));
+        fake.on('GET', '/auth/invitations', () => jsonResponse(status(7)));
       },
     });
 
-    expect(await screen.findByText('No te quedan invitaciones')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Crear una invitación' })).not.toBeInTheDocument();
-    expect(screen.getByText(/Tienes 3 invitaciones sin usar/)).toBeInTheDocument();
+    expect(await screen.findByText(/Tienes 7 invitaciones sin usar\./)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Crear una invitación' })).toBeEnabled();
   });
 
-  it('el tope del servidor se explica aunque la pantalla creyera que quedaban', async () => {
+  it('si el servidor no puede crearla, lo explica y deja reintentar', async () => {
     const user = userEvent.setup();
 
     renderApp({
@@ -87,7 +84,7 @@ describe('invitar a un amigo', () => {
       setup: (fake) => {
         fake.on('GET', '/auth/invitations', () => jsonResponse(status(0)));
         fake.on('POST', '/auth/invitations', () =>
-          errorResponse('invitation_limit_reached', 409, 'Ya tienes 3 invitaciones sin usar.'),
+          errorResponse('internal_error', 500, 'Algo ha fallado en el servidor.'),
         );
       },
     });
@@ -96,7 +93,7 @@ describe('invitar a un amigo', () => {
 
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent('No se ha podido crear la invitación');
-    expect(alert).toHaveTextContent('Ya tienes 3 invitaciones sin usar.');
+    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument();
   });
 
   it('crear otra sustituye el código que se estaba enseñando y relee lo que queda', async () => {

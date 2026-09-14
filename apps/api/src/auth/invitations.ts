@@ -7,20 +7,11 @@ import {
 import { and, asc, eq, gt, isNull } from 'drizzle-orm';
 import type { Database } from '../db/client';
 import { invitation } from '../db/schema';
-import { ApiException } from '../http/errors';
 import { generateAccessCode } from './access-codes';
 import { sha256Hex } from './digest';
 
 /** Una semana: lo que tarda alguien en abrir el mensaje y ponerse a ello sin prisa. */
 export const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-
-/**
- * Cuántas invitaciones sin usar puede tener a la vez quien invita desde la app. El alta va por
- * invitación justamente para que no se abra sola: tres cubren invitar a unos amigos de una
- * tanda y ponen techo a lo que un usuario puede escribir en la D1 del plan gratuito. Las que se
- * usan o caducan dejan hueco, así que no es un tope de por vida.
- */
-export const MAX_PENDING_INVITATIONS = 3;
 
 export interface IssueInvitationOptions {
   /** Quien la genera desde la app; `null` si sale del secreto de administración. */
@@ -79,46 +70,16 @@ export async function listPendingInvitations(
         gt(invitation.expiresAt, now.toISOString()),
       ),
     )
-    .orderBy(asc(invitation.expiresAt))
-    .limit(MAX_PENDING_INVITATIONS);
+    .orderBy(asc(invitation.expiresAt));
 }
 
-/** Lo que la pantalla necesita para decidir si ofrecer otro código o explicar por qué no. */
+/** Lo que la pantalla enseña: las invitaciones de esa cuenta que todavía esperan a alguien. */
 export async function readInvitationStatus(
   db: Database,
   userId: string,
   now: Date,
 ): Promise<InvitationStatus> {
-  const pending = await listPendingInvitations(db, userId, now);
-
-  return {
-    limit: MAX_PENDING_INVITATIONS,
-    remaining: Math.max(MAX_PENDING_INVITATIONS - pending.length, 0),
-    pending,
-  };
-}
-
-/**
- * Una invitación pedida desde la app, con el tope aplicado. La cuenta de vivas y el alta no van
- * en una transacción a propósito: dos peticiones a la vez podrían dejar una invitación de más,
- * y eso da igual — lo que el tope evita es que una cuenta genere códigos sin freno, no que haya
- * exactamente tres.
- */
-export async function issueInvitationForUser(
-  db: Database,
-  userId: string,
-  now: Date,
-): Promise<Invitation> {
-  const { remaining, limit } = await readInvitationStatus(db, userId, now);
-  if (remaining === 0) {
-    throw new ApiException(
-      'invitation_limit_reached',
-      `Ya tienes ${String(limit)} invitaciones sin usar. Espera a que alguien use una o a que caduque.`,
-      { limit },
-    );
-  }
-
-  return issueInvitation(db, { createdByUserId: userId, now });
+  return { pending: await listPendingInvitations(db, userId, now) };
 }
 
 /**

@@ -10,7 +10,7 @@ import {
 } from '@gymbuddy/shared';
 import { Hono } from 'hono';
 import { issueDeviceLink } from '../../auth/device-links';
-import { issueInvitationForUser, readInvitationStatus } from '../../auth/invitations';
+import { issueInvitation, readInvitationStatus } from '../../auth/invitations';
 import { issueSessionToken } from '../../auth/jwt';
 import {
   finishDeviceLinkRegistration,
@@ -70,7 +70,7 @@ export const authRoute = new Hono<AuthenticatedEnv>()
     return c.json(await sessionFor(account, secret, now));
   })
 
-  /** Cuántas invitaciones sin usar tiene quien pregunta, y cuántas más puede generar. */
+  /** Las invitaciones sin usar de quien pregunta, con su caducidad. */
   .get('/auth/invitations', requireUser, async (c) => {
     const status: InvitationStatus = await readInvitationStatus(
       createDatabase(c.env.DB),
@@ -86,11 +86,10 @@ export const authRoute = new Hono<AuthenticatedEnv>()
    * claro: en la base queda su digest, igual que con el de administración.
    */
   .post('/auth/invitations', requireUser, async (c) => {
-    const created: Invitation = await issueInvitationForUser(
-      createDatabase(c.env.DB),
-      c.get('user').id,
-      new Date(),
-    );
+    const created: Invitation = await issueInvitation(createDatabase(c.env.DB), {
+      createdByUserId: c.get('user').id,
+      now: new Date(),
+    });
 
     return c.json(created, 201);
   })

@@ -12,11 +12,7 @@ import {
 import { env } from 'cloudflare:test';
 import { eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
-import {
-  hashInvitationCode,
-  issueInvitation,
-  MAX_PENDING_INVITATIONS,
-} from '../src/auth/invitations';
+import { hashInvitationCode, issueInvitation } from '../src/auth/invitations';
 import { createDatabase, type Database } from '../src/db/client';
 import { authChallenge, invitation, passkeyCredential, user } from '../src/db/schema';
 import { app } from '../src/index';
@@ -93,8 +89,8 @@ describe('invitar a un amigo desde la app', () => {
 
     const { code } = await issueInvitation(db, { createdByUserId: null, now: new Date() });
     session = await register(code, 'Juan');
-    // La de administración que creó la cuenta no es de nadie: el tope arranca entero.
-    expect((await readStatus(session.token)).remaining).toBe(MAX_PENDING_INVITATIONS);
+    // La de administración que creó la cuenta no es de nadie: no sale en su lista.
+    expect((await readStatus(session.token)).pending).toEqual([]);
   });
 
   it('el código solo viaja en la respuesta: en la base queda su digest', async () => {
@@ -120,21 +116,17 @@ describe('invitar a un amigo desde la app', () => {
     const friend = await register(formatAccessCode(code).toLowerCase(), 'Amiga');
 
     expect(friend.user.id).not.toBe(session.user.id);
-    expect((await readStatus(session.token)).remaining).toBe(MAX_PENDING_INVITATIONS);
+    expect((await readStatus(session.token)).pending).toEqual([]);
   });
 
-  it('cuenta las que siguen sin usar y corta al llegar al tope', async () => {
-    for (let index = 0; index < MAX_PENDING_INVITATIONS; index += 1) {
-      await newInvitation(session.token);
+  it('da todos los códigos que se pidan y lista los que siguen sin usar', async () => {
+    const codes = new Set<string>();
+    for (let index = 0; index < 5; index += 1) {
+      codes.add((await newInvitation(session.token)).code);
     }
 
-    const status = await readStatus(session.token);
-    expect(status).toMatchObject({ limit: MAX_PENDING_INVITATIONS, remaining: 0 });
-    expect(status.pending).toHaveLength(MAX_PENDING_INVITATIONS);
-
-    const refused = await invite(session.token);
-    expect(refused.status).toBe(409);
-    expect(apiErrorSchema.parse(await refused.json()).error.code).toBe('invitation_limit_reached');
+    expect(codes.size).toBe(5);
+    expect((await readStatus(session.token)).pending).toHaveLength(5);
   });
 
   it('sin sesión no se pide ni se consulta', async () => {

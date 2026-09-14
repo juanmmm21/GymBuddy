@@ -14,8 +14,6 @@ import {
   hashInvitationCode,
   INVITATION_TTL_MS,
   issueInvitation,
-  issueInvitationForUser,
-  MAX_PENDING_INVITATIONS,
   readInvitationStatus,
   releaseInvitation,
 } from '../src/auth/invitations';
@@ -102,56 +100,46 @@ describe('invitaciones pedidas desde la app', () => {
     ]);
   });
 
-  it('empieza con el tope entero y lo va gastando', async () => {
-    expect(await readInvitationStatus(db, inviterId, now)).toEqual({
-      limit: MAX_PENDING_INVITATIONS,
-      remaining: MAX_PENDING_INVITATIONS,
-      pending: [],
-    });
+  const issueFor = (userId: string) => issueInvitation(db, { createdByUserId: userId, now });
 
-    await issueInvitationForUser(db, inviterId, now);
-    const status = await readInvitationStatus(db, inviterId, now);
+  it('lista las que ese usuario tiene sin usar, de la que antes caduca a la que después', async () => {
+    expect(await readInvitationStatus(db, inviterId, now)).toEqual({ pending: [] });
 
-    expect(status.remaining).toBe(MAX_PENDING_INVITATIONS - 1);
-    expect(status.pending).toHaveLength(1);
-    expect(status.pending[0]?.createdAt).toBe(now.toISOString());
+    const later = new Date(now.getTime() + 60_000);
+    await issueInvitation(db, { createdByUserId: inviterId, now: later });
+    await issueFor(inviterId);
+    const { pending } = await readInvitationStatus(db, inviterId, later);
+
+    expect(pending.map(({ createdAt }) => createdAt)).toEqual([
+      now.toISOString(),
+      later.toISOString(),
+    ]);
   });
 
-  it('al llegar al tope no da más códigos', async () => {
-    for (let index = 0; index < MAX_PENDING_INVITATIONS; index += 1) {
-      await issueInvitationForUser(db, inviterId, now);
+  it('no tiene tope: se pueden pedir tantas como hagan falta', async () => {
+    for (let index = 0; index < 12; index += 1) {
+      await issueFor(inviterId);
     }
 
-    await expect(issueInvitationForUser(db, inviterId, now)).rejects.toThrow(
-      expect.objectContaining({ code: 'invitation_limit_reached' }),
-    );
+    expect((await readInvitationStatus(db, inviterId, now)).pending).toHaveLength(12);
   });
 
-  it('una caducada y una usada dejan hueco otra vez', async () => {
-    const { code } = await issueInvitationForUser(db, inviterId, now);
-    await issueInvitationForUser(db, inviterId, now);
-    await issueInvitationForUser(db, inviterId, now);
+  it('una usada o caducada deja de contar como pendiente', async () => {
+    const { code } = await issueFor(inviterId);
+    await issueFor(inviterId);
 
     await consumeInvitation(db, await hashInvitationCode(code), now);
-    expect((await readInvitationStatus(db, inviterId, now)).remaining).toBe(1);
+    expect((await readInvitationStatus(db, inviterId, now)).pending).toHaveLength(1);
 
     const afterExpiry = new Date(now.getTime() + INVITATION_TTL_MS);
-    expect(await readInvitationStatus(db, inviterId, afterExpiry)).toEqual({
-      limit: MAX_PENDING_INVITATIONS,
-      remaining: MAX_PENDING_INVITATIONS,
-      pending: [],
-    });
+    expect(await readInvitationStatus(db, inviterId, afterExpiry)).toEqual({ pending: [] });
   });
 
-  it('las de otra cuenta no gastan el tope de la tuya', async () => {
-    for (let index = 0; index < MAX_PENDING_INVITATIONS; index += 1) {
-      await issueInvitationForUser(db, otherId, now);
-    }
+  it('no enseña las de otra cuenta ni las de administración', async () => {
+    await issueFor(otherId);
     await issueInvitation(db, { createdByUserId: null, now });
 
-    expect((await readInvitationStatus(db, inviterId, now)).remaining).toBe(
-      MAX_PENDING_INVITATIONS,
-    );
+    expect(await readInvitationStatus(db, inviterId, now)).toEqual({ pending: [] });
   });
 });
 

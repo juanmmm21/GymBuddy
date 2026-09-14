@@ -79,22 +79,15 @@ function Invitations({ status }: InvitationsProps) {
 
       <PendingSummary status={status} locale={locale} />
 
-      {status.remaining > 0 ? (
-        <Button
-          size="lg"
-          fullWidth
-          loading={invite.isPending}
-          variant={invite.data === undefined ? 'primary' : 'secondary'}
-          onClick={ask}
-        >
-          {invite.data === undefined ? 'Crear una invitación' : 'Crear otra invitación'}
-        </Button>
-      ) : (
-        <Notice tone="warning" title="No te quedan invitaciones">
-          Puedes tener {String(status.limit)} sin usar a la vez. Cuando alguna se use o caduque,
-          podrás crear otra.
-        </Notice>
-      )}
+      <Button
+        size="lg"
+        fullWidth
+        loading={invite.isPending}
+        variant={invite.data === undefined ? 'primary' : 'secondary'}
+        onClick={ask}
+      >
+        {invite.data === undefined ? 'Crear una invitación' : 'Crear otra invitación'}
+      </Button>
     </div>
   );
 }
@@ -141,18 +134,13 @@ interface PendingSummaryProps {
 /** Cuántas siguen esperando a que alguien las use, y hasta cuándo valen. */
 function PendingSummary({ status, locale }: PendingSummaryProps) {
   if (status.pending.length === 0) {
-    return (
-      <p className={styles.summary}>
-        No tienes ninguna invitación sin usar. Puedes crear hasta {String(status.limit)}.
-      </p>
-    );
+    return <p className={styles.summary}>No tienes ninguna invitación sin usar.</p>;
   }
 
   return (
     <section className={styles.summary}>
       <p>
-        Tienes {pluralize(status.pending.length, 'invitación sin usar', 'invitaciones sin usar')} y
-        puedes crear {String(status.remaining)} más.
+        Tienes {pluralize(status.pending.length, 'invitación sin usar', 'invitaciones sin usar')}.
       </p>
       <ul className={styles.pending}>
         {status.pending.map((pending) => (

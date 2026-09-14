@@ -128,12 +128,10 @@ export const pendingInvitationSchema = z.object({
 });
 
 /**
- * Cuántas invitaciones sin usar tiene quien pregunta y cuántas más puede generar. El tope lo
- * fija el Worker y viaja en la respuesta: la PWA lo enseña, no lo decide.
+ * Las invitaciones sin usar de quien pregunta. No hay tope de cuántas puede generar: lo que
+ * cierra el alta es que cada código sea de un solo uso y caduque.
  */
 export const invitationStatusSchema = z.object({
-  limit: z.int().positive(),
-  remaining: z.int().nonnegative(),
   pending: z.array(pendingInvitationSchema),
 });
 
