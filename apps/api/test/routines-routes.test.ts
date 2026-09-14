@@ -3,7 +3,9 @@ import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { issueSessionToken } from '../src/auth/jwt';
+import { createDatabase } from '../src/db/client';
 import { app } from '../src/index';
+import { listRoutineRepRanges } from '../src/training/routines';
 import { seedTrainingScenario } from './fixtures';
 import { envWithSecrets } from './worker-env';
 
@@ -24,7 +26,7 @@ async function bearer(userId: string): Promise<string> {
 }
 
 interface Call {
-  readonly method: 'GET' | 'POST' | 'PATCH';
+  readonly method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
   readonly path: string;
   readonly token?: string;
   readonly body?: unknown;
@@ -65,6 +67,7 @@ function item(input: ItemInput): Record<string, unknown> {
 }
 
 describe('api de rutinas', () => {
+  let userId: string;
   let token: string;
   let otherToken: string;
   let benchId: string;
@@ -73,6 +76,7 @@ describe('api de rutinas', () => {
 
   beforeEach(async () => {
     const seeded = await seedTrainingScenario(env.DB);
+    userId = seeded.userId;
     token = await bearer(seeded.userId);
     otherToken = await bearer(seeded.otherUserId);
     benchId = seeded.benchId;
@@ -379,6 +383,130 @@ describe('api de rutinas', () => {
     expect(restored.archivedAt).toBeNull();
   });
 
+  it('borra la rutina del todo, con sus líneas, y repetirlo sigue siendo 204', async () => {
+    const routineId = uuid();
+    await call({
+      method: 'POST',
+      path: '/routines',
+      token,
+      body: {
+        id: routineId,
+        name: 'Empuje',
+        items: [item({ trackedExerciseId: benchId }), item({ trackedExerciseId: squatId })],
+      },
+    });
+
+    const deleted = await call({ method: 'DELETE', path: `/routines/${routineId}`, token });
+    expect(deleted.status).toBe(204);
+    expect(await deleted.text()).toBe('');
+
+    const all = routineListSchema.parse(
+      await (await call({ method: 'GET', path: '/routines?includeArchived=true', token })).json(),
+    );
+    expect(all).toEqual([]);
+    expect((await call({ method: 'GET', path: `/routines/${routineId}`, token })).status).toBe(404);
+
+    // La cascada de `routine_item` la aplica D1: no quedan líneas huérfanas.
+    const orphans = await env.DB.prepare(
+      'select count(*) as n from routine_item where routine_id = ?',
+    )
+      .bind(routineId)
+      .first<{ n: number }>();
+    expect(orphans?.n).toBe(0);
+
+    // Un doble toque o un reintento no fallan.
+    const again = await call({ method: 'DELETE', path: `/routines/${routineId}`, token });
+    expect(again.status).toBe(204);
+  });
+
+  it('borra también una archivada, y los ejercicios que nombraba siguen en tu lista', async () => {
+    const routineId = uuid();
+    await call({
+      method: 'POST',
+      path: '/routines',
+      token,
+      body: { id: routineId, name: 'Pierna', items: [item({ trackedExerciseId: squatId })] },
+    });
+    await call({
+      method: 'PATCH',
+      path: `/routines/${routineId}`,
+      token,
+      body: { archived: true },
+    });
+
+    expect((await call({ method: 'DELETE', path: `/routines/${routineId}`, token })).status).toBe(
+      204,
+    );
+
+    const exercises = z
+      .array(z.object({ id: z.string() }))
+      .parse(await (await call({ method: 'GET', path: '/exercises', token })).json());
+    expect(exercises.map((exercise) => exercise.id)).toContain(squatId);
+  });
+
+  it('borrar la de otro usuario responde 204 y no la toca', async () => {
+    const routineId = uuid();
+    await call({
+      method: 'POST',
+      path: '/routines',
+      token,
+      body: { id: routineId, name: 'Empuje', items: [item({ trackedExerciseId: benchId })] },
+    });
+
+    // 204 y no 404: un borrado idempotente no puede confirmar si el id existe en otra cuenta.
+    const foreign = await call({
+      method: 'DELETE',
+      path: `/routines/${routineId}`,
+      token: otherToken,
+    });
+    expect(foreign.status).toBe(204);
+
+    const mine = routineSchema.parse(
+      await (await call({ method: 'GET', path: `/routines/${routineId}`, token })).json(),
+    );
+    expect(mine.items).toHaveLength(1);
+  });
+
+  it('al borrar la rutina más reciente, el rango del estancamiento pasa a la que queda', async () => {
+    const older = uuid();
+    const newer = uuid();
+    await call({
+      method: 'POST',
+      path: '/routines',
+      token,
+      body: {
+        id: older,
+        name: 'Fuerza',
+        items: [item({ trackedExerciseId: benchId, targetRepsMin: 3, targetRepsMax: 5 })],
+      },
+    });
+    await call({
+      method: 'POST',
+      path: '/routines',
+      token,
+      body: {
+        id: newer,
+        name: 'Volumen',
+        items: [item({ trackedExerciseId: benchId, targetRepsMin: 10, targetRepsMax: 12 })],
+      },
+    });
+    // Las dos se crean en el mismo milisegundo con facilidad: se fija el orden de alta a mano.
+    await env.DB.prepare('update routine set created_at = ? where id = ?')
+      .bind('2026-09-01T10:00:00.000Z', older)
+      .run();
+    await env.DB.prepare('update routine set created_at = ? where id = ?')
+      .bind('2026-09-10T10:00:00.000Z', newer)
+      .run();
+
+    const db = createDatabase(env.DB);
+
+    expect((await listRoutineRepRanges(db, userId)).get(benchId)).toEqual({ min: 10, max: 12 });
+
+    await call({ method: 'DELETE', path: `/routines/${newer}`, token });
+
+    expect((await listRoutineRepRanges(db, userId)).get(benchId)).toEqual({ min: 3, max: 5 });
+  });
+
   it('la rutina de otro usuario no existe, ni para leerla ni para cambiarla', async () => {
     const routineId = uuid();
     await call({
@@ -410,8 +538,11 @@ describe('api de rutinas', () => {
       body: { id: uuid(), name: 'Empuje', items: [] },
     });
 
+    const remove = await call({ method: 'DELETE', path: `/routines/${uuid()}` });
+
     expect(list.status).toBe(401);
     expect(create.status).toBe(401);
+    expect(remove.status).toBe(401);
     expect(await errorCode(list)).toBe('unauthorized');
   });
 });
