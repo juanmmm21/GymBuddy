@@ -1,0 +1,23 @@
+/* Cuadrada como los GIFs del catálogo, y con su sitio reservado para que la lista no salte. */
+.frame {
+  flex-shrink: 0;
+  display: block;
+  width: var(--gb-space-xxxl);
+  height: var(--gb-space-xxxl);
+  overflow: hidden;
+  border-radius: var(--gb-radius-sm);
+  background: var(--gb-color-surface-sunken);
+}
+
+.image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity var(--gb-duration-base) var(--gb-ease-standard);
+}
+
+.imageVisible {
+  opacity: 1;
+}
