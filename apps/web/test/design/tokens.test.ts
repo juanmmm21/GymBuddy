@@ -57,6 +57,8 @@ const READABLE_PAIRS: readonly (readonly [keyof ColorTokens, keyof ColorTokens])
   ['accent', 'surface'],
   ['accent', 'canvas'],
   ['onAccent', 'accent'],
+  // El botón central de la sesión, cuando ya estás en ella.
+  ['onAccent', 'accentStrong'],
   ['accent', 'accentSoft'],
   ['success', 'successSoft'],
   ['warning', 'warningSoft'],

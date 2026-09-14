@@ -1,5 +1,5 @@
 import type { WorkoutSessionDetail } from '@gymbuddy/shared';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { queryKeys } from '../../src/api/queries';
@@ -164,6 +164,22 @@ describe('abrir la app sin red', () => {
     expect(screen.getByText('Sin sincronizar')).toBeInTheDocument();
   });
 
+  it('una sesión empezada sin red saca el botón central en cualquier otra pestaña', async () => {
+    renderApp({
+      path: '/history',
+      session,
+      stored: deviceSnapshot(null),
+      queued: [queuedStart(), queuedSet(1)],
+      setup: offline,
+    });
+
+    const bar = screen.getByRole('navigation', { name: 'Secciones' });
+    expect(await within(bar).findByRole('link', { name: 'Sesión en curso' })).toHaveAttribute(
+      'href',
+      '/session',
+    );
+  });
+
   it('sin red, una sesión parada más de una hora ya no se ofrece seguir (ADR 0008)', async () => {
     const minutesAgo = (minutes: number): string =>
       new Date(Date.now() - minutes * 60_000).toISOString();
@@ -190,6 +206,8 @@ describe('abrir la app sin red', () => {
 
     expect(await screen.findByRole('link', { name: 'Empezar a entrenar' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Seguir la sesión' })).not.toBeInTheDocument();
+    // Ni en la barra: el botón central sale de la misma lectura.
+    expect(screen.queryByRole('link', { name: 'Sesión en curso' })).not.toBeInTheDocument();
   });
 
   it('lo guardado de otra cuenta no se enseña y se retira del móvil', () => {
