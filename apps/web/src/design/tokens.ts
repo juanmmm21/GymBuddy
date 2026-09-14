@@ -34,56 +34,71 @@ export type ColorTokens = {
   readonly warningSoft: string;
   readonly danger: string;
   readonly dangerSoft: string;
+  /** Un récord personal: el rojo del disco de 25 kg, el más pesado de la barra. */
+  readonly record: string;
+  /** Texto encima de `record`. */
+  readonly onRecord: string;
   readonly focusRing: string;
   /** Velo detrás de una hoja modal. */
   readonly overlay: string;
 };
 
+/**
+ * Paleta «Discos» (elegida por Juan el 2026-09-14): los colores de los discos de competición
+ * dan significado en vez de decorar. El azul del de 20 kg es la acción y el rojo del de 25 kg,
+ * el récord. Los neutros tiran a azul para que el acento no parezca pegado encima. Todos los pares
+ * de texto y fondo pasan 4,5:1 de contraste (WCAG AA), y un test lo vigila: la app se lee de un
+ * vistazo entre series, con la mano sudada y a medio brazo.
+ */
 export const colors: Readonly<Record<ColorScheme, ColorTokens>> = {
   light: {
-    canvas: '#f4f5f7',
+    canvas: '#f3f5f8',
     surface: '#ffffff',
     surfaceRaised: '#ffffff',
-    surfaceSunken: '#eceef2',
-    border: '#e1e4ea',
-    borderStrong: '#c5cad4',
-    text: '#14161c',
-    textSecondary: '#4c5160',
-    textMuted: '#7c8394',
-    accent: '#d9480f',
-    accentStrong: '#b8390a',
+    surfaceSunken: '#e9edf2',
+    border: '#e2e6ec',
+    borderStrong: '#c3cad5',
+    text: '#121826',
+    textSecondary: '#3d4658',
+    textMuted: '#5f687a',
+    accent: '#1f5fbf',
+    accentStrong: '#174a96',
     onAccent: '#ffffff',
-    accentSoft: '#ffefe6',
-    success: '#2b8a3e',
-    successSoft: '#e6f5ea',
-    warning: '#b35c00',
-    warningSoft: '#fff3e0',
-    danger: '#c92a2a',
-    dangerSoft: '#fdecec',
-    focusRing: '#d9480f',
-    overlay: 'rgba(20, 22, 28, 0.55)',
+    accentSoft: '#e7effb',
+    success: '#1b7541',
+    successSoft: '#e4f3ea',
+    warning: '#8f5f00',
+    warningSoft: '#fff3d1',
+    danger: '#c4213a',
+    dangerSoft: '#fde8eb',
+    record: '#d7263d',
+    onRecord: '#ffffff',
+    focusRing: '#1f5fbf',
+    overlay: 'rgba(18, 24, 38, 0.55)',
   },
   dark: {
-    canvas: '#0f1115',
-    surface: '#171a21',
-    surfaceRaised: '#1f232c',
-    surfaceSunken: '#0b0d11',
-    border: '#2a2f3a',
-    borderStrong: '#3d4350',
-    text: '#f2f3f5',
-    textSecondary: '#b4b9c6',
-    textMuted: '#7c8394',
-    accent: '#ff7a3d',
-    accentStrong: '#ff9361',
-    onAccent: '#1a0a00',
-    accentSoft: '#33200f',
-    success: '#51cf66',
-    successSoft: '#12301c',
-    warning: '#ffa94d',
-    warningSoft: '#3a2610',
-    danger: '#ff6b6b',
-    dangerSoft: '#3b1616',
-    focusRing: '#ff7a3d',
+    canvas: '#0e1117',
+    surface: '#171b23',
+    surfaceRaised: '#1f2530',
+    surfaceSunken: '#0a0d12',
+    border: '#282e39',
+    borderStrong: '#3b4350',
+    text: '#eef1f6',
+    textSecondary: '#b6bdca',
+    textMuted: '#8b93a2',
+    accent: '#6f9dff',
+    accentStrong: '#93b5ff',
+    onAccent: '#0a1530',
+    accentSoft: '#16233d',
+    success: '#4cc47f',
+    successSoft: '#0f2a1b',
+    warning: '#f2b705',
+    warningSoft: '#33290a',
+    danger: '#ff6b7d',
+    dangerSoft: '#3a1419',
+    record: '#ff5a6e',
+    onRecord: '#1f0006',
+    focusRing: '#6f9dff',
     overlay: 'rgba(0, 0, 0, 0.6)',
   },
 };
@@ -102,7 +117,7 @@ export const spacing = {
 
 export const radius = {
   sm: 8,
-  md: 12,
+  md: 14,
   lg: 20,
   /** Suficiente para que cualquier caja salga redondeada del todo. */
   pill: 999,
@@ -116,18 +131,30 @@ export interface TypeStyle {
 }
 
 /**
- * Sin fuentes descargadas: la del sistema pinta en el primer fotograma y en un gimnasio
- * sin cobertura no hay nada que esperar. Los números usan cifras tabulares para que el
- * peso no baile al cambiar de 80.00 a 82.50 (ver `global.css`).
+ * El texto corrido va con la fuente del sistema: pinta en el primer fotograma. Títulos y cifras
+ * van con Archivo estrecha, que viaja **dentro de la app** (`@fontsource-variable/archivo`,
+ * importada en `main.tsx`) y se precachea con el shell: en un gimnasio sin cobertura no se
+ * descarga nada. Si aún no ha cargado, cae a una estrecha del sistema. Los números usan cifras
+ * tabulares para que el peso no baile al cambiar de 80.00 a 82.50 (ver `global.css`).
  */
 export const fontFamilies = {
   sans: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+  display: "'Archivo Variable', 'Arial Narrow', -apple-system, BlinkMacSystemFont, sans-serif",
   mono: "ui-monospace, 'SF Mono', Menlo, Consolas, monospace",
 } as const;
 
+/**
+ * Anchuras del eje `wdth` de Archivo. Estrecha, un peso con sus decimales y el récord caben en
+ * una línea de móvil sin encoger la letra.
+ */
+export const fontWidths = {
+  condensed: '78%',
+} as const;
+
 export const typography: Readonly<Record<TypeRole, TypeStyle>> = {
-  display: { size: 40, lineHeight: 44, weight: 700, letterSpacing: -0.8 },
-  headline: { size: 28, lineHeight: 34, weight: 700, letterSpacing: -0.4 },
+  // Display y headline van en Archivo estrecha: a igual tamaño ocupan menos, así que suben un punto.
+  display: { size: 44, lineHeight: 46, weight: 700, letterSpacing: -0.4 },
+  headline: { size: 32, lineHeight: 36, weight: 700, letterSpacing: -0.2 },
   title: { size: 20, lineHeight: 26, weight: 600, letterSpacing: -0.2 },
   body: { size: 16, lineHeight: 22, weight: 400, letterSpacing: 0 },
   bodyStrong: { size: 16, lineHeight: 22, weight: 600, letterSpacing: 0 },
@@ -161,8 +188,8 @@ export const motionEasing = {
 
 export const elevation: Readonly<Record<ColorScheme, ElevationTokens>> = {
   light: {
-    raised: '0 1px 2px rgba(20, 22, 28, 0.06), 0 4px 12px rgba(20, 22, 28, 0.08)',
-    sheet: '0 -8px 32px rgba(20, 22, 28, 0.18)',
+    raised: '0 1px 2px rgba(18, 24, 38, 0.06), 0 4px 12px rgba(18, 24, 38, 0.08)',
+    sheet: '0 -8px 32px rgba(18, 24, 38, 0.18)',
   },
   dark: {
     raised: '0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.5)',

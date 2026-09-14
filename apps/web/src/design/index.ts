@@ -2,6 +2,7 @@ export {
   colors,
   elevation,
   fontFamilies,
+  fontWidths,
   motionDuration,
   motionEasing,
   radius,

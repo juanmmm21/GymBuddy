@@ -2,6 +2,7 @@ import {
   colors,
   elevation,
   fontFamilies,
+  fontWidths,
   motionDuration,
   motionEasing,
   radius,
@@ -40,6 +41,9 @@ export function cssVariablesFor(scheme: ColorScheme): CssVariables {
   }
   for (const [name, value] of Object.entries(fontFamilies)) {
     variables[variableName('font', name)] = value;
+  }
+  for (const [name, value] of Object.entries(fontWidths)) {
+    variables[variableName('font-width', name)] = value;
   }
   for (const [role, style] of Object.entries(typography)) {
     const base = `type-${kebabCase(role)}`;

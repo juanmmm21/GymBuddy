@@ -4,6 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 // Estas opciones leen el tag del catálogo de `@gymbuddy/shared`, que se publica como TypeScript sin
 // compilar. Por eso los scripts arrancan Vite con `--configLoader runner`: el cargador por
 // defecto deja el paquete fuera del bundle de la configuración y Node no resuelve sus imports.
+import { colors } from './src/design/tokens';
 import { workboxOptions } from './src/offline/service-worker';
 
 /** Puerto de `wrangler dev`; en desarrollo la PWA habla con el Worker a través del proxy. */
@@ -26,8 +27,8 @@ export default defineConfig({
         scope: '/',
         // Los colores del manifiesto son los del tema claro: el manifiesto no sabe de
         // esquemas y el sistema los usa para la pantalla de arranque y la barra de estado.
-        background_color: '#f4f5f7',
-        theme_color: '#f4f5f7',
+        background_color: colors.light.canvas,
+        theme_color: colors.light.canvas,
         icons: [
           { src: 'pwa-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'pwa-512.png', sizes: '512x512', type: 'image/png' },
