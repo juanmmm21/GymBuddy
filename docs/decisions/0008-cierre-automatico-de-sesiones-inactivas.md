@@ -1,7 +1,7 @@
-# 0008 — Una sesión se cierra sola tras veinte minutos sin actividad
+# 0008 — Una sesión se cierra sola tras un rato sin actividad
 
 **Fecha:** 2026-09-14
-**Estado:** aceptada
+**Estado:** aceptada (límite revisado el 2026-09-15: de veinte a sesenta minutos, ver abajo)
 **Sustituye** la regla de la Fase 11 (2026-09-11) de que el Worker nunca cierra una sesión solo y la mascota pide cerrarla tras seis horas.
 
 ## Contexto
@@ -27,7 +27,16 @@ La regla anterior se había tomado por dos miedos, y los dos siguen siendo ciert
 
 ## Consecuencias
 
-*   **Un descanso de más de veinte minutos corta la sesión**, aunque se siga en el gimnasio. La serie siguiente abre otra. Es el precio de la regla y lo aceptó Juan. Cambiar el límite es tocar una constante del dominio compartido.
+*   **Un descanso de más del límite corta la sesión**, aunque se siga en el gimnasio. La serie siguiente abre otra. Es el precio de la regla y lo aceptó Juan. Cambiar el límite es tocar una constante del dominio compartido.
 *   **Una sesión empezada y sin ninguna serie se cierra a la hora a la que empezó** y queda en el historial con duración cero. No se borra: borrar datos del usuario sin que lo pida es peor que una fila vacía.
 *   La cola descarta con aviso una serie que ya no continúa la actividad. Solo pasa si el móvil estuvo más de veinte minutos sin registrar nada y, sin red, no llegó a ver la sesión cerrada.
 *   Leer entrenamiento cuesta una o dos consultas más por petición (la sesión abierta y las horas de sus series). Solo escribe cuando de verdad cierra algo.
+
+## Revisión — 2026-09-15: sesenta minutos, y el cardio en marcha no cuenta como inactividad
+
+Juan entrenó con la regla y **veinte minutos cortaban entrenamientos de verdad**: esperar a un amigo antes del cardio, o el cardio mismo, que dura treinta minutos sin registrar ninguna serie y dejaba la sesión cerrada antes de apuntarlo. Se le propusieron un límite más largo, uno configurable, no contar el cardio en marcha o quitar el cierre, y eligió **juntar dos**: el límite más largo y que el cardio en marcha no cuente:
+
+*   **`SESSION_IDLE_LIMIT_MINUTES` pasa de 20 a 60.** Todo lo demás de esta decisión sigue igual: la hora de cierre es la de la última actividad, la cola reabre con series que continúan la actividad (ahora, a menos de una hora) y la PWA aplica la misma regla. No hace falta migración: la regla se aplica al leer, y una sesión que ya se cerró sola con el límite viejo se queda cerrada (reabrirla solo lo hace una serie de la cola que la continúe).
+*   **Un cardio en marcha tiene que contar como actividad** y no dejar que la sesión se cierre mientras dura. Hoy no existe: una serie es peso y repeticiones, y el cardio con duración es otra petición de Juan todavía por hacer. Cuando llegue, `SessionActivity` tendrá que incluir el cardio en curso además de las horas de las series, en la misma función pura, para que el Worker y la PWA lo sigan decidiendo igual.
+
+Consecuencia: una sesión olvidada queda abierta hasta una hora antes de cerrarse sola, pero la duración no se estropea, porque la hora de cierre sigue siendo la de la última serie.
