@@ -52,6 +52,8 @@ export {
   mascotState,
 } from './mascot';
 export type { MascotDeviceSignals, MascotMood, MascotState, MascotTrainingSignals } from './mascot';
+export { OLYMPIC_BAR_GRAMS, PLATE_GRAMS, barbellLoad } from './plates';
+export type { BarbellLoad, PlateGrams } from './plates';
 export { NO_PERSONAL_RECORDS, detectPersonalRecords } from './records';
 export {
   SESSION_IDLE_LIMIT_MINUTES,
