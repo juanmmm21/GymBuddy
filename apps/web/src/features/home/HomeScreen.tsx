@@ -70,7 +70,6 @@ function SignalsSummary({ signals, locale }: SignalsSummaryProps) {
   if (signals.lastSessionAt === null && sessionState.kind === 'none') {
     return (
       <div className={styles.stack}>
-        <LiveMascot signals={signals} device={NO_DEVICE_SIGNALS} locale={locale} />
         <StartCard lastSessionAt={null} daysSinceLastSession={null} />
       </div>
     );
@@ -87,7 +86,7 @@ function SignalsSummary({ signals, locale }: SignalsSummaryProps) {
         />
       )}
 
-      <LiveMascot signals={signals} device={NO_DEVICE_SIGNALS} locale={locale} />
+      <LiveMascot signals={signals} device={NO_DEVICE_SIGNALS} locale={locale} spot="home" />
 
       <section className={styles.metrics} aria-label="Cómo vas">
         <Metric label="Racha" value={pluralize(signals.weeklyStreak, 'semana', 'semanas')} />

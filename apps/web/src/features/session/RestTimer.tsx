@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useNow } from '../../hooks/use-now';
 import { cx } from '../../lib/cx';
 import { formatStopwatch } from '../../lib/format';
@@ -9,18 +10,21 @@ export interface RestTimerProps {
   readonly lastSetAt: string;
   readonly target: RestTargetSeconds;
   readonly onTargetChange: (target: RestTargetSeconds) => void;
+  /** La mascota, que descansa aquí dentro contigo y avisa cuando toca la siguiente. */
+  readonly companion?: ReactNode;
 }
 
 /**
  * El descanso entre series. No arranca al pulsar nada: cuenta desde la última serie
  * registrada, así que recargar la app o volver del catálogo no lo reinicia.
  */
-export function RestTimer({ lastSetAt, target, onTargetChange }: RestTimerProps) {
+export function RestTimer({ lastSetAt, target, onTargetChange, companion }: RestTimerProps) {
   const now = useNow();
   const rest = restStateAt(lastSetAt, now, target);
 
   return (
     <section className={cx(styles.timer, rest.done && styles.timerDone)} aria-label="Descanso">
+      {companion}
       <div className={styles.head}>
         <span className={styles.label}>Descanso</span>
         <span className={styles.value} role="timer">

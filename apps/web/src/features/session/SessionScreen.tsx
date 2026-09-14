@@ -304,18 +304,39 @@ function ActiveSession({
     onOpenLog(exerciseId);
   };
 
+  const mascotSignals = openSessionSignals(session);
+  const mascotDevice = sessionDeviceSignals(lastSetAt, restTarget, records);
+
   return (
     <div className={styles.stack}>
       <SessionClock session={session} locale={locale} />
 
-      <LiveMascot
-        signals={openSessionSignals(session)}
-        device={sessionDeviceSignals(lastSetAt, restTarget, records)}
-        locale={locale}
-      />
+      <LiveMascot signals={mascotSignals} device={mascotDevice} locale={locale} spot="session">
+        {records.length > 0 && (
+          <div className={styles.records}>
+            <p className={styles.recordsCount}>
+              {pluralize(records.length, 'marca nueva', 'marcas nuevas')}
+            </p>
+            <ul className={styles.recordsList}>
+              {records.map((record) => (
+                <li key={record.id}>
+                  {RECORD_LABELS[record.kind]}: {formatWeightLabel(record.value, locale)}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </LiveMascot>
 
       {lastSetAt !== null && (
-        <RestTimer lastSetAt={lastSetAt} target={restTarget} onTargetChange={onRestTargetChange} />
+        <RestTimer
+          lastSetAt={lastSetAt}
+          target={restTarget}
+          onTargetChange={onRestTargetChange}
+          companion={
+            <LiveMascot signals={mascotSignals} device={mascotDevice} locale={locale} spot="rest" />
+          }
+        />
       )}
 
       <Button
@@ -327,18 +348,6 @@ function ActiveSession({
       >
         Registrar serie
       </Button>
-
-      {records.length > 0 && (
-        <Notice tone="success" title={pluralize(records.length, 'marca nueva', 'marcas nuevas')}>
-          <ul className={styles.records}>
-            {records.map((record) => (
-              <li key={record.id}>
-                {RECORD_LABELS[record.kind]}: {formatWeightLabel(record.value, locale)}
-              </li>
-            ))}
-          </ul>
-        </Notice>
-      )}
 
       {routineId !== null && (
         <AsyncContent query={routines} quietRefetchError>
