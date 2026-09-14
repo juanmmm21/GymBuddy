@@ -1,15 +1,16 @@
 import type { Locale, TrackedExercise } from '@gymbuddy/shared';
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import { Link } from 'react-router';
 import { useTrackedExercises } from '../../api/queries';
 import { useSession } from '../../auth/SessionProvider';
 import { ScreenHeader } from '../../app/ScreenHeader';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
-import { Badge, Notice, Surface } from '../../components/index';
+import { Badge, Button, Notice, Surface } from '../../components/index';
 import { formatWeightLabel } from '../../lib/format';
 import { MUSCLE_LABELS } from '../catalog/labels';
 import { CATALOG_PATH } from '../catalog/paths';
 import { ROUTINES_PATH } from '../routines/paths';
+import { CreateExerciseSheet } from './CreateExerciseSheet';
 import { groupExercisesByBodyPart, type ExerciseGroup } from './grouping';
 import { ORIGIN_LABELS } from './labels';
 import { trackedExercisePath } from './paths';
@@ -20,6 +21,16 @@ export function ExercisesScreen() {
   const { session } = useSession();
   const locale = session?.user.locale ?? 'es';
   const exercises = useTrackedExercises();
+  const [creating, setCreating] = useState(false);
+  const openCreate = (): void => {
+    setCreating(true);
+  };
+
+  const createButton = (
+    <Button variant="secondary" fullWidth onClick={openCreate}>
+      Crear ejercicio propio
+    </Button>
+  );
 
   return (
     <>
@@ -35,21 +46,32 @@ export function ExercisesScreen() {
       <AsyncContent query={exercises}>
         {(items) =>
           items.length === 0 ? (
-            <Notice
-              title="Todavía no sigues ningún ejercicio"
-              action={<Link to={CATALOG_PATH}>Abrir el catálogo</Link>}
-            >
-              Elige uno del catálogo para empezar a seguirlo.
-            </Notice>
+            <div className={styles.groups}>
+              <Notice
+                title="Todavía no sigues ningún ejercicio"
+                action={<Link to={CATALOG_PATH}>Abrir el catálogo</Link>}
+              >
+                Elige uno del catálogo para empezar a seguirlo.
+              </Notice>
+              {createButton}
+            </div>
           ) : (
             <div className={styles.groups}>
               {groupExercisesByBodyPart(items).map((group) => (
                 <GroupSection key={group.label} group={group} locale={locale} />
               ))}
+              {createButton}
             </div>
           )
         }
       </AsyncContent>
+
+      <CreateExerciseSheet
+        open={creating}
+        onClose={() => {
+          setCreating(false);
+        }}
+      />
     </>
   );
 }
