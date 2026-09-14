@@ -1,0 +1,66 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-xl);
+}
+
+.sectionTitle {
+  padding: var(--gb-space-lg) var(--gb-space-lg) var(--gb-space-xs);
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-label-size);
+  font-weight: var(--gb-type-label-weight);
+  line-height: var(--gb-type-label-line);
+  letter-spacing: var(--gb-type-label-tracking);
+  text-transform: uppercase;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.list li + li .row {
+  border-top: var(--gb-size-border-width) solid var(--gb-color-border);
+}
+
+/* La fila entera es el objetivo táctil: se pulsa con el pulgar, no se apunta al texto. */
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--gb-space-md);
+  min-height: var(--gb-size-touch-target);
+  padding: var(--gb-space-md) var(--gb-space-lg);
+  color: var(--gb-color-text);
+  text-decoration: none;
+  transition: background-color var(--gb-duration-fast) var(--gb-ease-standard);
+}
+
+.row:active {
+  background: var(--gb-color-surface-sunken);
+}
+
+.rowText {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-xxs);
+  min-width: 0;
+}
+
+.rowTitle {
+  font-size: var(--gb-type-body-strong-size);
+  font-weight: var(--gb-type-body-strong-weight);
+  line-height: var(--gb-type-body-strong-line);
+}
+
+.rowDescription {
+  color: var(--gb-color-text-secondary);
+  font-size: var(--gb-type-caption-size);
+  line-height: var(--gb-type-caption-line);
+}
+
+.chevron {
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-title-size);
+}

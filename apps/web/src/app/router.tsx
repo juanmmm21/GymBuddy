@@ -1,5 +1,6 @@
 import { createBrowserRouter, createMemoryRouter, type RouteObject } from 'react-router';
 import { BackupScreen } from '../features/backup/BackupScreen';
+import { SettingsScreen } from '../features/settings/SettingsScreen';
 import { BodyPartScreen } from '../features/catalog/BodyPartScreen';
 import { CatalogExerciseScreen } from '../features/catalog/CatalogExerciseScreen';
 import { CatalogScreen } from '../features/catalog/CatalogScreen';
@@ -39,6 +40,7 @@ export const routes: RouteObject[] = [
           { path: 'invite', element: <InviteFriendScreen /> },
           // La copia de seguridad también es de la cuenta: cuelga de Hoy junto a las otras dos.
           { path: 'backup', element: <BackupScreen /> },
+          { path: 'settings', element: <SettingsScreen /> },
           { path: 'exercises', element: <ExercisesScreen /> },
           { path: 'exercises/:id', element: <TrackedExerciseScreen /> },
           // Las rutinas no tienen pestaña propia: cuelgan de "Mis ejercicios", que es de lo
