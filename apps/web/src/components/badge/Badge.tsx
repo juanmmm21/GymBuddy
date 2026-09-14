@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { cx } from '../../lib/cx';
 import styles from './Badge.module.css';
 
-export type BadgeTone = 'neutral' | 'accent' | 'success' | 'warning' | 'danger';
+export type BadgeTone = 'neutral' | 'accent' | 'success' | 'warning' | 'danger' | 'record';
 
 export interface BadgeProps {
   readonly children: ReactNode;
@@ -21,4 +21,5 @@ const toneClass: Readonly<Record<BadgeTone, string | undefined>> = {
   success: styles.success,
   warning: styles.warning,
   danger: styles.danger,
+  record: styles.record,
 };

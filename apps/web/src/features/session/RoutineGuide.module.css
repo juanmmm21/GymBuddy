@@ -78,7 +78,8 @@
 .position {
   min-width: var(--gb-space-xl);
   color: var(--gb-color-text-muted);
-  font-family: var(--gb-font-mono);
+  font-family: var(--gb-font-display);
+  font-stretch: var(--gb-font-width-condensed);
   font-size: var(--gb-type-caption-size);
 }
 
@@ -102,7 +103,8 @@
 }
 
 .progress {
-  font-family: var(--gb-font-mono);
+  font-family: var(--gb-font-display);
+  font-stretch: var(--gb-font-width-condensed);
   font-size: var(--gb-type-body-strong-size);
   font-weight: var(--gb-type-body-strong-weight);
   line-height: var(--gb-type-body-strong-line);

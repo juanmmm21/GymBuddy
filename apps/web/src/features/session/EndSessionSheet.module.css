@@ -33,7 +33,8 @@
 }
 
 .totalValue {
-  font-family: var(--gb-font-mono);
+  font-family: var(--gb-font-display);
+  font-stretch: var(--gb-font-width-condensed);
   font-size: var(--gb-type-title-size);
   font-weight: var(--gb-type-title-weight);
   line-height: var(--gb-type-title-line);

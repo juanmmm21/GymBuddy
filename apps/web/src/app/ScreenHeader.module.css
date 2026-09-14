@@ -27,6 +27,8 @@
 }
 
 .title {
+  font-family: var(--gb-font-display);
+  font-stretch: var(--gb-font-width-condensed);
   font-size: var(--gb-type-headline-size);
   font-weight: var(--gb-type-headline-weight);
   line-height: var(--gb-type-headline-line);

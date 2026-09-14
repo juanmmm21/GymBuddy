@@ -35,3 +35,10 @@
   background: var(--gb-color-danger-soft);
   color: var(--gb-color-danger);
 }
+
+/* Macizo y en mayúsculas, como la marca del disco: un récord no es un aviso más. */
+.record {
+  background: var(--gb-color-record);
+  color: var(--gb-color-on-record);
+  text-transform: uppercase;
+}

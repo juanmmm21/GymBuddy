@@ -88,12 +88,14 @@
 .setPosition {
   min-width: var(--gb-space-xl);
   color: var(--gb-color-text-muted);
-  font-family: var(--gb-font-mono);
+  font-family: var(--gb-font-display);
+  font-stretch: var(--gb-font-width-condensed);
   font-size: var(--gb-type-caption-size);
 }
 
 .setValue {
-  font-family: var(--gb-font-mono);
+  font-family: var(--gb-font-display);
+  font-stretch: var(--gb-font-width-condensed);
   font-weight: var(--gb-type-body-strong-weight);
 }
 

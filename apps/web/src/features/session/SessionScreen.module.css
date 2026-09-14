@@ -25,7 +25,8 @@
 
 .clockValue {
   margin: 0;
-  font-family: var(--gb-font-mono);
+  font-family: var(--gb-font-display);
+  font-stretch: var(--gb-font-width-condensed);
   font-size: var(--gb-type-display-size);
   font-weight: var(--gb-type-display-weight);
   line-height: var(--gb-type-display-line);
@@ -95,13 +96,15 @@
 .setPosition {
   min-width: var(--gb-space-xl);
   color: var(--gb-color-text-muted);
-  font-family: var(--gb-font-mono);
+  font-family: var(--gb-font-display);
+  font-stretch: var(--gb-font-width-condensed);
   font-size: var(--gb-type-caption-size);
 }
 
 .setValue {
   flex: 1;
-  font-family: var(--gb-font-mono);
+  font-family: var(--gb-font-display);
+  font-stretch: var(--gb-font-width-condensed);
   font-size: var(--gb-type-body-strong-size);
   font-weight: var(--gb-type-body-strong-weight);
   line-height: var(--gb-type-body-strong-line);

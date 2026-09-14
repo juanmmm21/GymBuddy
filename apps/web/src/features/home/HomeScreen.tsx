@@ -118,7 +118,7 @@ function SignalsSummary({ signals, locale }: SignalsSummaryProps) {
           <p className={styles.sectionLabel}>Último récord</p>
           <p className={styles.recordValue}>
             {formatWeightLabel(signals.latestRecord.value, locale)}{' '}
-            <Badge tone="success">{RECORD_LABELS[signals.latestRecord.kind]}</Badge>
+            <Badge tone="record">{RECORD_LABELS[signals.latestRecord.kind]}</Badge>
           </p>
         </Surface>
       )}

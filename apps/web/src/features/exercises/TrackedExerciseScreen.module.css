@@ -51,7 +51,8 @@
 }
 
 .workingValue {
-  font-family: var(--gb-font-mono);
+  font-family: var(--gb-font-display);
+  font-stretch: var(--gb-font-width-condensed);
   font-size: var(--gb-type-display-size);
   font-weight: var(--gb-type-display-weight);
   line-height: var(--gb-type-display-line);
@@ -154,7 +155,8 @@
 }
 
 .setValue {
-  font-family: var(--gb-font-mono);
+  font-family: var(--gb-font-display);
+  font-stretch: var(--gb-font-width-condensed);
 }
 
 .setMeta {
