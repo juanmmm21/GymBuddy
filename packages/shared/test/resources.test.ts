@@ -287,6 +287,29 @@ describe('ejercicio seguido', () => {
     ).toBe(false);
   });
 
+  it('un ejercicio propio no puede llevar un músculo de otra parte del cuerpo', () => {
+    const custom = { id: EXERCISE_ID, origin: 'custom', name: 'Hip thrust en máquina' } as const;
+
+    expect(
+      createTrackedExerciseRequestSchema.safeParse({
+        ...custom,
+        muscle: 'glutes',
+        bodyPart: 'legs',
+      }).success,
+    ).toBe(true);
+    expect(
+      createTrackedExerciseRequestSchema.safeParse({ ...custom, muscle: 'glutes' }).success,
+    ).toBe(true);
+
+    const mismatch = createTrackedExerciseRequestSchema.safeParse({
+      ...custom,
+      muscle: 'glutes',
+      bodyPart: 'chest',
+    });
+    expect(mismatch.success).toBe(false);
+    expect(mismatch.error?.issues[0]?.path).toEqual(['muscle']);
+  });
+
   it('exige el identificador también al dar de alta un ejercicio', () => {
     expect(
       createTrackedExerciseRequestSchema.safeParse({
