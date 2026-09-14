@@ -1,9 +1,9 @@
 import {
   formatGramsAsKilograms,
-  parseKilogramsToGrams,
   type Locale,
   type PersonalRecord,
   type ResourceId,
+  type SetEntry,
   type TrackedExercise,
 } from '@gymbuddy/shared';
 import { useState, type FormEvent } from 'react';
@@ -13,6 +13,7 @@ import { describeError } from '../../lib/errors';
 import { newResourceId } from '../../lib/ids';
 import { exerciseSelectOptions } from '../exercises/grouping';
 import { describeNextSet, lineForNextSet, type RoutineProgress } from './routine-progress';
+import { describeProposal, proposeSet } from './set-proposal';
 import styles from './LogSetSheet.module.css';
 import { isCompleteSet, SetFields, type SetValues } from './SetFields';
 
@@ -27,6 +28,8 @@ export interface LogSetSheetProps {
   readonly defaultExerciseId: ResourceId | null;
   /** El reparto de la rutina que guía la sesión, para decir bajo las repeticiones qué toca. */
   readonly routineProgress: RoutineProgress | null;
+  /** Las series de la sesión con la cola encima: la última de cada ejercicio es lo que se propone. */
+  readonly sessionSets: readonly SetEntry[];
   readonly locale: Locale;
   readonly open: boolean;
   readonly onClose: () => void;
@@ -36,14 +39,15 @@ export interface LogSetSheetProps {
 
 /**
  * Registrar una serie. El formulario vive dentro de la hoja, que solo monta su contenido
- * mientras está abierta: cada apertura arranca precargada con el peso habitual del
- * ejercicio elegido, sin restos de la anterior y sin efectos que lo resincronicen.
+ * mientras está abierta: cada apertura arranca precargada con la última serie del ejercicio
+ * elegido, sin restos de la anterior y sin efectos que lo resincronicen.
  */
 export function LogSetSheet({
   sessionId,
   exercises,
   defaultExerciseId,
   routineProgress,
+  sessionSets,
   locale,
   open,
   onClose,
@@ -63,6 +67,7 @@ export function LogSetSheet({
           exercises={exercises}
           initialExercise={initial}
           routineProgress={routineProgress}
+          sessionSets={sessionSets}
           locale={locale}
           onLogged={onLogged}
         />
@@ -76,6 +81,7 @@ interface LogSetFormProps {
   readonly exercises: readonly TrackedExercise[];
   readonly initialExercise: TrackedExercise;
   readonly routineProgress: RoutineProgress | null;
+  readonly sessionSets: readonly SetEntry[];
   readonly locale: Locale;
   readonly onLogged: (records: readonly PersonalRecord[]) => void;
 }
@@ -85,11 +91,13 @@ function LogSetForm({
   exercises,
   initialExercise,
   routineProgress,
+  sessionSets,
   locale,
   onLogged,
 }: LogSetFormProps) {
   const [exercise, setExercise] = useState(initialExercise);
-  const [values, setValues] = useState<SetValues>(() => proposalFor(initialExercise));
+  const [proposal, setProposal] = useState(() => proposeSet(initialExercise, sessionSets));
+  const [values, setValues] = useState<SetValues>(proposal.values);
   // Fijado al abrir la hoja y no al pulsar: reintentar tras un fallo es la misma serie, y la
   // cola offline no puede convertir un doble toque sin red en dos series.
   const [setId] = useState(newResourceId);
@@ -98,14 +106,16 @@ function LogSetForm({
   const routineLine =
     routineProgress === null ? null : lineForNextSet(routineProgress, exercise.id);
 
-  // Cambiar de ejercicio recarga lo que se propone: cada uno tiene su peso habitual, y
-  // dejar el del anterior es la forma más fácil de registrar una serie equivocada.
+  // Cambiar de ejercicio recarga lo que se propone: cada uno tiene su última serie, y
+  // dejar la del anterior es la forma más fácil de registrar una serie equivocada.
   const selectExercise = (value: string): void => {
     const next = exercises.find((candidate) => candidate.id === value);
     if (next === undefined) return;
 
+    const nextProposal = proposeSet(next, sessionSets);
     setExercise(next);
-    setValues(proposalFor(next));
+    setProposal(nextProposal);
+    setValues(nextProposal.values);
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
@@ -145,11 +155,7 @@ function LogSetForm({
         values={values}
         onChange={setValues}
         locale={locale}
-        weightHint={
-          exercise.workingWeight === null
-            ? 'Es tu primera serie de este ejercicio: todavía no hay peso habitual.'
-            : 'Tu peso habitual, con las repeticiones de la última vez.'
-        }
+        weightHint={describeProposal(proposal.source)}
         repsHint={routineLine === null ? undefined : describeNextSet(routineLine)}
       />
 
@@ -170,16 +176,4 @@ function LogSetForm({
       </Button>
     </form>
   );
-}
-
-/** Lo que se propone al elegir un ejercicio: su peso habitual y las repeticiones de la última vez. */
-function proposalFor(exercise: TrackedExercise): SetValues {
-  return {
-    // Del contrato al campo sin pasar por `Number`: el peso es entero de gramos.
-    weightGrams:
-      exercise.workingWeight === null ? null : parseKilogramsToGrams(exercise.workingWeight.weight),
-    reps: exercise.workingWeight?.reps ?? null,
-    rpe: null,
-    isWarmup: false,
-  };
 }

@@ -1,4 +1,5 @@
 import type { ResourceId, RoutineItem, SetEntry } from '@gymbuddy/shared';
+import type { RestKind } from './rest';
 import { formatRepsRange } from '../routines/items';
 
 /** Una línea de la rutina con las series de la sesión que le han tocado. */
@@ -77,6 +78,24 @@ export function lineForNextSet(
   return index === null ? null : (progress.lines[index] ?? null);
 }
 
+/**
+ * Qué descanso toca tras la última serie: el de cambio de ejercicio cuando la rutina ya pide otro
+ * ejercicio distinto del que se acaba de hacer —se terminó su línea, o se hizo algo fuera del guion—,
+ * y el de entre series en todo lo demás. Sin rutina la app no sabe qué viene después, así que no
+ * alarga nada; tampoco tras un calentamiento ni con la rutina ya terminada.
+ */
+export function restKindAfter(
+  progress: RoutineProgress | null,
+  sets: readonly SetEntry[],
+): RestKind {
+  if (progress === null || progress.current === null) return 'set';
+
+  const last = latestSet(sets);
+  if (last === null || last.isWarmup) return 'set';
+
+  return progress.current.item.trackedExerciseId === last.trackedExerciseId ? 'set' : 'exercise';
+}
+
 /** "Rutina: 6–8 reps · serie 3 de 4": lo que se lee bajo las repeticiones al registrar. */
 export function describeNextSet(line: RoutineLineProgress): string {
   const reps = formatRepsRange(line.item.targetRepsMin, line.item.targetRepsMax);
@@ -116,4 +135,19 @@ function currentLine(
   if (touched !== undefined && !touched.complete) return touched;
 
   return lines.find((line) => !line.complete) ?? null;
+}
+
+/** La serie más reciente por hora, comparando instantes: la cola puede dejarlas desordenadas. */
+function latestSet(sets: readonly SetEntry[]): SetEntry | null {
+  let latest: SetEntry | null = null;
+  let latestTime = Number.NEGATIVE_INFINITY;
+
+  for (const set of sets) {
+    const time = Date.parse(set.completedAt);
+    if (Number.isNaN(time) || time < latestTime) continue;
+    latest = set;
+    latestTime = time;
+  }
+
+  return latest;
 }

@@ -37,8 +37,9 @@ import { EndSessionSheet } from './EndSessionSheet';
 import { LogSetSheet } from './LogSetSheet';
 import { SESSION_EXERCISE_PARAM, SESSION_ROUTINE_PARAM } from './paths';
 import { RestTimer } from './RestTimer';
-import { DEFAULT_REST_TARGET_SECONDS, type RestTargetSeconds } from './rest';
-import { routineProgress } from './routine-progress';
+import { restTargetFor, withRestTarget, type RestKind, type RestPreferences } from './rest';
+import { loadRestPreferences, saveRestPreferences } from './rest-preferences-store';
+import { restKindAfter, routineProgress } from './routine-progress';
 import { RoutineGuide } from './RoutineGuide';
 import {
   clearSessionRoutine,
@@ -81,7 +82,9 @@ export function SessionScreen() {
   );
   const [editing, setEditing] = useState<SetEntry | null>(null);
   const [ending, setEnding] = useState(false);
-  const [restTarget, setRestTarget] = useState<RestTargetSeconds>(DEFAULT_REST_TARGET_SECONDS);
+  const storage = useStorage();
+  // Se lee una vez al montar y se guarda en el mismo toque que lo cambia: sin efectos.
+  const [restPreferences, setRestPreferences] = useState(() => loadRestPreferences(storage));
   const [records, setRecords] = useState<readonly PersonalRecord[]>([]);
 
   const handleLogged = (fresh: readonly PersonalRecord[]): void => {
@@ -122,8 +125,12 @@ export function SessionScreen() {
                   logging={logging}
                   editing={editing}
                   ending={ending}
-                  restTarget={restTarget}
-                  onRestTargetChange={setRestTarget}
+                  restPreferences={restPreferences}
+                  onRestTargetChange={(kind, seconds) => {
+                    const next = withRestTarget(restPreferences, kind, seconds);
+                    setRestPreferences(next);
+                    saveRestPreferences(storage, next);
+                  }}
                   onOpenLog={(exerciseId) => {
                     setLogging({ exerciseId });
                   }}
@@ -240,8 +247,8 @@ interface ActiveSessionProps {
   readonly logging: LogSheetTarget | null;
   readonly editing: SetEntry | null;
   readonly ending: boolean;
-  readonly restTarget: RestTargetSeconds;
-  readonly onRestTargetChange: (target: RestTargetSeconds) => void;
+  readonly restPreferences: RestPreferences;
+  readonly onRestTargetChange: (kind: RestKind, seconds: number) => void;
   readonly onOpenLog: (exerciseId: ResourceId | null) => void;
   readonly onCloseLog: () => void;
   readonly onLogged: (records: readonly PersonalRecord[]) => void;
@@ -263,7 +270,7 @@ function ActiveSession({
   logging,
   editing,
   ending,
-  restTarget,
+  restPreferences,
   onRestTargetChange,
   onOpenLog,
   onCloseLog,
@@ -289,6 +296,8 @@ function ActiveSession({
 
   const groups = groupSetsByExercise(session.sets, exercises);
   const lastSetAt = latestSetCompletedAt(session.sets);
+  const restKind = restKindAfter(progress, session.sets);
+  const restTarget = restTargetFor(restPreferences, restKind);
   const routineExerciseIds = new Set(routine?.items.map((item) => item.trackedExerciseId));
   // Un archivado que nombra la rutina se puede registrar: su línea lo pide y el Worker lo acepta.
   const selectable = exercises.filter(
@@ -331,8 +340,11 @@ function ActiveSession({
       {lastSetAt !== null && (
         <RestTimer
           lastSetAt={lastSetAt}
+          kind={restKind}
           target={restTarget}
-          onTargetChange={onRestTargetChange}
+          onTargetChange={(seconds) => {
+            onRestTargetChange(restKind, seconds);
+          }}
           companion={
             <LiveMascot signals={mascotSignals} device={mascotDevice} locale={locale} spot="rest" />
           }
@@ -407,6 +419,7 @@ function ActiveSession({
         exercises={selectable}
         defaultExerciseId={logging?.exerciseId ?? null}
         routineProgress={progress}
+        sessionSets={session.sets}
         locale={locale}
         open={logging !== null}
         onClose={onCloseLog}
