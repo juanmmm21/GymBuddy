@@ -8,7 +8,9 @@ import {
   routineNameSchema,
   activeSessionResponseSchema,
   bodyPartSchema,
+  catalogEquipmentSchema,
   catalogExercisePageSchema,
+  catalogFiltersSchema,
   catalogSyncStepSchema,
   createRoutineRequestSchema,
   createTrackedExerciseRequestSchema,
@@ -34,6 +36,30 @@ const SESSION_ID = 'a0c14d2f-9b7e-4a11-8f3c-6d5e2a9b0c74';
 const SET_ID = 'd41f7b90-3c22-4e58-9a6b-1f0c8e7d5a23';
 const ROUTINE_ID = '8b2e5c07-6a41-4d93-b7f8-0c3a1e6d9b52';
 const ROUTINE_ITEM_ID = 'c7d90a12-4e83-4b60-95af-31d2e8c74b06';
+
+describe('catálogo: filtros', () => {
+  it('los dos filtros son opcionales y se pueden sumar', () => {
+    expect(catalogFiltersSchema.parse({})).toEqual({});
+    expect(catalogFiltersSchema.parse({ equipment: 'cable', muscle: 'lats' })).toEqual({
+      equipment: 'cable',
+      muscle: 'lats',
+    });
+  });
+
+  it('el músculo es uno de los diecinueve, no una parte del cuerpo', () => {
+    expect(catalogFiltersSchema.safeParse({ muscle: 'chest' }).success).toBe(false);
+  });
+
+  it('el equipamiento sigue abierto pero con la forma de una etiqueta del catálogo', () => {
+    expect(catalogEquipmentSchema.safeParse('ez-bar').success).toBe(true);
+    expect(catalogEquipmentSchema.safeParse('kettlebell').success).toBe(true);
+    expect(catalogEquipmentSchema.safeParse('Polea').success).toBe(false);
+    expect(catalogEquipmentSchema.safeParse('cable%').success).toBe(false);
+    expect(catalogEquipmentSchema.safeParse('').success).toBe(false);
+    expect(catalogEquipmentSchema.safeParse('-cable').success).toBe(false);
+    expect(catalogEquipmentSchema.safeParse('a'.repeat(41)).success).toBe(false);
+  });
+});
 
 describe('catálogo: muscle no es bodyPart', () => {
   it('no acepta un músculo donde va una parte del cuerpo', () => {

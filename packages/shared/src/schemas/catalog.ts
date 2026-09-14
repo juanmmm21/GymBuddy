@@ -71,6 +71,25 @@ export const catalogExerciseSchema = catalogExerciseSummarySchema.extend({
   syncedAt: isoDatetimeSchema,
 });
 
+/**
+ * Un valor de `equipment` pedido como filtro. Sigue abierto como en la ficha, pero con la forma
+ * de las etiquetas del tag («ez-bar», «bodyweight»): así un filtro nuevo del catálogo funciona
+ * sin tocar el contrato, y un «%» o un texto libre no llegan nunca a la consulta.
+ */
+export const catalogEquipmentSchema = z
+  .string()
+  .max(40)
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'El equipamiento es una etiqueta del catálogo');
+
+/**
+ * Filtros del catálogo, comunes a la búsqueda y a la página de una parte del cuerpo. Los dos son
+ * opcionales y se suman: «polea» y «dorsales» a la vez son los ejercicios de dorsales con polea.
+ */
+export const catalogFiltersSchema = z.object({
+  equipment: catalogEquipmentSchema.optional(),
+  muscle: muscleSchema.optional(),
+});
+
 export const bodyPartSummarySchema = z.object({
   bodyPart: bodyPartSchema,
   exerciseCount: z.int().nonnegative(),
@@ -113,6 +132,7 @@ export type BodyPart = z.infer<typeof bodyPartSchema>;
 export type Muscle = z.infer<typeof muscleSchema>;
 export type CatalogExerciseSummary = z.infer<typeof catalogExerciseSummarySchema>;
 export type CatalogExercise = z.infer<typeof catalogExerciseSchema>;
+export type CatalogFilters = z.infer<typeof catalogFiltersSchema>;
 export type BodyPartSummary = z.infer<typeof bodyPartSummarySchema>;
 export type CatalogExercisePage = z.infer<typeof catalogExercisePageSchema>;
 export type CatalogSyncStatus = z.infer<typeof catalogSyncStatusSchema>;
