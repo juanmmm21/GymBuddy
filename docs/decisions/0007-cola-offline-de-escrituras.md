@@ -132,3 +132,20 @@ detalle del historial, que ya necesita red, y solo sobre una sesión cerrada.
     desde la serie borrada más antigua de cada ejercicio se retiran las guardadas y se vuelven a escribir
     las que salen de recorrer las series que quedan. Lo mismo al borrar una serie suelta: antes, borrar la
     del récord dejaba sin marca a la siguiente mejor serie que vino detrás.
+
+## Borrar una rutina — 2026-09-15
+
+Juan pidió borrar rutinas del todo, no solo archivarlas. **Tampoco entra en la cola**, igual que el alta y
+la edición de una rutina: se hace desde su hoja de edición, con confirmación en línea y por debajo de
+archivar, que sigue siendo la baja que se recupera.
+
+*   **El Worker responde 204 aunque la rutina no exista o sea de otra cuenta**: una sola sentencia filtrada
+    por el usuario, sin leer antes. Las líneas se van por la cascada de `routine_item`; ninguna sesión ni
+    serie apunta a una rutina, así que el historial y las marcas no se tocan. Lo único que se mueve fuera es
+    el rango de repeticiones del estancamiento, que pasa a salir de las rutinas que quedan.
+*   **Una sesión abierta que guiaba esa rutina sigue, sin guion.** El guion vive en el dispositivo
+    (`session-routine-store.ts`), así que el móvil que borra olvida lo recordado si era esa rutina, sea cual
+    sea la sesión. En otro móvil que la estuviera siguiendo, la sesión avisa de que la rutina ya no está y se
+    sigue registrando como siempre.
+*   **Reimportar una copia antigua la devuelve**, igual que un entrenamiento borrado: los ids derivados
+    (ADR 0006) no recuerdan borrados, y se aceptó.
