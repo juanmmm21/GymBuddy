@@ -27,7 +27,7 @@ describe('pantallas del shell', () => {
 
     expect(await screen.findByText('3 semanas')).toBeInTheDocument();
     expect(screen.getByText('1 sesión')).toBeInTheDocument();
-    expect(screen.getByText('ayer')).toBeInTheDocument();
+    expect(screen.getByText('Última sesión: ayer')).toBeInTheDocument();
     expect(screen.getByText('85 kg')).toBeInTheDocument();
     expect(screen.getByText('Peso máximo')).toBeInTheDocument();
   });

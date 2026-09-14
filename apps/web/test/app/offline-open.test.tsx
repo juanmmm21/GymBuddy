@@ -156,7 +156,7 @@ describe('abrir la app sin red', () => {
     expect(await screen.findByText('Sesión en curso')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Empezar a entrenar' })).not.toBeInTheDocument();
 
-    await actor.click(screen.getByRole('link', { name: 'Seguir' }));
+    await actor.click(screen.getByRole('link', { name: 'Seguir la sesión' }));
 
     expect(
       await screen.findByRole('heading', { name: 'Sentadilla con barra' }),
@@ -176,7 +176,7 @@ describe('abrir la app sin red', () => {
     renderApp({ path: '/', session, stored: deviceSnapshot(abandoned), setup: offline });
 
     expect(await screen.findByRole('link', { name: 'Empezar a entrenar' })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Seguir' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Seguir la sesión' })).not.toBeInTheDocument();
   });
 
   it('una sesión cerrada sin red ya no se ofrece seguir: Hoy ofrece empezar otra', async () => {
@@ -189,7 +189,7 @@ describe('abrir la app sin red', () => {
     });
 
     expect(await screen.findByRole('link', { name: 'Empezar a entrenar' })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Seguir' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Seguir la sesión' })).not.toBeInTheDocument();
   });
 
   it('lo guardado de otra cuenta no se enseña y se retira del móvil', () => {

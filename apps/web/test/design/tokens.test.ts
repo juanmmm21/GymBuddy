@@ -62,6 +62,8 @@ const READABLE_PAIRS: readonly (readonly [keyof ColorTokens, keyof ColorTokens])
   ['warning', 'warningSoft'],
   ['danger', 'dangerSoft'],
   ['onRecord', 'record'],
+  ['onInverse', 'inverseSurface'],
+  ['onInverseMuted', 'inverseSurface'],
 ];
 
 describe('contraste de la paleta', () => {

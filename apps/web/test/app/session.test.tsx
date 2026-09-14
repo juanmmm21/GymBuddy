@@ -393,10 +393,35 @@ describe('Hoy enlaza con la sesión', () => {
     );
   });
 
+  it('la tarjeta de la sesión en curso cronometra y enseña la última serie con sus discos', async () => {
+    renderApp({
+      path: '/',
+      session,
+      setup: (fake) => {
+        fake.on('GET', '/stats/signals', () =>
+          jsonResponse({ ...signals, activeSessionId: activeSession.id }),
+        );
+        fake.on('GET', '/sessions/active', () => jsonResponse({ session: activeSession }));
+        fake.on('GET', '/exercises', () => jsonResponse([benchPress]));
+      },
+    });
+
+    const card = await screen.findByRole('link', { name: 'Seguir la sesión' });
+    expect(within(card).getByRole('timer')).toBeInTheDocument();
+    expect(await within(card).findByText('1 ejercicio · 1 serie · 660 kg')).toBeInTheDocument();
+    expect(within(card).getByText('82,5 kg × 8')).toBeInTheDocument();
+    expect(
+      within(card).getByRole('img', { name: 'Por lado: 25 kg, 5 kg y 1,25 kg' }),
+    ).toBeInTheDocument();
+  });
+
   it('con una abierta lleva a seguirla', async () => {
     renderHome(activeSession.id);
 
-    expect(await screen.findByRole('link', { name: 'Seguir' })).toHaveAttribute('href', '/session');
+    expect(await screen.findByRole('link', { name: 'Seguir la sesión' })).toHaveAttribute(
+      'href',
+      '/session',
+    );
   });
 });
 

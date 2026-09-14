@@ -330,7 +330,7 @@ describe('sesión guiada por una rutina: recordarla', () => {
     await screen.findByRole('button', { name: 'Registrar Sentadilla con barra, 1 de 3 series' });
 
     await user.click(screen.getAllByRole('link', { name: /Hoy/ })[0] as HTMLElement);
-    await user.click(await screen.findByRole('link', { name: 'Seguir' }));
+    await user.click(await screen.findByRole('link', { name: 'Seguir la sesión' }));
 
     expect(
       await screen.findByRole('button', { name: 'Registrar Sentadilla con barra, 1 de 3 series' }),
@@ -439,7 +439,7 @@ describe('Hoy: rutinas de un toque', () => {
       },
     });
 
-    expect(await screen.findByRole('link', { name: 'Seguir' })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'Seguir la sesión' })).toBeInTheDocument();
     await waitFor(() => {
       expect(fake.requests.some((request) => request.path.startsWith('/stats/week'))).toBe(true);
     });

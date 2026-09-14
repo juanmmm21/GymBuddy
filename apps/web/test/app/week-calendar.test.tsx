@@ -1,69 +1,72 @@
 import { screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { errorResponse, jsonResponse } from '../fake-fetch';
+import { errorResponse, jsonResponse, type FakeFetch } from '../fake-fetch';
 import { session, signals, weeklyCalendar } from '../fixtures';
 import { renderApp } from './render-app';
 
-/** La fila del calendario, ya cargada: es la única lista de Hoy. */
+/** La fila del calendario, ya cargada, dentro de su sección. */
 async function weekRow(): Promise<HTMLElement> {
-  return screen.findByRole('list');
+  const section = await screen.findByRole('region', { name: 'Esta semana' });
+  return within(section).findByRole('list');
 }
 
+const serveWeek = (fake: FakeFetch): void => {
+  fake.on('GET', '/stats/signals', () => jsonResponse(signals));
+  fake.on('GET', '/stats/week', () => jsonResponse(weeklyCalendar));
+};
+
 describe('mini calendario de la semana', () => {
-  it('pinta los siete días con una sola etiqueta cada uno', async () => {
-    renderApp({
-      path: '/',
-      session,
-      setup: (fake) => {
-        fake.on('GET', '/stats/signals', () => jsonResponse(signals));
-        fake.on('GET', '/stats/week', () => jsonResponse(weeklyCalendar));
-      },
-    });
+  it('pinta los siete días con un botón que dice lo entrenado, sin texto recortado en la columna', async () => {
+    renderApp({ path: '/', session, setup: serveWeek });
 
-    const days = within(await weekRow()).getAllByRole('listitem');
+    const buttons = within(await weekRow()).getAllByRole('button');
 
-    expect(days).toHaveLength(7);
-    expect(days.map((day) => day.textContent)).toEqual([
-      'LLunes: Pecho',
-      'MMartes: —',
+    expect(buttons.map((button) => button.getAttribute('aria-label'))).toEqual([
+      'Lunes: Pecho',
+      'Martes: descanso',
       // Entrenó, pero fueron ejercicios propios sin clasificar: no se le inventa una parte.
-      'XMiércoles: Otro',
-      'JJueves: —',
-      'VViernes: —',
-      'SSábado: —',
-      'DDomingo: —',
+      'Miércoles: Otro',
+      'Jueves: descanso',
+      'Viernes: descanso',
+      'Sábado: descanso',
+      'Domingo: descanso',
     ]);
+    // Bajo cada día solo va su inicial: el nombre entero va en el detalle.
+    expect(
+      within(await weekRow())
+        .getAllByRole('listitem')
+        .map((day) => day.textContent),
+    ).toEqual(['L', 'M', 'X', 'J', 'V', 'S', 'D']);
   });
 
-  it('señala el día de hoy', async () => {
-    renderApp({
-      path: '/',
-      session,
-      setup: (fake) => {
-        fake.on('GET', '/stats/signals', () => jsonResponse(signals));
-        fake.on('GET', '/stats/week', () => jsonResponse(weeklyCalendar));
-      },
-    });
+  it('señala el día de hoy y arranca con su detalle', async () => {
+    renderApp({ path: '/', session, setup: serveWeek });
 
     const days = within(await weekRow()).getAllByRole('listitem');
 
     // `generatedAt` cae el jueves 10, que es el cuarto día de la semana.
     expect(days[3]?.getAttribute('aria-current')).toBe('date');
     expect(days[0]?.getAttribute('aria-current')).toBeNull();
+    expect(screen.getByText(/· Descanso$/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Jueves: descanso' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 
-  it('el detalle del día cabe en el tooltip, no en la columna', async () => {
-    renderApp({
-      path: '/',
-      session,
-      setup: (fake) => {
-        fake.on('GET', '/stats/signals', () => jsonResponse(signals));
-        fake.on('GET', '/stats/week', () => jsonResponse(weeklyCalendar));
-      },
-    });
+  it('tocar un día enseña su detalle entero debajo: parte del cuerpo, series y volumen', async () => {
+    const user = userEvent.setup();
+    renderApp({ path: '/', session, setup: serveWeek });
 
-    expect(await screen.findByTitle('3 series · 1480 kg')).toBeInTheDocument();
-    expect(screen.getAllByTitle('Descanso')).toHaveLength(5);
+    await user.click(await screen.findByRole('button', { name: 'Lunes: Pecho' }));
+
+    expect(screen.getByText('Lunes')).toBeInTheDocument();
+    expect(screen.getByText(/· Pecho · 3 series · 1480 kg$/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Lunes: Pecho' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 
   it('si la semana falla, el resto de Hoy sigue en pie', async () => {
