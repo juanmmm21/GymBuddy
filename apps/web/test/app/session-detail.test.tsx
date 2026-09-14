@@ -201,6 +201,8 @@ describe('detalle de una sesión pasada', () => {
     const { fake } = renderApp({ path: '/history/no-es-un-id', session });
 
     expect(await screen.findByText('No existe esa sesión')).toBeInTheDocument();
-    expect(fake.requests).toHaveLength(0);
+    // La barra de pestañas pregunta por la sesión en curso en cualquier pantalla; lo que no
+    // puede salir es la lectura del identificador roto.
+    expect(fake.requests.filter((request) => request.path !== '/sessions/active')).toEqual([]);
   });
 });

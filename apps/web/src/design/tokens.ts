@@ -250,6 +250,11 @@ export const sizes = {
   touchTarget: 48,
   controlHeight: 44,
   tabBarHeight: 64,
+  /**
+   * El botón central de la sesión en curso: tan alto como la barra y asomando por encima, para que
+   * el pulgar lo encuentre sin mirar entre serie y serie.
+   */
+  sessionButton: 64,
   /** La PWA es una columna: en una pantalla ancha no se estira, se centra. */
   contentMaxWidth: 560,
   borderWidth: 1,

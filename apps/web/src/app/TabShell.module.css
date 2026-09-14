@@ -57,3 +57,66 @@
   line-height: var(--gb-type-label-line);
   letter-spacing: var(--gb-type-label-tracking);
 }
+
+/*
+ * El hueco del centro mide lo mismo que una pestaña; el botón asoma un tercio por encima de la
+ * barra, recortado con un aro del color de la barra para que se lea como una pieza aparte.
+ */
+.sessionTab {
+  flex: 1;
+  max-width: calc(var(--gb-size-content-max-width) / 4);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  text-decoration: none;
+}
+
+.sessionButton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gb-space-xxs);
+  width: var(--gb-size-session-button);
+  height: var(--gb-size-session-button);
+  margin-top: calc(var(--gb-size-session-button) / -3);
+  border: var(--gb-space-xs) solid var(--gb-color-surface);
+  border-radius: var(--gb-radius-pill);
+  background: var(--gb-color-accent);
+  color: var(--gb-color-on-accent);
+  box-shadow: var(--gb-shadow-raised);
+  box-sizing: content-box;
+  transition:
+    transform var(--gb-duration-fast) var(--gb-ease-standard),
+    background-color var(--gb-duration-fast) var(--gb-ease-standard);
+}
+
+.sessionTab:active .sessionButton {
+  transform: scale(0.94);
+}
+
+.sessionTabActive .sessionButton {
+  background: var(--gb-color-accent-strong);
+}
+
+.sessionTab:focus-visible {
+  outline: none;
+}
+
+.sessionTab:focus-visible .sessionButton {
+  outline: var(--gb-size-focus-ring-width) solid var(--gb-color-focus-ring);
+  outline-offset: var(--gb-space-xxs);
+}
+
+.sessionIcon {
+  width: var(--gb-space-lg);
+  height: var(--gb-space-lg);
+}
+
+.sessionClock {
+  font-family: var(--gb-font-display);
+  font-stretch: var(--gb-font-width-condensed);
+  font-size: var(--gb-type-label-size);
+  font-weight: var(--gb-type-display-weight);
+  line-height: var(--gb-type-label-line);
+}

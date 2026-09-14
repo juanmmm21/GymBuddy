@@ -1,7 +1,13 @@
 import type { ReactNode } from 'react';
 import { NavLink, Outlet } from 'react-router';
+import { SESSION_PATH } from '../features/session/paths';
+import { useNow } from '../hooks/use-now';
 import { cx } from '../lib/cx';
+import { formatStopwatch } from '../lib/format';
+import { elapsedSecondsSince } from '../lib/time';
 import { SyncStatus } from '../offline/SyncStatus';
+import { useOpenSession } from '../offline/use-open-session';
+import { sessionShortcutFor } from './session-shortcut';
 import styles from './TabShell.module.css';
 
 interface Tab {
@@ -12,9 +18,13 @@ interface Tab {
 
 type TabIcon = 'home' | 'exercises' | 'catalog' | 'history';
 
-const TABS: readonly Tab[] = [
+// Dos a cada lado: con una sesión abierta, su botón cae justo en el centro, bajo el pulgar.
+const LEADING_TABS: readonly Tab[] = [
   { to: '/', label: 'Hoy', icon: 'home' },
   { to: '/exercises', label: 'Ejercicios', icon: 'exercises' },
+];
+
+const TRAILING_TABS: readonly Tab[] = [
   { to: '/catalog', label: 'Catálogo', icon: 'catalog' },
   { to: '/history', label: 'Historial', icon: 'history' },
 ];
@@ -28,19 +38,78 @@ export function TabShell() {
         <Outlet />
       </main>
       <nav className={styles.tabBar} aria-label="Secciones">
-        {TABS.map((tab) => (
-          <NavLink
-            key={tab.to}
-            to={tab.to}
-            end={tab.to === '/'}
-            className={({ isActive }) => cx(styles.tab, isActive && styles.tabActive)}
-          >
-            <Icon kind={tab.icon} />
-            <span className={styles.tabLabel}>{tab.label}</span>
-          </NavLink>
+        {LEADING_TABS.map((tab) => (
+          <TabLink key={tab.to} tab={tab} />
+        ))}
+        <SessionShortcutSlot />
+        {TRAILING_TABS.map((tab) => (
+          <TabLink key={tab.to} tab={tab} />
         ))}
       </nav>
     </div>
+  );
+}
+
+function TabLink({ tab }: { readonly tab: Tab }) {
+  return (
+    <NavLink
+      to={tab.to}
+      end={tab.to === '/'}
+      className={({ isActive }) => cx(styles.tab, isActive && styles.tabActive)}
+    >
+      <Icon kind={tab.icon} />
+      <span className={styles.tabLabel}>{tab.label}</span>
+    </NavLink>
+  );
+}
+
+/**
+ * Vive aparte del shell porque `useOpenSession` y el cronómetro repintan cada segundo: así solo se
+ * repinta el botón, no la pantalla entera que cuelga del `Outlet`.
+ */
+function SessionShortcutSlot() {
+  const open = useOpenSession();
+  const shortcut = sessionShortcutFor(open.data);
+  if (shortcut.kind === 'hidden') return null;
+
+  return <SessionShortcutButton startedAt={shortcut.startedAt} />;
+}
+
+function SessionShortcutButton({ startedAt }: { readonly startedAt: string }) {
+  const now = useNow();
+
+  return (
+    // El nombre accesible es fijo: un cronómetro dentro del nombre se anunciaría cada segundo.
+    <NavLink
+      to={SESSION_PATH}
+      aria-label="Sesión en curso"
+      className={({ isActive }) => cx(styles.sessionTab, isActive && styles.sessionTabActive)}
+    >
+      <span className={styles.sessionButton} aria-hidden="true">
+        <PlateIcon />
+        <span className={styles.sessionClock}>
+          {formatStopwatch(elapsedSecondsSince(startedAt, now))}
+        </span>
+      </span>
+    </NavLink>
+  );
+}
+
+/** Un disco visto de frente, con su agujero: el mismo trazo que los iconos de las pestañas. */
+function PlateIcon() {
+  return (
+    <svg
+      className={styles.sessionIcon}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="12" r="2.5" />
+    </svg>
   );
 }
 

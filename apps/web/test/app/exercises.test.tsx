@@ -341,7 +341,9 @@ describe('mis ejercicios: ficha', () => {
     const { fake } = renderApp({ path: '/exercises/no-es-un-id', session });
 
     expect(await screen.findByText('No existe ese ejercicio')).toBeInTheDocument();
-    expect(fake.requests).toHaveLength(0);
+    // La barra de pestañas pregunta por la sesión en curso en cualquier pantalla; lo que no
+    // puede salir es la lectura del identificador roto.
+    expect(fake.requests.filter((request) => request.path !== '/sessions/active')).toEqual([]);
   });
 
   it('un ejercicio que no está entre los seguidos avisa', async () => {
