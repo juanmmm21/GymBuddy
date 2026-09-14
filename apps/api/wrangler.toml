@@ -1,15 +1,25 @@
-name = "gymbuddy-api"
+name = "gymbuddy"
 main = "src/index.ts"
 # La fecha va al día que soporta el workerd del pool de tests: por delante de él,
 # los tests ni siquiera arrancan el runtime.
 compatibility_date = "2026-08-22"
 
 # Las passkeys van atadas a este dominio: cambiarlo obliga a cada usuario a crear la suya otra
-# vez (ADR 0005). Son el dominio y el origen de la PWA, no los del Worker. En local, los de
-# Vite; los de producción se fijan al desplegar (fase 14), antes de que nadie registre una.
+# vez (ADR 0005). Son el dominio y el origen de la PWA: en local, los de Vite; en producción, los del
+# propio Worker, que la sirve (gymbuddy.<subdominio de la cuenta>.workers.dev). Se fijan al
+# desplegar, antes de que nadie registre una.
 [vars]
 WEBAUTHN_RP_ID = "localhost"
 WEBAUTHN_ORIGIN = "http://localhost:5173"
+
+# El mismo Worker sirve la PWA ya construida (ADR 0004, revisión del 2026-09-14): un solo origen,
+# así que ni CORS ni cabeceras expuestas para renovar la sesión. Las rutas de la app que no son un
+# fichero devuelven el index.html, y /api/* entra siempre al Worker: sin eso, una ruta de la API
+# que no existe respondería con la app en vez de con el error del contrato.
+[assets]
+directory = "../web/dist"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*"]
 
 # Los logs del Worker son el único sitio donde se ve un fallo en el edge.
 [observability]
