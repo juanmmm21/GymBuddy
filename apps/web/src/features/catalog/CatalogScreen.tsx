@@ -5,9 +5,11 @@ import { MIN_SEARCH_LENGTH, useBodyParts, useCatalogSearch } from '../../api/que
 import { useSession } from '../../auth/SessionProvider';
 import { ScreenHeader } from '../../app/ScreenHeader';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
-import { Badge, Notice, SearchField, Surface } from '../../components/index';
+import { Badge, Button, Notice, SearchField, Surface } from '../../components/index';
 import { useDebouncedValue } from '../../hooks/use-debounced-value';
 import { pluralize } from '../../lib/format';
+import { CreateExerciseSheet } from '../exercises/CreateExerciseSheet';
+import { suggestedExerciseName } from '../exercises/custom-exercise';
 import { CatalogExerciseList } from './CatalogExerciseList';
 import { BODY_PART_LABELS, BODY_PART_ORDER } from './labels';
 import { bodyPartPath } from './paths';
@@ -47,19 +49,52 @@ interface SearchResultsProps {
 
 function SearchResults({ term, locale }: SearchResultsProps) {
   const results = useCatalogSearch(term, locale);
+  // El nombre se fija al pulsar y no se lee de `term` mientras la hoja está abierta: el buscador
+  // sigue vivo detrás, y teclear en él no debe reescribir lo que se está creando.
+  const [creatingName, setCreatingName] = useState<string | null>(null);
+  const openCreate = (): void => {
+    setCreatingName(suggestedExerciseName(term));
+  };
+  const createLabel = `Crear «${suggestedExerciseName(term)}»`;
 
   return (
-    <AsyncContent query={results}>
-      {(items) =>
-        items.length === 0 ? (
-          <Notice title={`Nada que se llame «${term}»`}>
-            La búsqueda ignora los acentos y exige todas las palabras. Prueba con menos.
-          </Notice>
-        ) : (
-          <CatalogExerciseList items={items} />
-        )
-      }
-    </AsyncContent>
+    <>
+      <AsyncContent query={results}>
+        {(items) =>
+          items.length === 0 ? (
+            <Notice
+              title={`Nada que se llame «${term}»`}
+              action={
+                <Button variant="secondary" onClick={openCreate}>
+                  {createLabel}
+                </Button>
+              }
+            >
+              La búsqueda ignora los acentos y exige todas las palabras. Prueba con menos, o créalo
+              como ejercicio propio si tu gimnasio tiene algo que el catálogo no.
+            </Notice>
+          ) : (
+            <div className={styles.results}>
+              <CatalogExerciseList items={items} />
+              <div className={styles.createOwn}>
+                <p className={styles.createOwnText}>¿No es ninguno de estos?</p>
+                <Button variant="ghost" onClick={openCreate}>
+                  {createLabel}
+                </Button>
+              </div>
+            </div>
+          )
+        }
+      </AsyncContent>
+
+      <CreateExerciseSheet
+        open={creatingName !== null}
+        initialName={creatingName ?? ''}
+        onClose={() => {
+          setCreatingName(null);
+        }}
+      />
+    </>
   );
 }
 
