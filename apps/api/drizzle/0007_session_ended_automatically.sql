@@ -1,0 +1,1 @@
+ALTER TABLE `workout_session` ADD `ended_automatically` integer DEFAULT false NOT NULL;

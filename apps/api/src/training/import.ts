@@ -47,7 +47,7 @@ const ROWS_PER_INSERT = {
   trackedExercise: 11, // 9 columnas
   routine: 16, // 6 columnas
   routineItem: 14, // 7 columnas
-  workoutSession: 20, // 5 columnas
+  workoutSession: 16, // 6 columnas
   setEntry: 11, // 9 columnas
   personalRecord: 14, // 7 columnas
 } as const;
