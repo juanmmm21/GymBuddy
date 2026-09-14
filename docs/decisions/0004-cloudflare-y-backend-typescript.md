@@ -53,3 +53,32 @@ Se descarta el backend en Python (FastAPI + SQLModel + aiogram): Workers no lo e
 Worker ya no recibe el webhook de Telegram. Entra `@simplewebauthn/server` para verificar las
 passkeys. El resto de la decisión —Workers, D1, Pages, Hono, Drizzle y Zod, todo en TypeScript— no
 cambia.
+
+## Revisión — 2026-09-14: la PWA la sirve el mismo Worker, no Pages
+
+**Pages sale del stack.** La PWA ya construida se sube con el Worker como *static assets*
+(`[assets]` en `wrangler.toml`) y todo vive en un solo origen gratuito,
+`gymbuddy.<subdominio de la cuenta>.workers.dev`. Lo decidió Juan el 14 de septiembre entre las tres
+formas gratuitas de publicarla:
+
+| Opción | Por qué no / por qué sí |
+|---|---|
+| PWA en `*.pages.dev` y API en `*.workers.dev` | Dos orígenes: CORS en el Worker y, sobre todo, listar las cabeceras de renovación de la sesión en `Access-Control-Expose-Headers`. Olvidarlo no rompe nada visible: la sesión deja de renovarse y caduca al mes. |
+| `*.pages.dev` con la API detrás de una Pages Function | Un solo origen, pero una pieza más (la función con su *service binding*) que desplegar y mantener. |
+| **Un solo Worker con la PWA como *static assets*** | Un origen, un despliegue y ningún CORS. Las peticiones a ficheros estáticos no cuentan en la cuota del plan gratuito. |
+
+**Cómo queda.** `not_found_handling = "single-page-application"` devuelve el `index.html` en las
+rutas de la app que no son un fichero, y `run_worker_first = ["/api/*"]` manda siempre la API al
+Worker: sin eso, una ruta de la API que no existe respondería con la app en vez de con el error del
+contrato. La PWA llama a la API por ruta relativa (`VITE_API_URL` vacío), y el Worker pasa a llamarse
+`gymbuddy`, que es lo que forma la dirección.
+
+**Consecuencias.**
+
+*   **El dominio de las passkeys es el `*.workers.dev`** (ADR [`0005`](0005-identidad-propia-con-passkeys.md)).
+    Renombrar el Worker o el subdominio de la cuenta obliga a todos a crear su llave otra vez.
+*   **La PWA se construye antes que el Worker**: `pnpm build` va en ese orden, y `wrangler deploy` sube
+    lo que haya en `apps/web/dist`. En desarrollo nada cambia: Vite sirve la app y hace de proxy de
+    `/api`, y el script `dev` del Worker solo crea la carpeta vacía para que `wrangler dev` arranque.
+*   Si algún día se compra un dominio, se enruta al mismo Worker; la mudanza es de passkeys, no de
+    código.

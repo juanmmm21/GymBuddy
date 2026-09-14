@@ -77,7 +77,8 @@ passkey es el único factor, así que se exige que el móvil haya comprobado la 
 
 *   **Cambiar de dominio invalida todas las passkeys.** Van atadas al `rpID`: los datos no se
     pierden, pero cada persona tendría que crear su llave otra vez. El dominio se decide **antes de que
-    nadie registre una**; `*.pages.dev` vale como `rpID`.
+    nadie registre una**. Quedó en el `*.workers.dev` del Worker que sirve la PWA (revisión del
+    2026-09-14 del ADR [`0004`](0004-cloudflare-y-backend-typescript.md)).
 *   **Perder todos los dispositivos es perder el acceso** mientras no exista la exportación en JSON,
     que va detrás en la misma fase. Las passkeys se sincronizan dentro de Apple o dentro de Google,
     pero no entre los dos: pasar de iPhone a Android necesita el código de «añadir otro
