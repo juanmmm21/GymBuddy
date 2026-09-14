@@ -82,17 +82,17 @@ describe('cierre automático de sesiones inactivas (ADR 0008)', () => {
     });
   });
 
-  it('con actividad hace menos de veinte minutos la sesión sigue abierta', async () => {
-    const sessionId = await openSession(minutesAgo(15));
-    expect((await logSet(sessionId, minutesAgo(5))).status).toBe(201);
+  it('con actividad hace menos de una hora la sesión sigue abierta', async () => {
+    const sessionId = await openSession(minutesAgo(45));
+    expect((await logSet(sessionId, minutesAgo(15))).status).toBe(201);
 
     expect((await activeSession())?.id).toBe(sessionId);
   });
 
-  it('a los veinte minutos se cierra sola, a la hora de la última serie', async () => {
-    const lastSet = minutesAgo(35);
-    const sessionId = await openSession(minutesAgo(60));
-    expect((await logSet(sessionId, minutesAgo(50))).status).toBe(201);
+  it('a la hora sin actividad se cierra sola, a la hora de la última serie', async () => {
+    const lastSet = minutesAgo(105);
+    const sessionId = await openSession(minutesAgo(180));
+    expect((await logSet(sessionId, minutesAgo(150))).status).toBe(201);
     expect((await logSet(sessionId, lastSet)).status).toBe(201);
 
     expect(await activeSession()).toBeNull();
@@ -100,7 +100,7 @@ describe('cierre automático de sesiones inactivas (ADR 0008)', () => {
   });
 
   it('una sesión empezada y sin series se cierra a la hora en que empezó, también en el historial', async () => {
-    const startedAt = minutesAgo(30);
+    const startedAt = minutesAgo(90);
     const sessionId = await openSession(startedAt);
 
     const history = workoutSessionPageSchema.parse(
@@ -111,7 +111,7 @@ describe('cierre automático de sesiones inactivas (ADR 0008)', () => {
   });
 
   it('una sesión abandonada no impide empezar la siguiente', async () => {
-    await openSession(minutesAgo(90));
+    await openSession(minutesAgo(270));
 
     const next = await call({ method: 'POST', path: '/sessions', body: { id: uuid() } });
 
@@ -119,24 +119,24 @@ describe('cierre automático de sesiones inactivas (ADR 0008)', () => {
   });
 
   it('las series que traía la cola sin cobertura reabren la sesión mientras continúan su actividad', async () => {
-    const sessionId = await openSession(minutesAgo(60));
+    const sessionId = await openSession(minutesAgo(180));
 
-    // Cada una llega con la sesión ya dada por cerrada, pero a menos de veinte minutos de la anterior.
-    for (const minutes of [55, 40, 25, 10]) {
+    // Cada una llega con la sesión ya dada por cerrada, pero a menos de una hora de la anterior.
+    for (const minutes of [165, 120, 75, 30]) {
       expect((await logSet(sessionId, minutesAgo(minutes))).status).toBe(201);
     }
 
     const session = await readSession(sessionId);
     expect(session.sets).toHaveLength(4);
-    // La última fue hace diez minutos: la sesión vuelve a estar en curso.
+    // La última fue hace media hora: la sesión vuelve a estar en curso.
     expect(session.endedAt).toBeNull();
   });
 
   it('una serie que ya no continúa la actividad es otro entrenamiento y se rechaza', async () => {
-    const sessionId = await openSession(minutesAgo(60));
-    expect((await logSet(sessionId, minutesAgo(55))).status).toBe(201);
+    const sessionId = await openSession(minutesAgo(180));
+    expect((await logSet(sessionId, minutesAgo(165))).status).toBe(201);
 
-    const late = await logSet(sessionId, minutesAgo(3));
+    const late = await logSet(sessionId, minutesAgo(9));
 
     expect(late.status).toBe(409);
     expect(await errorCode(late)).toBe('session_closed');
@@ -146,30 +146,30 @@ describe('cierre automático de sesiones inactivas (ADR 0008)', () => {
   });
 
   it('una sesión que cerró quien entrenaba no se reabre nunca', async () => {
-    const sessionId = await openSession(minutesAgo(30));
-    const closedAt = minutesAgo(25);
+    const sessionId = await openSession(minutesAgo(90));
+    const closedAt = minutesAgo(75);
     await call({ method: 'POST', path: `/sessions/${sessionId}/end`, body: { endedAt: closedAt } });
 
-    const late = await logSet(sessionId, minutesAgo(24));
+    const late = await logSet(sessionId, minutesAgo(72));
 
     expect(late.status).toBe(409);
     expect(await errorCode(late)).toBe('session_closed');
   });
 
   it('no se reabre si ya hay otra sesión abierta', async () => {
-    const abandoned = await openSession(minutesAgo(60));
-    await openSession(minutesAgo(1));
+    const abandoned = await openSession(minutesAgo(180));
+    await openSession(minutesAgo(3));
 
-    const late = await logSet(abandoned, minutesAgo(50));
+    const late = await logSet(abandoned, minutesAgo(150));
 
     expect(late.status).toBe(409);
     expect(await errorCode(late)).toBe('session_closed');
   });
 
   it('un «Terminar» de la cola dentro del margen deja la hora de quien entrenaba', async () => {
-    const sessionId = await openSession(minutesAgo(60));
-    expect((await logSet(sessionId, minutesAgo(55))).status).toBe(201);
-    const pressedAt = minutesAgo(45);
+    const sessionId = await openSession(minutesAgo(180));
+    expect((await logSet(sessionId, minutesAgo(165))).status).toBe(201);
+    const pressedAt = minutesAgo(135);
 
     const ended = await call({
       method: 'POST',
@@ -181,8 +181,8 @@ describe('cierre automático de sesiones inactivas (ADR 0008)', () => {
   });
 
   it('una corrección que llega de la cola entra aunque la sesión se cerrara sola', async () => {
-    const sessionId = await openSession(minutesAgo(60));
-    const logged = await logSet(sessionId, minutesAgo(55));
+    const sessionId = await openSession(minutesAgo(180));
+    const logged = await logSet(sessionId, minutesAgo(165));
     const { set } = logSetResponseSchema.parse(await logged.json());
 
     const corrected = await call({

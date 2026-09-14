@@ -164,13 +164,13 @@ describe('abrir la app sin red', () => {
     expect(screen.getByText('Sin sincronizar')).toBeInTheDocument();
   });
 
-  it('sin red, una sesión parada más de veinte minutos ya no se ofrece seguir (ADR 0008)', async () => {
+  it('sin red, una sesión parada más de una hora ya no se ofrece seguir (ADR 0008)', async () => {
     const minutesAgo = (minutes: number): string =>
       new Date(Date.now() - minutes * 60_000).toISOString();
     const abandoned: WorkoutSessionDetail = {
       ...activeSession,
-      startedAt: minutesAgo(70),
-      sets: activeSession.sets.map((set) => ({ ...set, completedAt: minutesAgo(45) })),
+      startedAt: minutesAgo(210),
+      sets: activeSession.sets.map((set) => ({ ...set, completedAt: minutesAgo(135) })),
     };
 
     renderApp({ path: '/', session, stored: deviceSnapshot(abandoned), setup: offline });

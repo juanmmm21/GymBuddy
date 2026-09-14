@@ -1,4 +1,8 @@
-import type { SetEntry, WorkoutSessionDetail } from '@gymbuddy/shared';
+import {
+  SESSION_IDLE_LIMIT_MINUTES,
+  type SetEntry,
+  type WorkoutSessionDetail,
+} from '@gymbuddy/shared';
 import { describe, expect, it } from 'vitest';
 import { applyPendingWrites, withoutIdleSession } from '../../src/offline/overlay';
 import type { SessionWrite } from '../../src/offline/pending-write';
@@ -189,16 +193,18 @@ describe('withoutIdleSession', () => {
     sets: [{ ...LOGGED_SET, completedAt: '2026-09-08T18:10:00.000Z' }],
   };
 
-  it('con actividad hace menos de veinte minutos deja la sesión como está', () => {
+  it('con actividad hace menos del límite deja la sesión como está', () => {
     const current = applyPendingWrites(session, []);
 
-    expect(withoutIdleSession(current, at('2026-09-08T18:10:00.000Z', 19))).toBe(current);
+    expect(
+      withoutIdleSession(current, at('2026-09-08T18:10:00.000Z', SESSION_IDLE_LIMIT_MINUTES - 1)),
+    ).toBe(current);
   });
 
-  it('a los veinte minutos sin actividad la sesión deja de estar en curso', () => {
+  it('al cumplir el límite sin actividad la sesión deja de estar en curso', () => {
     const result = withoutIdleSession(
       applyPendingWrites(session, []),
-      at('2026-09-08T18:10:00.000Z', 20),
+      at('2026-09-08T18:10:00.000Z', SESSION_IDLE_LIMIT_MINUTES),
     );
 
     expect(result.session).toBeNull();

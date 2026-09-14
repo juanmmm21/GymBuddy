@@ -40,14 +40,25 @@ describe('lastSessionActivityAt', () => {
   });
 });
 
+describe('SESSION_IDLE_LIMIT_MINUTES', () => {
+  it('es una hora: con veinte minutos se cortaban entrenamientos de verdad (ADR 0008)', () => {
+    expect(SESSION_IDLE_LIMIT_MINUTES).toBe(60);
+  });
+});
+
 describe('idleSessionEndAt', () => {
   const activity = { startedAt: START, setCompletedAts: ['2026-09-14T10:25:00.000Z'] };
 
-  it('sigue viva antes de los veinte minutos sin actividad', () => {
-    expect(idleSessionEndAt(activity, minutesAfter('2026-09-14T10:25:00.000Z', 19))).toBeNull();
+  it('sigue viva antes del límite sin actividad', () => {
+    expect(
+      idleSessionEndAt(
+        activity,
+        minutesAfter('2026-09-14T10:25:00.000Z', SESSION_IDLE_LIMIT_MINUTES - 1),
+      ),
+    ).toBeNull();
   });
 
-  it('a los veinte minutos se cierra, y a la hora de la última serie', () => {
+  it('al cumplir el límite se cierra, y a la hora de la última serie', () => {
     expect(
       idleSessionEndAt(
         activity,
@@ -61,7 +72,10 @@ describe('idleSessionEndAt', () => {
 
   it('una sesión empezada y sin series se cierra a la hora a la que empezó', () => {
     expect(
-      idleSessionEndAt({ startedAt: START, setCompletedAts: [] }, minutesAfter(START, 25)),
+      idleSessionEndAt(
+        { startedAt: START, setCompletedAts: [] },
+        minutesAfter(START, SESSION_IDLE_LIMIT_MINUTES + 5),
+      ),
     ).toBe(START);
   });
 });
@@ -71,11 +85,22 @@ describe('continuesIdleSession', () => {
 
   it('una serie dentro del margen continúa la sesión que se cerró sola', () => {
     expect(continuesIdleSession(endedAt, '2026-09-14T10:40:00.000Z')).toBe(true);
+    expect(
+      continuesIdleSession(
+        endedAt,
+        minutesAfter(endedAt, SESSION_IDLE_LIMIT_MINUTES - 1).toISOString(),
+      ),
+    ).toBe(true);
     expect(continuesIdleSession(endedAt, '2026-09-14T10:20:00.000Z')).toBe(true);
   });
 
-  it('una serie a los veinte minutos o más ya es otro entrenamiento', () => {
-    expect(continuesIdleSession(endedAt, '2026-09-14T10:45:00.000Z')).toBe(false);
+  it('una serie al cumplir el límite o más tarde ya es otro entrenamiento', () => {
+    expect(
+      continuesIdleSession(
+        endedAt,
+        minutesAfter(endedAt, SESSION_IDLE_LIMIT_MINUTES).toISOString(),
+      ),
+    ).toBe(false);
     expect(continuesIdleSession(endedAt, '2026-09-14T18:00:00.000Z')).toBe(false);
   });
 
