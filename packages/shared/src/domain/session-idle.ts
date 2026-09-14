@@ -12,11 +12,12 @@
 const MILLISECONDS_PER_MINUTE = 60_000;
 
 /**
- * Minutos sin actividad tras los que la sesión se cierra. Un descanso largo entre series pesadas
- * son cinco minutos, y cambiar de máquina con la sala llena, algo más: veinte no corta a nadie
- * que siga entrenando y no deja una sesión abierta la tarde entera. Lo eligió Juan.
+ * Minutos sin actividad tras los que la sesión se cierra. Empezó en veinte (lo eligió Juan), pero
+ * cortaba entrenamientos de verdad: esperar a un amigo antes del cardio, o el propio cardio, que
+ * no registra series mientras dura. Con sesenta ya no corta a nadie que siga en el gimnasio y
+ * tampoco deja una sesión abierta la tarde entera. Lo decidió Juan el 2026-09-15.
  */
-export const SESSION_IDLE_LIMIT_MINUTES = 20;
+export const SESSION_IDLE_LIMIT_MINUTES = 60;
 
 export const SESSION_IDLE_LIMIT_MS = SESSION_IDLE_LIMIT_MINUTES * MILLISECONDS_PER_MINUTE;
 
@@ -49,7 +50,7 @@ export function lastSessionActivityAt(activity: SessionActivity): string {
 
 /**
  * La hora a la que se cierra sola una sesión abierta, o `null` si sigue viva. **Es la de su
- * última actividad, no la de ahora**: los veinte minutos de espera no cuentan como entrenamiento,
+ * última actividad, no la de ahora**: los minutos de espera no cuentan como entrenamiento,
  * así que la duración queda como si se hubiese pulsado «Terminar» tras la última serie.
  */
 export function idleSessionEndAt(activity: SessionActivity, now: Date): string | null {

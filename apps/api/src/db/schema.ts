@@ -243,7 +243,7 @@ export const workoutSession = sqliteTable(
     startedAt: isoTimestamp('started_at').notNull(),
     // Nulo mientras la sesión sigue abierta: es lo que distingue la sesión en curso.
     endedAt: isoTimestamp('ended_at'),
-    // Se cerró sola tras veinte minutos sin actividad (ADR 0008), no la cerró quien entrenaba. Solo
+    // Se cerró sola tras una hora sin actividad (ADR 0008), no la cerró quien entrenaba. Solo
     // una sesión así se reabre si la cola offline trae una serie que continúa su actividad.
     endedAutomatically: integer('ended_automatically', { mode: 'boolean' })
       .notNull()

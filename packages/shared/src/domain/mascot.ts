@@ -149,7 +149,7 @@ const resting: MascotRule = ({ signals, device, now }) => {
 
 /** En el gimnasio y sin descansar: la primera serie o la siguiente, toca animar. */
 const cheering: MascotRule = ({ signals, device }) => {
-  // Una sesión abierta nunca lleva más de veinte minutos parada: se cierra sola (ADR 0008).
+  // Una sesión abierta nunca lleva más de una hora parada: se cierra sola (ADR 0008).
   if (signals.activeSessionId === null) return null;
 
   return { mood: 'cheering', reason: device.rest === null ? 'session_started' : 'rest_over' };

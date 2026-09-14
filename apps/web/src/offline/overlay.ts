@@ -14,7 +14,7 @@ export interface SessionWithPendingWrites {
 }
 
 /**
- * La sesión deja de estar en curso si lleva veinte minutos sin actividad (ADR 0008), contando las
+ * La sesión deja de estar en curso si lleva una hora sin actividad (ADR 0008), contando las
  * series que esperan en la cola. Es la misma regla con la que el Worker la cierra, aplicada en el
  * móvil: sin cobertura el Worker no puede avisar, y quien vuelve tras un rato largo tiene que ver
  * «Empezar» y no una sesión en la que su siguiente serie ya no entraría. Lo encolado de esa sesión
