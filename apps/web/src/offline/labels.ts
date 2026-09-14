@@ -21,15 +21,15 @@ export function droppedWriteTitle(write: SessionWrite): string {
 }
 
 /**
- * Por qué no entró. Los dos choques que solo aparecen al drenar tarde —otro móvil cerró la
- * sesión o abrió otra mientras este no tenía red— llevan su propio texto: el mensaje genérico
+ * Por qué no entró. Los dos choques que solo aparecen al drenar tarde —la sesión se cerró sola
+ * o desde otro móvil, o se abrió otra mientras este no tenía red— llevan su propio texto: el mensaje genérico
  * del Worker no explica que el dato se escribió bien y lo que cambió fue la sesión.
  */
 export function droppedWriteReason(error: unknown): string {
   if (error instanceof ApiRequestError) {
     switch (error.code) {
       case 'session_closed':
-        return 'La sesión ya estaba cerrada, seguramente desde otro móvil, y sus series ya no se pueden tocar.';
+        return 'La sesión ya estaba cerrada: se cierra sola tras veinte minutos sin series, o la cerraste desde otro móvil. Esta serie empieza una sesión nueva si la vuelves a registrar.';
       case 'session_already_open':
         return 'Ya había otra sesión abierta, seguramente desde otro móvil, y lo registrado aquí sin conexión no entró en ella.';
       case 'conflicting_write':

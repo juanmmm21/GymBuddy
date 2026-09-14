@@ -1,4 +1,9 @@
-import type { ResourceId, SetEntry, WorkoutSessionDetail } from '@gymbuddy/shared';
+import {
+  idleSessionEndAt,
+  type ResourceId,
+  type SetEntry,
+  type WorkoutSessionDetail,
+} from '@gymbuddy/shared';
 import type { SessionWrite } from './pending-write';
 
 /** La sesión abierta tal y como la ve quien entrena: lo que tiene el Worker más lo que espera en la cola. */
@@ -6,6 +11,28 @@ export interface SessionWithPendingWrites {
   readonly session: WorkoutSessionDetail | null;
   /** Series que se ven, o se ven corregidas, y que todavía no han llegado al Worker. */
   readonly pendingSetIds: ReadonlySet<ResourceId>;
+}
+
+/**
+ * La sesión deja de estar en curso si lleva veinte minutos sin actividad (ADR 0008), contando las
+ * series que esperan en la cola. Es la misma regla con la que el Worker la cierra, aplicada en el
+ * móvil: sin cobertura el Worker no puede avisar, y quien vuelve tras un rato largo tiene que ver
+ * «Empezar» y no una sesión en la que su siguiente serie ya no entraría. Lo encolado de esa sesión
+ * sigue en la cola y llega igual: el Worker la reabre si continúa su actividad.
+ */
+export function withoutIdleSession(
+  current: SessionWithPendingWrites,
+  now: Date,
+): SessionWithPendingWrites {
+  const { session } = current;
+  if (session === null || session.endedAt !== null) return current;
+
+  const endedAt = idleSessionEndAt(
+    { startedAt: session.startedAt, setCompletedAts: session.sets.map((set) => set.completedAt) },
+    now,
+  );
+
+  return endedAt === null ? current : { session: null, pendingSetIds: new Set() };
 }
 
 /**
