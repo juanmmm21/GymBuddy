@@ -15,8 +15,9 @@ import { copyToClipboard } from '../../lib/clipboard';
 import { describeError } from '../../lib/errors';
 import { formatShortDate, pluralize } from '../../lib/format';
 import styles from './InviteFriendScreen.module.css';
+import { SETTINGS_PATH } from '../settings/paths';
 
-const BACK_TO_HOME: BackLink = { to: '/', label: 'Hoy' };
+const BACK_TO_SETTINGS: BackLink = { to: SETTINGS_PATH, label: 'Ajustes' };
 
 /**
  * El código con el que un amigo se crea su cuenta. El alta va por invitación a propósito (no
@@ -31,7 +32,7 @@ export function InviteFriendScreen() {
       <ScreenHeader
         title="Invitar a un amigo"
         subtitle="Un código para que se cree su cuenta"
-        backTo={BACK_TO_HOME}
+        backTo={BACK_TO_SETTINGS}
       />
       <AsyncContent query={status}>{(data) => <Invitations status={data} />}</AsyncContent>
     </>

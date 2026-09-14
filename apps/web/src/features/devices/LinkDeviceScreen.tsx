@@ -7,8 +7,9 @@ import { describeError } from '../../lib/errors';
 import { formatStopwatch } from '../../lib/format';
 import styles from './LinkDeviceScreen.module.css';
 import { secondsUntil } from './link-code';
+import { SETTINGS_PATH } from '../settings/paths';
 
-const BACK_TO_HOME: BackLink = { to: '/', label: 'Hoy' };
+const BACK_TO_SETTINGS: BackLink = { to: SETTINGS_PATH, label: 'Ajustes' };
 
 /**
  * El código con el que otro móvil se suma a esta cuenta. Hace falta porque las llaves de acceso
@@ -27,7 +28,7 @@ export function LinkDeviceScreen() {
       <ScreenHeader
         title="Añadir otro dispositivo"
         subtitle="Para usar tu cuenta también desde otro móvil"
-        backTo={BACK_TO_HOME}
+        backTo={BACK_TO_SETTINGS}
       />
 
       <div className={styles.stack}>

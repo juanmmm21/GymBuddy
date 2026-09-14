@@ -80,15 +80,25 @@
   line-height: var(--gb-type-title-line);
 }
 
-.account {
+/* Un solo botón redondo: la cabecera de Hoy no puede empujar la sesión fuera de la pantalla. */
+.settingsLink {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: var(--gb-space-xs);
+  align-items: center;
+  justify-content: center;
+  width: var(--gb-size-touch-target);
+  height: var(--gb-size-touch-target);
+  border-radius: var(--gb-radius-pill);
+  background: var(--gb-color-surface);
+  border: var(--gb-size-border-width) solid var(--gb-color-border);
+  color: var(--gb-color-text-secondary);
+  transition: background-color var(--gb-duration-fast) var(--gb-ease-standard);
 }
 
-.accountLink {
-  color: var(--gb-color-text-secondary);
-  font-size: var(--gb-type-label-size);
-  text-align: right;
+.settingsLink:active {
+  background: var(--gb-color-surface-sunken);
+}
+
+.settingsIcon {
+  width: var(--gb-space-xl);
+  height: var(--gb-space-xl);
 }

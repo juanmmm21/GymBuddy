@@ -6,8 +6,9 @@ import { ExportIntegrityError, type ExportProgress } from './collect-export';
 import { ExportSaveError, useExportDownload, type ExportSummary } from './use-export-download';
 import { ImportSection } from './ImportSection';
 import styles from './BackupScreen.module.css';
+import { SETTINGS_PATH } from '../settings/paths';
 
-const BACK_TO_HOME: BackLink = { to: '/', label: 'Hoy' };
+const BACK_TO_SETTINGS: BackLink = { to: SETTINGS_PATH, label: 'Ajustes' };
 
 /**
  * La copia de seguridad de todo lo del usuario. Las llaves de acceso viven en los móviles y no
@@ -21,7 +22,7 @@ export function BackupScreen() {
       <ScreenHeader
         title="Copia de seguridad"
         subtitle="Todo tu entrenamiento en un fichero"
-        backTo={BACK_TO_HOME}
+        backTo={BACK_TO_SETTINGS}
       />
       <div className={styles.stack}>
         <Surface as="section">

@@ -4,7 +4,7 @@ import { useTrainingSignals } from '../../api/queries';
 import { useSession } from '../../auth/SessionProvider';
 import { ScreenHeader } from '../../app/ScreenHeader';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
-import { Badge, Button, Notice, Surface } from '../../components/index';
+import { Badge, Notice, Surface } from '../../components/index';
 import {
   formatDaysAgo,
   formatSessionDate,
@@ -12,15 +12,11 @@ import {
   formatWeightLabel,
   pluralize,
 } from '../../lib/format';
-import { BACKUP_PATH } from '../backup/paths';
-import { DEVICES_PATH } from '../devices/paths';
-import { useInstallGuide } from '../install/InstallProvider';
-import { INSTALL_PATH } from '../install/paths';
-import { INVITE_PATH } from '../invitations/paths';
 import { RECORD_LABELS } from '../exercises/labels';
 import { LiveMascot } from '../mascot/LiveMascot';
 import { useOpenSession } from '../../offline/use-open-session';
 import { SESSION_PATH } from '../session/paths';
+import { SETTINGS_PATH } from '../settings/paths';
 import { homeSessionState, type HomeSessionState } from './open-session';
 import { RoutineShortcuts } from './RoutineShortcuts';
 import { WeekCalendar } from './WeekCalendar';
@@ -28,9 +24,8 @@ import styles from './HomeScreen.module.css';
 
 /** Resumen de cómo vas: las señales de `GET /stats/signals`, las mismas que verá la mascota. */
 export function HomeScreen() {
-  const { session, signOut } = useSession();
+  const { session } = useSession();
   const signals = useTrainingSignals();
-  const { situation } = useInstallGuide();
   const displayName = session?.user.displayName ?? '';
   const locale = session?.user.locale ?? 'es';
 
@@ -39,25 +34,9 @@ export function HomeScreen() {
       <ScreenHeader
         title={`Hola, ${displayName}`}
         action={
-          <div className={styles.account}>
-            <Link to={DEVICES_PATH} className={styles.accountLink}>
-              Añadir otro dispositivo
-            </Link>
-            <Link to={INVITE_PATH} className={styles.accountLink}>
-              Invitar a un amigo
-            </Link>
-            <Link to={BACKUP_PATH} className={styles.accountLink}>
-              Copia de seguridad
-            </Link>
-            {situation.kind !== 'installed' && (
-              <Link to={INSTALL_PATH} className={styles.accountLink}>
-                Instalar la app
-              </Link>
-            )}
-            <Button variant="ghost" onClick={signOut}>
-              Salir
-            </Button>
-          </div>
+          <Link to={SETTINGS_PATH} className={styles.settingsLink} aria-label="Ajustes">
+            <SettingsIcon />
+          </Link>
         }
       />
       <AsyncContent query={signals}>
@@ -170,5 +149,24 @@ function Metric({ label, value }: { readonly label: string; readonly value: stri
       <span className={styles.metricLabel}>{label}</span>
       <span className={styles.metricValue}>{value}</span>
     </div>
+  );
+}
+
+/** El engranaje de Ajustes: trazo simple, del mismo grosor que los iconos de las pestañas. */
+function SettingsIcon() {
+  return (
+    <svg
+      className={styles.settingsIcon}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
   );
 }
