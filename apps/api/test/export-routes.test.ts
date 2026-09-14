@@ -208,8 +208,9 @@ describe('exportación de los datos del usuario', () => {
     expect(page.limit).toBe(MAX_EXPORT_SESSION_PAGE_SIZE);
     expect(page.items.map((session) => session.id)).toEqual(scenario.sessionIds);
 
+    // La que se quedó abierta sale cerrada sola, a la hora de su última serie (ADR 0008).
     const open = page.items[2];
-    expect(open?.endedAt).toBeNull();
+    expect(open?.endedAt).toBe('2026-08-24T18:40:00.000Z');
     expect(open?.notes).toBe('Sesión sin cerrar');
     expect(open?.sets.map((set) => set.orderIndex)).toEqual([0, 1, 2, 3]);
     expect(open?.sets[0]).toMatchObject({ weight: '60.00', reps: 10, isWarmup: true, rpe: null });

@@ -237,27 +237,27 @@ describe('api de entrenamiento', () => {
   });
 
   it('cerrar dos veces la misma sesión no mueve la hora de cierre', async () => {
-    const { sessionId } = await openSessionWith(token, '2026-09-08T18:00:00.000Z');
+    // Horas recientes: una sesión de hace días ya se habría cerrado sola al pedir nada (ADR 0008).
+    const minutesAgo = (minutes: number): string =>
+      new Date(Date.now() - minutes * 60_000).toISOString();
+    const firstEnd = minutesAgo(2);
+    const { sessionId } = await openSessionWith(token, minutesAgo(10));
 
     const first = await call({
       method: 'POST',
       path: `/sessions/${sessionId}/end`,
       token,
-      body: { endedAt: '2026-09-08T19:00:00.000Z' },
+      body: { endedAt: firstEnd },
     });
     const second = await call({
       method: 'POST',
       path: `/sessions/${sessionId}/end`,
       token,
-      body: { endedAt: '2026-09-08T20:00:00.000Z' },
+      body: { endedAt: minutesAgo(1) },
     });
 
-    expect(workoutSessionDetailSchema.parse(await first.json()).endedAt).toBe(
-      '2026-09-08T19:00:00.000Z',
-    );
-    expect(workoutSessionDetailSchema.parse(await second.json()).endedAt).toBe(
-      '2026-09-08T19:00:00.000Z',
-    );
+    expect(workoutSessionDetailSchema.parse(await first.json()).endedAt).toBe(firstEnd);
+    expect(workoutSessionDetailSchema.parse(await second.json()).endedAt).toBe(firstEnd);
   });
 
   it('no deja seguir dos veces el mismo ejercicio del catálogo', async () => {

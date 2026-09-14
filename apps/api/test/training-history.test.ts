@@ -43,8 +43,9 @@ describe('historial de entrenamiento', () => {
       scenario.sessionIds[0],
     ]);
     expect(page.items.map((session) => session.setCount)).toEqual([4, 2, 2]);
-    // La sesión en curso aparece en el historial con su cierre a nulo.
-    expect(page.items[0]?.endedAt).toBeNull();
+    // La sesión que se quedó abierta en agosto sale cerrada sola, a la hora de su última serie
+    // (ADR 0008): el historial nunca enseña abierta una sesión abandonada.
+    expect(page.items[0]?.endedAt).toBe('2026-08-24T18:40:00.000Z');
   });
 
   it('pagina sin perder el total', async () => {
