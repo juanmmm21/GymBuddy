@@ -12,6 +12,8 @@ export interface RoutineGuideProps {
   /** Con los archivados: una rutina puede nombrar uno, y su línea tiene que seguir leyéndose. */
   readonly exercises: readonly TrackedExercise[];
   readonly onLogLine: (line: RoutineLineProgress) => void;
+  /** Cambiar el ejercicio o las series de la línea solo para esta sesión. */
+  readonly onAdjustLine: (line: RoutineLineProgress) => void;
 }
 
 /**
@@ -19,7 +21,13 @@ export interface RoutineGuideProps {
  * y cuál toca. Tocar una abre el registro con su ejercicio, que es lo que se hace entre
  * serie y serie con el móvil en una mano.
  */
-export function RoutineGuide({ routine, progress, exercises, onLogLine }: RoutineGuideProps) {
+export function RoutineGuide({
+  routine,
+  progress,
+  exercises,
+  onLogLine,
+  onAdjustLine,
+}: RoutineGuideProps) {
   const titleId = useId();
   const exerciseById = new Map(exercises.map((exercise) => [exercise.id, exercise]));
   const total = progress.lines.length;
@@ -53,6 +61,9 @@ export function RoutineGuide({ routine, progress, exercises, onLogLine }: Routin
               onLog={() => {
                 onLogLine(line);
               }}
+              onAdjust={() => {
+                onAdjustLine(line);
+              }}
             />
           ))}
         </ol>
@@ -74,9 +85,10 @@ interface GuideLineProps {
   readonly exercise: TrackedExercise | null;
   readonly current: boolean;
   readonly onLog: () => void;
+  readonly onAdjust: () => void;
 }
 
-function GuideLine({ line, position, exercise, current, onLog }: GuideLineProps) {
+function GuideLine({ line, position, exercise, current, onLog, onAdjust }: GuideLineProps) {
   const name = exercise?.name ?? 'Ejercicio no disponible';
   const { doneSets } = line;
   const { targetSets } = line.item;
@@ -99,10 +111,20 @@ function GuideLine({ line, position, exercise, current, onLog }: GuideLineProps)
         {exercise !== null && exercise.archivedAt !== null && (
           <Badge tone="warning">Archivado</Badge>
         )}
+        {line.adjusted && <Badge>Solo hoy</Badge>}
         {current && <Badge tone="accent">Ahora</Badge>}
         <span className={cx(styles.progress, line.complete && styles.done)}>
           {doneSets}/{targetSets}
         </span>
+      </button>
+      {/* Aparte del botón de registrar: un botón no puede ir dentro de otro. */}
+      <button
+        type="button"
+        className={styles.adjust}
+        onClick={onAdjust}
+        aria-label={`Cambiar ${name} solo para hoy`}
+      >
+        Ajustar
       </button>
     </Surface>
   );

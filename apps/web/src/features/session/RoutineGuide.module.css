@@ -114,3 +114,21 @@
 .done {
   color: var(--gb-color-success);
 }
+
+.adjust {
+  flex-shrink: 0;
+  min-width: var(--gb-size-touch-target);
+  min-height: var(--gb-size-touch-target);
+  padding: 0 var(--gb-space-md);
+  border: none;
+  border-left: var(--gb-size-border-width) solid var(--gb-color-border);
+  background: none;
+  color: var(--gb-color-accent);
+  font-size: var(--gb-type-caption-size);
+  font-weight: var(--gb-type-body-strong-weight);
+  transition: background-color var(--gb-duration-fast) var(--gb-ease-standard);
+}
+
+.adjust:active {
+  background: var(--gb-color-surface-sunken);
+}

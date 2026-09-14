@@ -39,7 +39,14 @@ import { SESSION_EXERCISE_PARAM, SESSION_ROUTINE_PARAM } from './paths';
 import { RestTimer } from './RestTimer';
 import { restTargetFor, withRestTarget, type RestKind, type RestPreferences } from './rest';
 import { loadRestPreferences, saveRestPreferences } from './rest-preferences-store';
-import { restKindAfter, routineProgress } from './routine-progress';
+import { AdjustLineSheet } from './AdjustLineSheet';
+import {
+  NO_ADJUSTMENTS,
+  withLineChoice,
+  withoutLineAdjustment,
+  type RoutineLineAdjustment,
+} from './routine-adjustments';
+import { restKindAfter, routineProgress, type RoutineLineProgress } from './routine-progress';
 import { RoutineGuide } from './RoutineGuide';
 import {
   clearSessionRoutine,
@@ -198,7 +205,9 @@ function StartSessionPanel({ routineId, routine }: StartSessionPanelProps) {
     // Se recuerda antes de mandar y con el id que pone el cliente: si el alta sale bien la
     // sesión lleva ese id, y este panel se desmonta en cuanto aparece la sesión abierta, así
     // que un `onSuccess` de aquí podría no llegar a ejecutarse.
-    if (routine !== null) saveSessionRoutine(storage, { sessionId, routineId: routine.id });
+    if (routine !== null) {
+      saveSessionRoutine(storage, { sessionId, routineId: routine.id, adjustments: [] });
+    }
     start.mutate({ id: sessionId });
   };
 
@@ -285,20 +294,31 @@ function ActiveSession({
   const storage = useStorage();
   // Se lee una sola vez: la pantalla monta una `ActiveSession` por sesión y lo guardado
   // solo cambia desde aquí dentro. Si la URL trae una rutina, manda la de la URL.
-  const [storedRoutineId] = useState(() => loadSessionRoutine(storage, session.id));
-  const routineId = requestedRoutineId ?? storedRoutineId;
+  const [stored, setStored] = useState(() => loadSessionRoutine(storage, session.id));
+  const [adjusting, setAdjusting] = useState<RoutineLineProgress | null>(null);
+  const routineId = requestedRoutineId ?? stored?.routineId ?? null;
+  // Los ajustes son de la rutina con la que se guardaron: si la URL trae otra, esa va tal cual.
+  const adjustments =
+    stored !== null && stored.routineId === routineId ? stored.adjustments : NO_ADJUSTMENTS;
   const routines = useRoutines({ includeArchived: true }, { enabled: routineId !== null });
   const routine =
     routineId === null
       ? null
       : (routines.data?.find((candidate) => candidate.id === routineId) ?? null);
-  const progress = routine === null ? null : routineProgress(routine.items, session.sets);
+  const progress =
+    routine === null ? null : routineProgress(routine.items, session.sets, adjustments);
 
   const groups = groupSetsByExercise(session.sets, exercises);
   const lastSetAt = latestSetCompletedAt(session.sets);
   const restKind = restKindAfter(progress, session.sets);
   const restTarget = restTargetFor(restPreferences, restKind);
-  const routineExerciseIds = new Set(routine?.items.map((item) => item.trackedExerciseId));
+  // Con los de la rutina y los que la sustituyen hoy: los dos se pueden registrar desde su línea.
+  const routineExerciseIds = new Set(
+    progress?.lines.flatMap((line) => [
+      line.item.trackedExerciseId,
+      line.planned.trackedExerciseId,
+    ]),
+  );
   // Un archivado que nombra la rutina se puede registrar: su línea lo pide y el Worker lo acepta.
   const selectable = exercises.filter(
     (exercise) => exercise.archivedAt === null || routineExerciseIds.has(exercise.id),
@@ -307,11 +327,17 @@ function ActiveSession({
   // Abrir el registro con la rutina delante es seguirla, y se recuerda ahí: «Seguir» en Hoy
   // lleva a la sesión sin la rutina en la URL, y el guion no puede perderse por el camino.
   const openLog = (exerciseId: ResourceId | null): void => {
-    if (routine !== null) {
-      saveSessionRoutine(storage, { sessionId: session.id, routineId: routine.id });
-    }
+    if (routine !== null) remember(adjustments);
     onOpenLog(exerciseId);
   };
+
+  // Se guarda en el mismo toque que cambia la pantalla: sin efectos y sin esperar a la red.
+  function remember(next: readonly RoutineLineAdjustment[]): void {
+    if (routine === null) return;
+    const link = { routineId: routine.id, adjustments: [...next] };
+    setStored(link);
+    saveSessionRoutine(storage, { sessionId: session.id, ...link });
+  }
 
   const mascotSignals = openSessionSignals(session);
   const mascotDevice = sessionDeviceSignals(lastSetAt, restTarget, records);
@@ -377,6 +403,7 @@ function ActiveSession({
                 onLogLine={(line) => {
                   openLog(line.item.trackedExerciseId);
                 }}
+                onAdjustLine={setAdjusting}
               />
             )
           }
@@ -424,6 +451,22 @@ function ActiveSession({
         open={logging !== null}
         onClose={onCloseLog}
         onLogged={onLogged}
+      />
+
+      <AdjustLineSheet
+        line={adjusting}
+        exercises={exercises}
+        onClose={() => {
+          setAdjusting(null);
+        }}
+        onChoose={(line, choice) => {
+          remember(withLineChoice(adjustments, line.planned, choice));
+          setAdjusting(null);
+        }}
+        onRestore={(line) => {
+          remember(withoutLineAdjustment(adjustments, line.planned.id));
+          setAdjusting(null);
+        }}
       />
 
       <EditSetSheet
