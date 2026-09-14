@@ -327,6 +327,47 @@ describe('api de entrenamiento', () => {
     expect(await errorCode(response)).toBe('not_found');
   });
 
+  it('da de alta un ejercicio propio con su músculo y rechaza uno de otra parte del cuerpo', async () => {
+    const created = await call({
+      method: 'POST',
+      path: '/exercises',
+      token,
+      body: {
+        id: uuid(),
+        origin: 'custom',
+        name: 'Hip thrust en máquina',
+        muscle: 'glutes',
+        bodyPart: 'legs',
+      },
+    });
+
+    expect(created.status).toBe(201);
+    const exercise = trackedExerciseSchema.parse(await created.json());
+    expect(exercise).toMatchObject({
+      name: 'Hip thrust en máquina',
+      origin: 'custom',
+      muscle: 'glutes',
+      bodyPart: 'legs',
+      gifUrl: null,
+    });
+
+    const mismatch = await call({
+      method: 'POST',
+      path: '/exercises',
+      token,
+      body: {
+        id: uuid(),
+        origin: 'custom',
+        name: 'Step up en polea',
+        muscle: 'glutes',
+        bodyPart: 'chest',
+      },
+    });
+
+    expect(mismatch.status).toBe(400);
+    expect(await errorCode(mismatch)).toBe('validation_failed');
+  });
+
   it('archiva un ejercicio sin borrar su historial y lo saca del listado', async () => {
     const { exerciseId, sessionId } = await openSessionWith(token);
     await call({
