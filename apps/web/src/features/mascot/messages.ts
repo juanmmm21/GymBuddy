@@ -5,14 +5,7 @@ import type {
   TrackedExercise,
   WeightKilograms,
 } from '@gymbuddy/shared';
-import {
-  formatDaysAgo,
-  formatSessionDate,
-  formatStopwatch,
-  formatTime,
-  formatWeightLabel,
-  pluralize,
-} from '../../lib/format';
+import { formatDaysAgo, formatStopwatch, formatWeightLabel, pluralize } from '../../lib/format';
 
 /** Lo que dice la mascota: una frase corta que se lee de un vistazo y su explicación. */
 export interface MascotMessage {
@@ -88,11 +81,6 @@ type NudgingState = Extract<MascotState, { readonly mood: 'nudging' }>;
 
 function nudgingMessage(state: NudgingState, context: MascotMessageContext): MascotMessage {
   switch (state.reason) {
-    case 'forgotten_session':
-      return {
-        title: 'Te dejaste la sesión abierta',
-        body: `La abriste el ${formatSessionDate(state.openedAt, context.locale, context.now)} a las ${formatTime(state.openedAt, context.locale)}. Si ya acabaste, ciérrala con «Terminar sesión»; si sigues, registra una serie y listo.`,
-      };
     case 'absence':
       return {
         title: '¿Hoy toca?',

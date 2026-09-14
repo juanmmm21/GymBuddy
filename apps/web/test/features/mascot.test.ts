@@ -80,17 +80,6 @@ describe('mascotMessage', () => {
     expect(message.body).toContain('La última fue hace 5 días.');
   });
 
-  it('la sesión olvidada dice cuándo se abrió y cómo cerrarla', () => {
-    const message = mascotMessage(
-      { mood: 'nudging', reason: 'forgotten_session', openedAt: '2026-09-08T16:30:00.000Z' },
-      NO_STALLED,
-    );
-
-    expect(message.title).toBe('Te dejaste la sesión abierta');
-    expect(message.body).toMatch(/^La abriste el mar, 8 sept a las \d\d:30\./);
-    expect(message.body).toContain('«Terminar sesión»');
-  });
-
   it('distingue a quien no ha entrenado nunca de quien va al día', () => {
     expect(mascotMessage({ mood: 'idle', reason: 'never_trained' }, NO_STALLED).body).toContain(
       'primera sesión',
@@ -108,7 +97,6 @@ describe('mascotMessage', () => {
       { mood: 'cheering', reason: 'rest_over' },
       { mood: 'sleepy', daysSinceLastSession: 7 },
       { mood: 'nudging', reason: 'absence', daysSinceLastSession: 4 },
-      { mood: 'nudging', reason: 'forgotten_session', openedAt: '2026-09-08T18:00:00.000Z' },
       stagnation(1),
       { mood: 'idle', reason: 'never_trained' },
       { mood: 'idle', reason: 'on_track' },

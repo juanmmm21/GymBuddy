@@ -14,7 +14,6 @@ const STATES: readonly MascotState[] = [
   { mood: 'cheering', reason: 'rest_over' },
   { mood: 'celebrating', recordAchievedAt: '2026-09-11T10:00:00.000Z' },
   { mood: 'nudging', reason: 'absence', daysSinceLastSession: 5 },
-  { mood: 'nudging', reason: 'forgotten_session', openedAt: '2026-09-08T18:00:00.000Z' },
   { mood: 'sleepy', daysSinceLastSession: 8 },
 ];
 

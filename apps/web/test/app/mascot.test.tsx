@@ -115,27 +115,6 @@ describe('la mascota en Hoy', () => {
     expect(mascotCard().getByText(/^8 días sin vernos/)).toBeInTheDocument();
   });
 
-  it('una sesión abierta hace horas y sin tocar pide cerrarla, y la tarjeta dice desde cuándo', async () => {
-    renderApp({
-      path: '/',
-      session,
-      setup: (fake) => {
-        serveHome(fake, {
-          ...signals,
-          lastSessionAt: '2026-09-08T18:00:00.000Z',
-          activeSessionId: activeSession.id,
-          latestRecord: null,
-        });
-      },
-    });
-
-    expect(await screen.findByText('Te dejaste la sesión abierta')).toBeInTheDocument();
-    expect(mascotCard().getByText(/«Terminar sesión»/)).toBeInTheDocument();
-    expect(
-      screen.getByText(/^Tienes una sesión abierta desde el mar, 8 sept a las/),
-    ).toBeInTheDocument();
-  });
-
   it('sin haber entrenado nunca saluda y no reprocha nada', async () => {
     renderApp({
       path: '/',
@@ -188,43 +167,6 @@ describe('la mascota en la sesión', () => {
     });
 
     expect(await screen.findByText('¿Seguimos?')).toBeInTheDocument();
-  });
-
-  it('una sesión de hace días sin tocar pide cerrarla, y una serie nueva la reactiva', async () => {
-    const user = userEvent.setup();
-    let current = activeSession;
-    renderApp({
-      path: '/session',
-      session,
-      setup: (fake) => {
-        fake.on('GET', '/sessions/active', () => jsonResponse({ session: current }));
-        fake.on('GET', '/exercises', () => jsonResponse([benchPress, squat]));
-        fake.on('POST', `/sessions/${activeSession.id}/sets`, (request) => {
-          const body = request.body as LogSetRequest;
-          const entry = {
-            id: body.id,
-            trackedExerciseId: body.trackedExerciseId,
-            orderIndex: current.sets.length,
-            weight: body.weight,
-            reps: body.reps,
-            rpe: body.rpe ?? null,
-            isWarmup: body.isWarmup ?? false,
-            completedAt: new Date().toISOString(),
-          };
-          current = { ...current, sets: [...current.sets, entry] };
-          return jsonResponse({ set: entry, records: [] });
-        });
-      },
-    });
-
-    expect(await screen.findByText('Te dejaste la sesión abierta')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Registrar serie' }));
-    await user.click(screen.getAllByRole('button', { name: 'Registrar serie' })[1] as HTMLElement);
-
-    expect(
-      await screen.findByRole('img', { name: MASCOT_MOOD_LABELS.resting }),
-    ).toBeInTheDocument();
-    expect(screen.queryByText('Te dejaste la sesión abierta')).not.toBeInTheDocument();
   });
 
   it('una serie recién registrada la pone a descansar con lo que queda', async () => {
