@@ -238,6 +238,40 @@ describe('api de entrenamiento', () => {
     expect(await errorCode(late)).toBe('session_closed');
   });
 
+  it('cada ejercicio lleva su última serie efectiva: la más reciente y sin calentamiento', async () => {
+    const minutesAgo = (minutes: number): string =>
+      new Date(Date.now() - minutes * 60_000).toISOString();
+    const { exerciseId, sessionId } = await openSessionWith(token, minutesAgo(10));
+
+    for (const [weight, reps, isWarmup, at] of [
+      ['90.00', 5, false, minutesAgo(8)],
+      ['80.00', 6, false, minutesAgo(5)],
+      ['40.00', 12, true, minutesAgo(2)],
+    ] as const) {
+      await call({
+        method: 'POST',
+        path: `/sessions/${sessionId}/sets`,
+        token,
+        body: {
+          id: uuid(),
+          trackedExerciseId: exerciseId,
+          weight,
+          reps,
+          isWarmup,
+          completedAt: at,
+        },
+      });
+    }
+
+    const listed = trackedExerciseSchema
+      .array()
+      .parse(await (await call({ method: 'GET', path: '/exercises', token })).json());
+    const exercise = listed.find((item) => item.id === exerciseId);
+
+    // Ni la más pesada (90) ni el calentamiento de después: la última de trabajo, 80 kg × 6.
+    expect(exercise?.lastSet).toMatchObject({ weight: '80.00', reps: 6 });
+  });
+
   it('cerrar dos veces la misma sesión no mueve la hora de cierre', async () => {
     // Horas recientes: una sesión de hace días ya se habría cerrado sola al pedir nada (ADR 0008).
     const minutesAgo = (minutes: number): string =>
