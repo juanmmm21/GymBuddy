@@ -47,6 +47,19 @@ describe('Badge', () => {
     render(<Badge tone="success">PR</Badge>);
     expect(screen.getByText('PR')).toBeInTheDocument();
   });
+
+  it('el récord tiene su propio tono, distinto de un aviso de éxito', () => {
+    render(
+      <>
+        <Badge tone="record">Récord</Badge>
+        <Badge tone="success">Ya lo sigues</Badge>
+      </>,
+    );
+
+    expect(screen.getByText('Récord').className).not.toBe(
+      screen.getByText('Ya lo sigues').className,
+    );
+  });
 });
 
 describe('Notice', () => {

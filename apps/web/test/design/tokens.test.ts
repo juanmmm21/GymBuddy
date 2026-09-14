@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { cssVariablesFor, installTheme, watchColorScheme } from '../../src/design/theme';
-import { colors } from '../../src/design/tokens';
+import { colors, type ColorScheme, type ColorTokens } from '../../src/design/tokens';
 
 // Ruta relativa a la raíz del paquete: vitest arranca ahí, y bajo jsdom `import.meta.url` no es un fichero.
 const SRC_DIR = join(process.cwd(), 'src');
@@ -25,6 +25,59 @@ describe('tokens de diseño', () => {
     expect(variables['--gb-space-md']).toBe('12px');
     expect(variables['--gb-duration-base']).toBe('200ms');
     expect(variables['--gb-type-body-strong-weight']).toBe('600');
+    expect(variables['--gb-font-width-condensed']).toBe('78%');
+    expect(variables['--gb-color-on-record']).toBe(colors.light.onRecord);
+  });
+});
+
+/** Contraste WCAG entre dos colores `#rrggbb`. */
+function contrastRatio(first: string, second: string): number {
+  const [lighter, darker] = [relativeLuminance(first), relativeLuminance(second)].sort(
+    (left, right) => right - left,
+  );
+  return ((lighter ?? 0) + 0.05) / ((darker ?? 0) + 0.05);
+}
+
+function relativeLuminance(hex: string): number {
+  const channels = [1, 3, 5].map((start) => Number.parseInt(hex.slice(start, start + 2), 16) / 255);
+  const [red = 0, green = 0, blue = 0] = channels.map((channel) =>
+    channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4,
+  );
+  return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+}
+
+/** Texto que se lee encima de un fondo: cada par tiene que pasar AA en los dos esquemas. */
+const READABLE_PAIRS: readonly (readonly [keyof ColorTokens, keyof ColorTokens])[] = [
+  ['text', 'canvas'],
+  ['text', 'surface'],
+  ['textSecondary', 'surface'],
+  ['textMuted', 'canvas'],
+  ['textMuted', 'surface'],
+  ['textMuted', 'surfaceSunken'],
+  ['accent', 'surface'],
+  ['accent', 'canvas'],
+  ['onAccent', 'accent'],
+  ['accent', 'accentSoft'],
+  ['success', 'successSoft'],
+  ['warning', 'warningSoft'],
+  ['danger', 'dangerSoft'],
+  ['onRecord', 'record'],
+];
+
+describe('contraste de la paleta', () => {
+  const schemes: readonly ColorScheme[] = ['light', 'dark'];
+
+  it.each(schemes)('en el tema %s todo texto pasa 4,5:1 sobre su fondo', (scheme) => {
+    const failing = READABLE_PAIRS.map(([foreground, background]) => ({
+      pair: `${foreground}/${background}`,
+      ratio: contrastRatio(colors[scheme][foreground], colors[scheme][background]),
+    })).filter(({ ratio }) => ratio < 4.5);
+
+    expect(failing).toEqual([]);
+  });
+
+  it('calcula el contraste como la norma: negro sobre blanco es 21:1', () => {
+    expect(contrastRatio('#000000', '#ffffff')).toBeCloseTo(21, 5);
   });
 });
 
