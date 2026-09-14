@@ -114,3 +114,21 @@ jsDelivr ignora (mismo fichero, 200 y CORS abierto) y que hace que la URL no cas
 que se ojea, bastaría con recorrer una parte del cuerpo para expulsar los GIFs de los ejercicios que se
 entrenan sin cobertura. Las miniaturas se piden con `loading="lazy"`, así que solo baja lo que se ve, y
 el coste en datos móviles se aceptó a sabiendas.
+
+## Borrar un entrenamiento — 2026-09-15
+
+Juan pidió poder borrar entrenamientos enteros. **El borrado no entra en la cola**: se hace desde el
+detalle del historial, que ya necesita red, y solo sobre una sesión cerrada.
+
+*   **Sin red, falla con su aviso** en vez de encolarse. Un borrado encolado dejaría la sesión viéndose
+    en un móvil y no en otro hasta drenar, y pintar «ya no está» encima del historial exigiría guardar el
+    historial en el dispositivo, que a propósito no se guarda.
+*   **Con algo de esa sesión esperando en la cola, no se ofrece.** Lo encolado se rechazaría detrás, una
+    escritura tras otra y cada una con su aviso; la pantalla dice que se podrá borrar cuando llegue.
+*   **El Worker responde 204 aunque la sesión ya no esté**, igual que al borrar una serie, y lo que llegue
+    después desde la cola de otro móvil para esa sesión es `not_found`: se retira con un texto propio
+    («se borró desde otro móvil»), como los demás choques que solo aparecen al drenar tarde.
+*   **Las marcas se reescriben en el mismo lote que el borrado** (D1 ejecuta un lote como transacción):
+    desde la serie borrada más antigua de cada ejercicio se retiran las guardadas y se vuelven a escribir
+    las que salen de recorrer las series que quedan. Lo mismo al borrar una serie suelta: antes, borrar la
+    del récord dejaba sin marca a la siguiente mejor serie que vino detrás.
