@@ -36,6 +36,19 @@ export function withoutIdleSession(
 }
 
 /**
+ * Si algo de esa sesión espera todavía en la cola. Borrarla entonces dejaría lo encolado
+ * rechazándose una escritura detrás de otra al drenar, cada una con su aviso.
+ */
+export function hasPendingWritesForSession(
+  writes: readonly SessionWrite[],
+  sessionId: ResourceId,
+): boolean {
+  return writes.some((write) =>
+    write.kind === 'start_session' ? write.body.id === sessionId : write.sessionId === sessionId,
+  );
+}
+
+/**
  * Aplica las escrituras pendientes, en su orden, sobre la sesión abierta del Worker. Sin esto,
  * una serie registrada sin cobertura desaparecería de la pantalla hasta que vuelva la red, y
  * quien entrena la registraría otra vez.

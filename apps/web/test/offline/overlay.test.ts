@@ -4,7 +4,11 @@ import {
   type WorkoutSessionDetail,
 } from '@gymbuddy/shared';
 import { describe, expect, it } from 'vitest';
-import { applyPendingWrites, withoutIdleSession } from '../../src/offline/overlay';
+import {
+  applyPendingWrites,
+  hasPendingWritesForSession,
+  withoutIdleSession,
+} from '../../src/offline/overlay';
 import type { SessionWrite } from '../../src/offline/pending-write';
 import { activeSession, benchPress, squat } from '../fixtures';
 
@@ -182,6 +186,51 @@ describe('applyPendingWrites', () => {
     ]);
 
     expect(view.session).toBe(activeSession);
+  });
+});
+
+describe('hasPendingWritesForSession', () => {
+  it('reconoce la sesión por sus series, correcciones, borrados y cierre', () => {
+    expect(hasPendingWritesForSession([logSet(QUEUED_SET_ID)], OPEN_ID)).toBe(true);
+    expect(
+      hasPendingWritesForSession(
+        [{ kind: 'remove_set', sessionId: OPEN_ID, setId: LOGGED_SET.id }],
+        OPEN_ID,
+      ),
+    ).toBe(true);
+    expect(
+      hasPendingWritesForSession(
+        [
+          {
+            kind: 'end_session',
+            sessionId: OPEN_ID,
+            body: { endedAt: '2026-09-08T19:30:00.000Z' },
+          },
+        ],
+        OPEN_ID,
+      ),
+    ).toBe(true);
+  });
+
+  it('y por su apertura, que lleva el id en el cuerpo', () => {
+    expect(
+      hasPendingWritesForSession(
+        [
+          {
+            kind: 'start_session',
+            body: { id: NEW_SESSION_ID, startedAt: '2026-09-08T18:00:00.000Z' },
+          },
+        ],
+        NEW_SESSION_ID,
+      ),
+    ).toBe(true);
+  });
+
+  it('lo de otra sesión, o nada pendiente, no la retiene', () => {
+    expect(hasPendingWritesForSession([logSet(OTHER_SET_ID, {}, NEW_SESSION_ID)], OPEN_ID)).toBe(
+      false,
+    );
+    expect(hasPendingWritesForSession([], OPEN_ID)).toBe(false);
   });
 });
 

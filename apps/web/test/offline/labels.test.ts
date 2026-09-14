@@ -37,12 +37,15 @@ describe('textos de la cola offline', () => {
     expect(droppedWriteReason(new ApiRequestError('session_already_open', 409, 'Abierta'))).toMatch(
       /otra sesión abierta/,
     );
+    expect(
+      droppedWriteReason(new ApiRequestError('not_found', 404, 'No existe la sesión')),
+    ).toMatch(/se borró desde otro móvil/);
   });
 
   it('el resto cae en la descripción de siempre', () => {
-    expect(droppedWriteReason(new ApiRequestError('not_found', 404, 'No existe la serie'))).toBe(
-      'No existe la serie',
-    );
+    expect(
+      droppedWriteReason(new ApiRequestError('validation_failed', 400, 'El peso no cuadra')),
+    ).toBe('El peso no cuadra');
     expect(droppedWriteReason(new ApiTransportError('sin red'))).toMatch(/Sin conexión/);
   });
 });

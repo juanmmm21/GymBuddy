@@ -329,6 +329,18 @@ export function removeSet(client: ApiClient, sessionId: string, setId: string): 
   });
 }
 
+/**
+ * Borra un entrenamiento entero con sus series; el Worker reescribe las marcas que dependían de
+ * él. Responde 204 también si ya no estaba, así que repetirlo no falla.
+ */
+export function deleteSession(client: ApiClient, sessionId: string): Promise<null> {
+  return client.request({
+    method: 'DELETE',
+    path: `/sessions/${encodeURIComponent(sessionId)}`,
+    schema: noContentSchema,
+  });
+}
+
 export function endSession(
   client: ApiClient,
   sessionId: string,

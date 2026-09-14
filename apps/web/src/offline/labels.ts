@@ -21,8 +21,8 @@ export function droppedWriteTitle(write: SessionWrite): string {
 }
 
 /**
- * Por qué no entró. Los dos choques que solo aparecen al drenar tarde —la sesión se cerró sola
- * o desde otro móvil, o se abrió otra mientras este no tenía red— llevan su propio texto: el mensaje genérico
+ * Por qué no entró. Los choques que solo aparecen al drenar tarde —la sesión se cerró sola o desde
+ * otro móvil, se abrió otra mientras este no tenía red, o se borró— llevan su propio texto: el mensaje genérico
  * del Worker no explica que el dato se escribió bien y lo que cambió fue la sesión.
  */
 export function droppedWriteReason(error: unknown): string {
@@ -34,6 +34,8 @@ export function droppedWriteReason(error: unknown): string {
         return 'Ya había otra sesión abierta, seguramente desde otro móvil, y lo registrado aquí sin conexión no entró en ella.';
       case 'conflicting_write':
         return 'Ya había guardado algo con el mismo identificador y otros datos.';
+      case 'not_found':
+        return 'Ya no existe: el entrenamiento o la serie se borró desde otro móvil antes de que esto llegara.';
       default:
         break;
     }

@@ -28,6 +28,7 @@ import {
   createInvitation,
   createRoutine,
   createTrackedExercise,
+  deleteSession,
   endSession,
   listTrackedExercises,
   logSet,
@@ -285,6 +286,38 @@ export function useEndSession(): UseMutationResult<
       );
     },
     onSuccess: (outcome) => refreshIfSent(queryClient, outcome),
+  });
+}
+
+/**
+ * Borra un entrenamiento ya cerrado. No pasa por la cola offline: se hace desde el historial, que
+ * ya necesita red, y un borrado encolado dejaría la sesión viéndose en un móvil y no en el otro.
+ *
+ * Mueve lo mismo que una serie —historial, peso habitual, señales, semana y marcas—, pero **no**
+ * relee el detalle de la sesión borrada: la pantalla que lo pinta sigue montada hasta que navega
+ * fuera, y releerlo ahí la llenaría de un «no existe» justo antes de irse. Esa entrada se queda
+ * en la caché sin nadie que la pida y la recoge la recolección de TanStack Query.
+ *
+ * El `onSuccess` no devuelve la promesa a propósito: TanStack Query la esperaría antes de llamar
+ * al `onSuccess` de la pantalla, que es el que navega.
+ */
+export function useDeleteSession(): UseMutationResult<null, Error, ResourceId> {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (sessionId: ResourceId) => deleteSession(client, sessionId),
+    onSuccess: (_response, sessionId) => {
+      const [, detailScope] = queryKeys.sessions.detail(sessionId);
+      void Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.sessions.all,
+          predicate: ({ queryKey }) => queryKey[1] !== detailScope || queryKey[2] !== sessionId,
+        }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.exercises.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.stats.all }),
+      ]);
+    },
   });
 }
 
