@@ -1,9 +1,12 @@
 import type { SetEntry } from '@gymbuddy/shared';
 import { describe, expect, it } from 'vitest';
 import {
-  DEFAULT_REST_TARGET_SECONDS,
-  REST_TARGETS_SECONDS,
+  DEFAULT_REST_PREFERENCES,
+  EXERCISE_REST_TARGETS_SECONDS,
+  SET_REST_TARGETS_SECONDS,
   restStateAt,
+  restTargetFor,
+  withRestTarget,
 } from '../../src/features/session/rest';
 import {
   SESSION_EXERCISE_PARAM,
@@ -155,8 +158,20 @@ describe('restStateAt', () => {
     expect(rest.progress).toBe(0);
   });
 
-  it('el objetivo por defecto es uno de los ofrecidos', () => {
-    expect(REST_TARGETS_SECONDS).toContain(DEFAULT_REST_TARGET_SECONDS);
+  it('los objetivos por defecto son de los ofrecidos, y cambiar de ejercicio descansa más', () => {
+    expect(SET_REST_TARGETS_SECONDS).toContain(DEFAULT_REST_PREFERENCES.setSeconds);
+    expect(EXERCISE_REST_TARGETS_SECONDS).toContain(DEFAULT_REST_PREFERENCES.exerciseSeconds);
+    expect(DEFAULT_REST_PREFERENCES.exerciseSeconds).toBeGreaterThan(
+      DEFAULT_REST_PREFERENCES.setSeconds,
+    );
+  });
+
+  it('cambiar un objetivo toca solo el de su tipo y no admite uno que no se ofrece', () => {
+    const changed = withRestTarget(DEFAULT_REST_PREFERENCES, 'exercise', 300);
+
+    expect(restTargetFor(changed, 'exercise')).toBe(300);
+    expect(restTargetFor(changed, 'set')).toBe(DEFAULT_REST_PREFERENCES.setSeconds);
+    expect(withRestTarget(changed, 'set', 45)).toBe(changed);
   });
 });
 

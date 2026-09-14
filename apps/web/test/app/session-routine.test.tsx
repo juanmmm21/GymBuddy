@@ -225,6 +225,31 @@ describe('sesión guiada por una rutina: seguir el guion', () => {
     expect(screen.getByText('Rutina: 5 reps · serie 1 de 3')).toBeInTheDocument();
   });
 
+  it('terminadas las series de un ejercicio, el descanso pasa a ser el de cambio de ejercicio', async () => {
+    const recent = (minutesAgo: number): string =>
+      new Date(Date.now() - minutesAgo * 60_000).toISOString();
+    const benchDone = workingSets(benchPress.id, 4, 0).map((entry, index) => ({
+      ...entry,
+      completedAt: recent(4 - index),
+    }));
+    renderApp({
+      path: GUIDED_PATH,
+      session,
+      setup: (fake) => {
+        serveWorker(fake, {
+          session: { ...activeSession, startedAt: recent(10), sets: benchDone },
+        });
+      },
+    });
+
+    const rest = within(await screen.findByRole('region', { name: 'Descanso' }));
+    // La rutina llega en otra consulta: hasta entonces el descanso es el de entre series.
+    expect(await rest.findByText('Cambio de ejercicio')).toBeInTheDocument();
+    // Su objetivo por defecto es más largo que el de entre series, y se ofrecen sus opciones.
+    expect(rest.getByRole('button', { name: '3:00' })).toHaveAttribute('aria-pressed', 'true');
+    expect(rest.getByRole('button', { name: '5:00' })).toBeInTheDocument();
+  });
+
   it('tocar una línea abre su ejercicio, y la serie registrada suma en esa línea', async () => {
     const user = userEvent.setup();
     const { fake } = renderApp({

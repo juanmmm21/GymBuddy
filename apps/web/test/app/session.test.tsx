@@ -6,7 +6,7 @@ import type {
   UpdateSetRequest,
   WorkoutSessionDetail,
 } from '@gymbuddy/shared';
-import { screen, waitFor, within } from '@testing-library/react';
+import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { errorResponse, jsonResponse, type FakeFetch } from '../fake-fetch';
@@ -18,6 +18,7 @@ import {
   signals,
   squat,
 } from '../fixtures';
+import { REST_PREFERENCES_STORAGE_KEY } from '../../src/features/session/rest-preferences-store';
 import { renderApp } from './render-app';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -162,6 +163,73 @@ describe('sesión en curso', () => {
     expect(body.rpe).toBeNull();
     expect(body.isWarmup).toBe(false);
     expect(body.id).toMatch(UUID);
+  });
+
+  it('el descanso es una cuenta atrás que se queda en 0:00 al cumplirse', async () => {
+    const [firstSet] = activeSession.sets;
+    if (firstSet === undefined) throw new Error('La sesión de las fixtures trae una serie');
+    const justLogged = new Date(Date.now() - 30_000).toISOString();
+
+    renderApp({
+      path: '/session',
+      session,
+      setup: (fake) => {
+        serveActiveSession(fake, {
+          ...activeSession,
+          sets: [{ ...firstSet, completedAt: justLogged }],
+        });
+      },
+    });
+
+    const rest = within(await screen.findByRole('region', { name: 'Descanso' }));
+    // Treinta segundos de dos minutos: queda 1:30 (o 1:29 si el segundo ya ha cambiado).
+    expect(rest.getByRole('timer').textContent).toMatch(/^1:(30|29)$/);
+    cleanup();
+
+    // La de las fixtures es de hace cinco minutos: cumplida, parada en cero.
+    renderApp({ path: '/session', session, setup: serveActiveSession });
+    const done = within(await screen.findByRole('region', { name: 'Descanso' }));
+    expect(done.getByRole('timer')).toHaveTextContent('0:00');
+    expect(done.getByText(/Descanso cumplido/)).toBeInTheDocument();
+  });
+
+  it('el objetivo de descanso elegido se recuerda en el móvil hasta cambiarlo', async () => {
+    const user = userEvent.setup();
+    const first = renderApp({ path: '/session', session, setup: serveActiveSession });
+
+    const rest = within(await screen.findByRole('region', { name: 'Descanso' }));
+    await user.click(rest.getByRole('button', { name: '3:00' }));
+    const saved = first.storage.data.get(REST_PREFERENCES_STORAGE_KEY);
+    expect(saved).toBeDefined();
+    cleanup();
+
+    renderApp({
+      path: '/session',
+      session,
+      stored: { [REST_PREFERENCES_STORAGE_KEY]: saved ?? '' },
+      setup: serveActiveSession,
+    });
+
+    const again = within(await screen.findByRole('region', { name: 'Descanso' }));
+    expect(again.getByRole('button', { name: '3:00' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('sin series de hoy, el registro propone la última serie de ese ejercicio y no el peso habitual', async () => {
+    const user = userEvent.setup();
+    renderApp({ path: '/session', session, setup: serveActiveSession });
+
+    await user.click(await screen.findByRole('button', { name: 'Registrar serie' }));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Ejercicio' }), squat.id);
+
+    // La sentadilla no se ha hecho hoy: propone su última serie (100 kg × 5) y lo dice.
+    expect(screen.getByLabelText('Peso')).toHaveValue('100');
+    expect(screen.getByLabelText('Repeticiones')).toHaveValue('5');
+    expect(screen.getByText(/última serie de este ejercicio/)).toBeInTheDocument();
+
+    // El press de banca sí se hizo hoy (82,5 kg × 8): manda esa, no la de otro día (80 kg × 6).
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Ejercicio' }), benchPress.id);
+    expect(screen.getByLabelText('Peso')).toHaveValue('82.5');
+    expect(screen.getByText(/última serie de hoy/)).toBeInTheDocument();
   });
 
   it('cambiar de ejercicio recarga su peso habitual y no arrastra el anterior', async () => {
