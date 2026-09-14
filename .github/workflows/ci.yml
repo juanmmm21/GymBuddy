@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Un push nuevo a main deja obsoleta la comprobación del anterior.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # wrangler pregunta por la telemetría la primera vez y en CI no hay nadie que conteste.
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v7
+
+      # Sin `version`: la toma de `packageManager` en package.json, la misma que en local.
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # El typecheck va antes que el lint: genera con `wrangler types` el
+      # worker-configuration.d.ts (gitignorado) sin el que el lint del Worker no resuelve
+      # los tipos del runtime.
+      - name: Type check
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Format
+        run: pnpm format
+
+      # Ningún test toca la red: el CDN del catálogo va mockeado y el Worker corre en workerd.
+      - name: Test
+        run: pnpm test
+
+      # La PWA con su service worker y el Worker empaquetado en seco, sin cuenta de
+      # Cloudflare: un import que solo se rompe al empaquetar sale aquí y no al desplegar.
+      - name: Build
+        run: pnpm build
