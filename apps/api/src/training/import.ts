@@ -11,9 +11,9 @@ import {
   type ExportedSession,
   type ImportExercisesResponse,
 } from '@gymbuddy/shared';
-import type { BatchItem } from 'drizzle-orm/batch';
 import { and, eq, inArray } from 'drizzle-orm';
 import type { SQLiteColumn, SQLiteTable } from 'drizzle-orm/sqlite-core';
+import { chunk, MAX_PARAMS_PER_LOOKUP, runBatch } from '../db/batching';
 import type { Database } from '../db/client';
 import {
   catalogExercise,
@@ -38,9 +38,6 @@ import { ApiException } from '../http/errors';
  * (`deriveImportedId`), nunca con el del fichero, y con `on conflict do nothing` sobre la clave
  * primaria: repetir un lote o reanudar una importación a medias no duplica ni reescribe nada.
  */
-
-/** D1 no admite más de cien parámetros por consulta; se deja uno libre para el `user_id`. */
-const MAX_PARAMS_PER_LOOKUP = 90;
 
 /** Filas por sentencia de inserción según las columnas de cada tabla, bajo los cien parámetros. */
 const ROWS_PER_INSERT = {
@@ -361,20 +358,4 @@ function toGrams(parse: (value: string) => number, value: string, rowId: string)
       reason: error instanceof Error ? error.message : 'desconocido',
     });
   }
-}
-
-async function runBatch(db: Database, statements: BatchItem<'sqlite'>[]): Promise<void> {
-  const [first, ...rest] = statements;
-  if (first === undefined) return;
-
-  await db.batch([first, ...rest]);
-}
-
-function chunk<T>(items: readonly T[], size: number): T[][] {
-  const chunks: T[][] = [];
-  for (let index = 0; index < items.length; index += size) {
-    chunks.push(items.slice(index, index + size));
-  }
-
-  return chunks;
 }
