@@ -1,21 +1,58 @@
-.card {
+.mascot {
   display: flex;
   align-items: center;
-  gap: var(--gb-space-lg);
+  gap: var(--gb-space-md);
+}
+
+/* Una línea de consejo: la mascota pequeña y lo que tiene que decir, sin cartel. */
+.tip {
+  padding: var(--gb-space-sm) var(--gb-space-md);
+  border: var(--gb-size-border-width) solid var(--gb-color-border);
+  border-radius: var(--gb-radius-md);
+  background: var(--gb-color-surface);
+}
+
+/* El récord: macizo en rojo, como la insignia. El trazo del muñeco pasa al color del texto. */
+.toast {
+  padding: var(--gb-space-md) var(--gb-space-lg);
+  border-radius: var(--gb-radius-md);
+  background: var(--gb-color-record);
+  color: var(--gb-color-on-record);
+  box-shadow: var(--gb-shadow-raised);
+}
+
+.toast .line,
+.toast .accent,
+.toast .success,
+.toast .muted {
+  stroke: var(--gb-color-on-record);
+}
+
+.toast .body {
+  color: var(--gb-color-on-record);
+}
+
+/* Dentro de otra pieza: sin superficie ni borde, la pieza ya los pone. */
+.inline {
+  padding: 0;
 }
 
 /* El muñeco no encoge: es el texto el que se reparte el ancho que queda. */
 .figure {
   flex: none;
-  width: calc(var(--gb-space-xxxl) + var(--gb-space-xl));
+  width: var(--gb-space-xxl);
   height: auto;
   overflow: visible;
+}
+
+.toast .figure {
+  width: calc(var(--gb-space-xxl) + var(--gb-space-sm));
 }
 
 .speech {
   display: flex;
   flex-direction: column;
-  gap: var(--gb-space-xs);
+  gap: var(--gb-space-xxs);
   min-width: 0;
 }
 
@@ -23,6 +60,13 @@
   font-size: var(--gb-type-body-strong-size);
   font-weight: var(--gb-type-body-strong-weight);
   line-height: var(--gb-type-body-strong-line);
+}
+
+.toast .title {
+  font-family: var(--gb-font-display);
+  font-stretch: var(--gb-font-width-condensed);
+  font-size: var(--gb-type-title-size);
+  line-height: var(--gb-type-title-line);
 }
 
 .body {
