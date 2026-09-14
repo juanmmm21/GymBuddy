@@ -14,7 +14,7 @@ export interface PlateStackProps {
   /** El peso total de la serie, barra incluida, como lo trae el contrato. */
   readonly weight: WeightKilograms;
   readonly locale: Locale;
-  readonly className?: string;
+  readonly className?: string | undefined;
 }
 
 /**

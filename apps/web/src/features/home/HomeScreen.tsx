@@ -1,23 +1,33 @@
-import { NO_DEVICE_SIGNALS, type Locale, type TrainingSignals } from '@gymbuddy/shared';
+import {
+  NO_DEVICE_SIGNALS,
+  type Locale,
+  type TrainingSignals,
+  type WorkoutSessionDetail,
+} from '@gymbuddy/shared';
 import { Link } from 'react-router';
-import { useTrainingSignals } from '../../api/queries';
+import { useTrackedExercises, useTrainingSignals } from '../../api/queries';
 import { useSession } from '../../auth/SessionProvider';
 import { ScreenHeader } from '../../app/ScreenHeader';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
-import { Badge, Notice, Surface } from '../../components/index';
+import { Badge, Notice, PlateStack, Surface } from '../../components/index';
+import { useNow } from '../../hooks/use-now';
 import {
   formatDaysAgo,
-  formatSessionDate,
+  formatStopwatch,
   formatTime,
+  formatVolumeLabel,
   formatWeightLabel,
   pluralize,
 } from '../../lib/format';
+import { elapsedSecondsSince } from '../../lib/time';
+import { usesOlympicBar } from '../exercises/equipment';
 import { RECORD_LABELS } from '../exercises/labels';
 import { LiveMascot } from '../mascot/LiveMascot';
 import { useOpenSession } from '../../offline/use-open-session';
 import { SESSION_PATH } from '../session/paths';
 import { SETTINGS_PATH } from '../settings/paths';
-import { homeSessionState, type HomeSessionState } from './open-session';
+import { summarizeLiveSession } from './live-session';
+import { homeSessionState } from './open-session';
 import { RoutineShortcuts } from './RoutineShortcuts';
 import { WeekCalendar } from './WeekCalendar';
 import styles from './HomeScreen.module.css';
@@ -55,52 +65,50 @@ function SignalsSummary({ signals, locale }: SignalsSummaryProps) {
   // Con la cola offline encima: lo abierto o cerrado sin cobertura cuenta ya aquí.
   const open = useOpenSession();
   const sessionState = homeSessionState(signals, open.data);
+  const liveSession = sessionState.kind === 'open' ? (open.data?.session ?? null) : null;
 
   if (signals.lastSessionAt === null && sessionState.kind === 'none') {
     return (
       <div className={styles.stack}>
         <LiveMascot signals={signals} device={NO_DEVICE_SIGNALS} locale={locale} />
-        <Notice title="Todavía no has entrenado">
-          Cuando registres tu primera sesión, aquí verás tu racha y tus últimas marcas.
-        </Notice>
-        <SessionAction state={sessionState} locale={locale} />
+        <StartCard lastSessionAt={null} daysSinceLastSession={null} />
       </div>
     );
   }
 
   return (
     <div className={styles.stack}>
+      {sessionState.kind === 'open' ? (
+        <LiveSessionCard startedAt={sessionState.startedAt} session={liveSession} locale={locale} />
+      ) : (
+        <StartCard
+          lastSessionAt={signals.lastSessionAt}
+          daysSinceLastSession={signals.daysSinceLastSession}
+        />
+      )}
+
       <LiveMascot signals={signals} device={NO_DEVICE_SIGNALS} locale={locale} />
 
-      <SessionAction state={sessionState} locale={locale} />
-
-      <WeekCalendar locale={locale} />
-
-      <Surface as="section" className={styles.metrics}>
+      <section className={styles.metrics} aria-label="Cómo vas">
         <Metric label="Racha" value={pluralize(signals.weeklyStreak, 'semana', 'semanas')} />
         <Metric
           label="Esta semana"
           value={pluralize(signals.sessionsThisWeek, 'sesión', 'sesiones')}
         />
-        <Metric
-          label="Última sesión"
-          value={
-            signals.daysSinceLastSession === null
-              ? '—'
-              : formatDaysAgo(signals.daysSinceLastSession)
-          }
-        />
-      </Surface>
-
-      {signals.latestRecord !== null && (
-        <Surface as="section">
-          <p className={styles.sectionLabel}>Último récord</p>
-          <p className={styles.recordValue}>
-            {formatWeightLabel(signals.latestRecord.value, locale)}{' '}
+        {signals.latestRecord === null ? (
+          <Metric label="Último récord" value="—" />
+        ) : (
+          <div className={styles.metric}>
+            <span className={styles.metricLabel}>Último récord</span>
+            <span className={styles.recordValue}>
+              {formatWeightLabel(signals.latestRecord.value, locale)}
+            </span>
             <Badge tone="record">{RECORD_LABELS[signals.latestRecord.kind]}</Badge>
-          </p>
-        </Surface>
-      )}
+          </div>
+        )}
+      </section>
+
+      <WeekCalendar locale={locale} />
 
       {signals.stalled.length > 0 && (
         <Notice
@@ -114,31 +122,81 @@ function SignalsSummary({ signals, locale }: SignalsSummaryProps) {
   );
 }
 
-interface SessionActionProps {
-  readonly state: HomeSessionState;
+interface LiveSessionCardProps {
+  readonly startedAt: string;
+  /** La sesión con la cola encima; nula mientras se lee, y entonces solo se cronometra. */
+  readonly session: WorkoutSessionDetail | null;
   readonly locale: Locale;
 }
 
-function SessionAction({ state, locale }: SessionActionProps) {
-  if (state.kind === 'none') {
-    return (
-      <>
-        <Link to={SESSION_PATH} className={styles.cta}>
-          Empezar a entrenar
-        </Link>
-        <RoutineShortcuts />
-      </>
-    );
-  }
+/**
+ * La sesión en curso manda en Hoy: oscura, con el cronómetro grande y la última serie con sus
+ * discos. La tarjeta entera es el enlace, porque en el gimnasio se pulsa con el pulgar y sin mirar.
+ */
+function LiveSessionCard({ startedAt, session, locale }: LiveSessionCardProps) {
+  const now = useNow();
+  const exercises = useTrackedExercises({ includeArchived: true });
+  const summary = session === null ? null : summarizeLiveSession(session, exercises.data ?? []);
+  const lastSet = summary?.lastSet ?? null;
 
   return (
-    <Surface className={styles.active}>
-      <Badge tone="accent">Sesión en curso</Badge>
-      <p className={styles.activeText}>
-        Tienes una sesión abierta desde el {formatSessionDate(state.startedAt, locale)} a las{' '}
-        {formatTime(state.startedAt, locale)}.
+    <Link to={SESSION_PATH} className={styles.live} aria-label="Seguir la sesión">
+      <span className={styles.liveHead}>
+        <span className={styles.livePulse}>Sesión en curso</span>
+        <span className={styles.liveSince}>desde las {formatTime(startedAt, locale)}</span>
+      </span>
+      <span className={styles.liveClock} role="timer">
+        {formatStopwatch(elapsedSecondsSince(startedAt, now))}
+      </span>
+      {summary !== null && (
+        <span className={styles.liveMeta}>
+          {pluralize(summary.exerciseCount, 'ejercicio', 'ejercicios')} ·{' '}
+          {pluralize(summary.setCount, 'serie', 'series')} ·{' '}
+          {formatVolumeLabel(summary.volumeGrams, locale)}
+        </span>
+      )}
+      {lastSet !== null && (
+        <span className={styles.lastSet}>
+          {usesOlympicBar(lastSet.equipment) && (
+            <PlateStack weight={lastSet.weight} locale={locale} className={styles.lastSetPlates} />
+          )}
+          <span className={styles.lastSetText}>
+            <span className={styles.lastSetName}>{lastSet.exerciseName}</span>
+            <span className={styles.lastSetWhen}>Última serie</span>
+          </span>
+          <span className={styles.lastSetValue}>
+            {formatWeightLabel(lastSet.weight, locale)} × {lastSet.reps}
+          </span>
+        </span>
+      )}
+      <span className={styles.liveAction} aria-hidden="true">
+        Seguir la sesión →
+      </span>
+    </Link>
+  );
+}
+
+interface StartCardProps {
+  readonly lastSessionAt: string | null;
+  readonly daysSinceLastSession: number | null;
+}
+
+/** Sin sesión abierta, empezar ocupa el mismo sitio: vacía o con una rutina. */
+function StartCard({ lastSessionAt, daysSinceLastSession }: StartCardProps) {
+  return (
+    <Surface as="section" className={styles.start} aria-label="Empezar a entrenar">
+      <p className={styles.startLabel}>
+        {lastSessionAt === null || daysSinceLastSession === null
+          ? 'Todavía no has entrenado'
+          : `Última sesión: ${formatDaysAgo(daysSinceLastSession)}`}
       </p>
-      <Link to={SESSION_PATH}>Seguir</Link>
+      <p className={styles.startTitle}>
+        {lastSessionAt === null ? 'Cuando quieras, empezamos' : '¿Entrenamos?'}
+      </p>
+      <Link to={SESSION_PATH} className={styles.cta}>
+        Empezar a entrenar
+      </Link>
+      <RoutineShortcuts />
     </Surface>
   );
 }

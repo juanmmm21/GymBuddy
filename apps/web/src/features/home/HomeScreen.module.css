@@ -4,15 +4,166 @@
   gap: var(--gb-space-md);
 }
 
-.active {
+/* ---------- La sesión en curso: la tarjeta que manda en Hoy ---------- */
+
+.live {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-md);
+  padding: var(--gb-space-lg);
+  border-radius: var(--gb-radius-lg);
+  background: var(--gb-color-inverse-surface);
+  color: var(--gb-color-on-inverse);
+  text-decoration: none;
+  box-shadow: var(--gb-shadow-raised);
+  transition: transform var(--gb-duration-fast) var(--gb-ease-standard);
+}
+
+.live:active {
+  transform: scale(0.99);
+}
+
+.liveHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gb-space-sm);
+}
+
+.livePulse {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gb-space-sm);
+  font-size: var(--gb-type-label-size);
+  font-weight: var(--gb-type-label-weight);
+  line-height: var(--gb-type-label-line);
+  letter-spacing: var(--gb-type-label-tracking);
+  text-transform: uppercase;
+}
+
+/* El punto que late dice «esto está pasando ahora» sin otra palabra más. */
+.livePulse::before {
+  content: '';
+  width: var(--gb-space-sm);
+  height: var(--gb-space-sm);
+  border-radius: var(--gb-radius-pill);
+  background: var(--gb-color-success);
+  animation: pulse var(--gb-duration-ambient) var(--gb-ease-standard) infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.liveSince {
+  color: var(--gb-color-on-inverse-muted);
+  font-size: var(--gb-type-caption-size);
+  line-height: var(--gb-type-caption-line);
+}
+
+.liveClock {
+  font-family: var(--gb-font-display);
+  font-stretch: var(--gb-font-width-condensed);
+  font-size: calc(var(--gb-type-display-size) * 1.4);
+  font-weight: var(--gb-type-display-weight);
+  line-height: 1;
+  letter-spacing: var(--gb-type-display-tracking);
+}
+
+.liveMeta {
+  color: var(--gb-color-on-inverse-muted);
+  font-size: var(--gb-type-caption-size);
+  line-height: var(--gb-type-caption-line);
+}
+
+.lastSet {
   display: flex;
   align-items: center;
   gap: var(--gb-space-md);
+  padding: var(--gb-space-sm) var(--gb-space-md);
+  border-radius: var(--gb-radius-md);
+  background: var(--gb-color-surface-sunken);
+  color: var(--gb-color-text);
 }
 
-.activeText {
+.lastSetPlates {
+  flex-shrink: 0;
+}
+
+.lastSetText {
   flex: 1;
-  color: var(--gb-color-text-secondary);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.lastSetName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--gb-type-caption-size);
+  font-weight: var(--gb-type-body-strong-weight);
+  line-height: var(--gb-type-caption-line);
+}
+
+.lastSetWhen {
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-label-size);
+  line-height: var(--gb-type-label-line);
+}
+
+.lastSetValue {
+  flex-shrink: 0;
+  font-family: var(--gb-font-display);
+  font-stretch: var(--gb-font-width-condensed);
+  font-size: var(--gb-type-title-size);
+  font-weight: var(--gb-type-headline-weight);
+  line-height: var(--gb-type-title-line);
+}
+
+.liveAction {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--gb-size-touch-target);
+  border-radius: var(--gb-radius-md);
+  background: var(--gb-color-on-inverse);
+  color: var(--gb-color-inverse-surface);
+  font-size: var(--gb-type-body-strong-size);
+  font-weight: var(--gb-type-body-strong-weight);
+}
+
+/* ---------- Sin sesión: empezar ---------- */
+
+.start {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-md);
+}
+
+.startLabel {
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-label-size);
+  font-weight: var(--gb-type-label-weight);
+  line-height: var(--gb-type-label-line);
+  letter-spacing: var(--gb-type-label-tracking);
+  text-transform: uppercase;
+}
+
+.startTitle {
+  font-family: var(--gb-font-display);
+  font-stretch: var(--gb-font-width-condensed);
+  font-size: var(--gb-type-headline-size);
+  font-weight: var(--gb-type-headline-weight);
+  line-height: var(--gb-type-headline-line);
+  letter-spacing: var(--gb-type-headline-tracking);
 }
 
 /* Enlace con aspecto de acción principal: la sesión es lo único que se pulsa en Hoy. */
@@ -36,48 +187,46 @@
   background: var(--gb-color-accent-strong);
 }
 
+/* ---------- Cómo vas ---------- */
+
 .metrics {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--gb-space-md);
+  gap: var(--gb-space-sm);
 }
 
 .metric {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: var(--gb-space-xs);
+  min-width: 0;
+  padding: var(--gb-space-md);
+  border: var(--gb-size-border-width) solid var(--gb-color-border);
+  border-radius: var(--gb-radius-md);
+  background: var(--gb-color-surface);
 }
 
 .metricLabel {
   color: var(--gb-color-text-muted);
   font-size: var(--gb-type-label-size);
   font-weight: var(--gb-type-label-weight);
+  line-height: var(--gb-type-label-line);
   letter-spacing: var(--gb-type-label-tracking);
   text-transform: uppercase;
 }
 
-.metricValue {
-  font-size: var(--gb-type-body-strong-size);
-  font-weight: var(--gb-type-body-strong-weight);
-  line-height: var(--gb-type-body-strong-line);
-}
-
-.sectionLabel {
-  color: var(--gb-color-text-muted);
-  font-size: var(--gb-type-label-size);
-  font-weight: var(--gb-type-label-weight);
-  letter-spacing: var(--gb-type-label-tracking);
-  text-transform: uppercase;
-  margin-bottom: var(--gb-space-xs);
+.metricValue,
+.recordValue {
+  font-family: var(--gb-font-display);
+  font-stretch: var(--gb-font-width-condensed);
+  font-size: var(--gb-type-title-size);
+  font-weight: var(--gb-type-headline-weight);
+  line-height: var(--gb-type-title-line);
 }
 
 .recordValue {
-  display: flex;
-  align-items: center;
-  gap: var(--gb-space-sm);
-  font-size: var(--gb-type-title-size);
-  font-weight: var(--gb-type-title-weight);
-  line-height: var(--gb-type-title-line);
+  color: var(--gb-color-record);
 }
 
 /* Un solo botón redondo: la cabecera de Hoy no puede empujar la sesión fuera de la pantalla. */
