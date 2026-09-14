@@ -263,6 +263,18 @@ export function updateRoutine(
   });
 }
 
+/**
+ * Borra una rutina del todo, con sus líneas. Responde 204 también si ya no estaba, así que
+ * repetirlo no falla. Archivar, lo que se recupera, sigue siendo `updateRoutine`.
+ */
+export function deleteRoutine(client: ApiClient, routineId: string): Promise<null> {
+  return client.request({
+    method: 'DELETE',
+    path: `/routines/${encodeURIComponent(routineId)}`,
+    schema: noContentSchema,
+  });
+}
+
 export function fetchActiveSession(client: ApiClient): Promise<ActiveSessionResponse> {
   return client.request({
     method: 'GET',

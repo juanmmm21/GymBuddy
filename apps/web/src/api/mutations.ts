@@ -28,6 +28,7 @@ import {
   createInvitation,
   createRoutine,
   createTrackedExercise,
+  deleteRoutine,
   deleteSession,
   endSession,
   listTrackedExercises,
@@ -40,6 +41,8 @@ import {
 } from './endpoints';
 import type { SubmitOutcome } from '../offline/write-queue';
 import { useWriteQueue } from '../offline/WriteQueueProvider';
+import { useStorage } from '../app/StorageProvider';
+import { forgetSessionRoutineFor } from '../features/session/session-routine-store';
 import { useApiClient } from './provider';
 import { queryKeys } from './queries';
 
@@ -286,6 +289,34 @@ export function useEndSession(): UseMutationResult<
       );
     },
     onSuccess: (outcome) => refreshIfSent(queryClient, outcome),
+  });
+}
+
+/**
+ * Borra una rutina del todo. No pasa por la cola offline, igual que su alta y su edición.
+ *
+ * Si guiaba la sesión abierta en este móvil, se olvida aquí y no en la pantalla: el editor que
+ * lanza el borrado deja de encontrar la rutina en cuanto el listado vuelve y podría desmontarse
+ * antes de que corriese un callback suyo. Se invalidan también las estadísticas porque el rango
+ * del estancamiento sale de las rutinas que quedan.
+ *
+ * El `onSuccess` no devuelve la promesa a propósito: TanStack Query la esperaría antes de llamar
+ * al `onSuccess` de la pantalla, que es el que navega.
+ */
+export function useDeleteRoutine(): UseMutationResult<null, Error, ResourceId> {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+  const storage = useStorage();
+
+  return useMutation({
+    mutationFn: (routineId: ResourceId) => deleteRoutine(client, routineId),
+    onSuccess: (_response, routineId) => {
+      forgetSessionRoutineFor(storage, routineId);
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.routines.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.stats.all }),
+      ]);
+    },
   });
 }
 

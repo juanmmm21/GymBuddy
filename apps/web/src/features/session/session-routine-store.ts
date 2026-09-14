@@ -77,3 +77,30 @@ export function clearSessionRoutine(storage: StorageLike): void {
     console.warn('No se pudo olvidar la rutina de la sesión', error);
   }
 }
+
+/**
+ * Olvida la rutina recordada si es esa, sea cual sea la sesión que guiaba: al borrarla, la sesión
+ * abierta sigue sin guion en vez de avisar de que no la encuentra. Si lo guardado no se puede leer,
+ * no se toca: `loadSessionRoutine` ya lo limpia cuando lo necesita.
+ */
+export function forgetSessionRoutineFor(storage: StorageLike, routineId: ResourceId): void {
+  let raw: string | null;
+  try {
+    raw = storage.getItem(SESSION_ROUTINE_STORAGE_KEY);
+  } catch (error) {
+    console.warn('No se pudo leer la rutina de la sesión', error);
+    return;
+  }
+  if (raw === null) return;
+
+  let payload: unknown;
+  try {
+    payload = JSON.parse(raw) as unknown;
+  } catch (error) {
+    console.warn('La rutina recordada de la sesión no es JSON', error);
+    return;
+  }
+
+  const parsed = sessionRoutineSchema.safeParse(payload);
+  if (parsed.success && parsed.data.routineId === routineId) clearSessionRoutine(storage);
+}
