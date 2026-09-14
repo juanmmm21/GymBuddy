@@ -18,6 +18,17 @@ export const workingWeightSchema = z.object({
 });
 
 /**
+ * La última serie efectiva de un ejercicio (sin calentamiento), tal cual se hizo. Es lo que
+ * precarga el registro: Juan pidió que el peso propuesto sea el de la última vez y que no suba
+ * solo; el peso habitual sigue existiendo para responder a «¿cuánto suelo levantar aquí?».
+ */
+export const lastSetSchema = z.object({
+  weight: weightKilogramsSchema,
+  reps: z.int().positive(),
+  completedAt: isoDatetimeSchema,
+});
+
+/**
  * El nombre de un ejercicio propio, con el mismo tope al crearlo y al renombrarlo: es el
  * mismo campo y una definición por sitio acabaría divergiendo. Se recorta al entrar
  * porque un nombre de solo espacios pasaría el mínimo y dejaría la ficha sin título.
@@ -45,6 +56,7 @@ export const trackedExerciseSchema = z.object({
   equipment: z.string().min(1).nullable(),
   notes: z.string().nullable(),
   workingWeight: workingWeightSchema.nullable(),
+  lastSet: lastSetSchema.nullable(),
   createdAt: isoDatetimeSchema,
   archivedAt: isoDatetimeSchema.nullable(),
 });
@@ -84,6 +96,7 @@ export const updateTrackedExerciseRequestSchema = z
   .partial();
 
 export type WorkingWeight = z.infer<typeof workingWeightSchema>;
+export type LastSet = z.infer<typeof lastSetSchema>;
 export type TrackedExercise = z.infer<typeof trackedExerciseSchema>;
 export type CreateTrackedExerciseRequest = z.infer<typeof createTrackedExerciseRequestSchema>;
 export type UpdateTrackedExerciseRequest = z.infer<typeof updateTrackedExerciseRequestSchema>;

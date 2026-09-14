@@ -102,12 +102,14 @@ export {
   trackedExerciseSchema,
   updateTrackedExerciseRequestSchema,
   workingWeightSchema,
+  lastSetSchema,
 } from './exercise';
 export type {
   CreateTrackedExerciseRequest,
   TrackedExercise,
   UpdateTrackedExerciseRequest,
   WorkingWeight,
+  LastSet,
 } from './exercise';
 export {
   activeSessionResponseSchema,

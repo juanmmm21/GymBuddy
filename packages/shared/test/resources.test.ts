@@ -307,6 +307,7 @@ describe('ejercicio seguido', () => {
       gifUrl: null,
       equipment: null,
       notes: null,
+      lastSet: null,
       workingWeight: null,
       createdAt: '2026-09-07T18:00:00.000Z',
       archivedAt: null,
@@ -333,6 +334,30 @@ describe('ejercicio seguido', () => {
     expect(updateTrackedExerciseRequestSchema.safeParse({ archived: true }).success).toBe(true);
   });
 
+  it('lleva la última serie efectiva tal cual y rechaza un peso con decimales de más', () => {
+    const base = {
+      id: EXERCISE_ID,
+      name: 'Press de banca',
+      origin: 'custom',
+      catalogId: null,
+      muscle: 'pectorals',
+      bodyPart: 'chest',
+      gifUrl: null,
+      equipment: null,
+      notes: null,
+      workingWeight: null,
+      createdAt: '2026-09-07T18:00:00.000Z',
+      archivedAt: null,
+    };
+    const lastSet = { weight: '80.00', reps: 6, completedAt: '2026-09-07T18:30:00.000Z' };
+
+    expect(trackedExerciseSchema.safeParse({ ...base, lastSet }).success).toBe(true);
+    expect(
+      trackedExerciseSchema.safeParse({ ...base, lastSet: { ...lastSet, weight: '80.125' } })
+        .success,
+    ).toBe(false);
+  });
+
   it('lleva el peso habitual para precargar el formulario', () => {
     const parsed = trackedExerciseSchema.safeParse({
       id: EXERCISE_ID,
@@ -344,6 +369,7 @@ describe('ejercicio seguido', () => {
       gifUrl: null,
       equipment: null,
       notes: null,
+      lastSet: null,
       workingWeight: {
         weight: '82.50',
         reps: 8,
