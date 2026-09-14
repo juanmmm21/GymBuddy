@@ -1,0 +1,21 @@
+/* Separado del resumen por una raya: es lo último de la pantalla y lo único que destruye algo. */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-sm);
+  padding-top: var(--gb-space-lg);
+  border-top: var(--gb-size-border-width) solid var(--gb-color-border);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gb-space-sm);
+}
+
+.hint {
+  margin: 0;
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-caption-size);
+  line-height: var(--gb-type-caption-line);
+}

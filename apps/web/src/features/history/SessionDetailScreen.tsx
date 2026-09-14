@@ -25,6 +25,7 @@ import { durationSecondsBetween } from '../../lib/time';
 import { trackedExercisePath } from '../exercises/paths';
 import { SESSION_PATH } from '../session/paths';
 import { groupSetsByExercise, summarizeSession } from '../session/summary';
+import { DeleteSessionPanel } from './DeleteSessionPanel';
 import { HISTORY_PATH } from './paths';
 import styles from './SessionDetailScreen.module.css';
 import { usesOlympicBar } from '../exercises/equipment';
@@ -152,6 +153,11 @@ function SessionBody({ session, exercises, locale }: SessionBodyProps) {
             </Surface>
           ))}
         </div>
+      )}
+
+      {/* La abierta no se borra desde aquí: puede tener series en la cola de otro móvil o de este. */}
+      {endedAt !== null && (
+        <DeleteSessionPanel sessionId={session.id} workingSetCount={totals.workingSetCount} />
       )}
     </div>
   );
