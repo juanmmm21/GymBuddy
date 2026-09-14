@@ -10,3 +10,7 @@
   line-height: var(--gb-type-caption-line);
   text-align: center;
 }
+
+.filters {
+  margin-bottom: var(--gb-space-lg);
+}

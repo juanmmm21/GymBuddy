@@ -44,3 +44,9 @@
   font-size: var(--gb-type-caption-size);
   line-height: var(--gb-type-caption-line);
 }
+
+.noticeActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gb-space-sm);
+}
