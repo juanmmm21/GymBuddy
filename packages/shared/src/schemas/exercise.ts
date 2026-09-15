@@ -68,6 +68,11 @@ export const trackedExerciseSchema = z.object({
    */
   equipment: z.string().min(1).nullable(),
   notes: z.string().nullable(),
+  /**
+   * A un brazo (remo con mancuerna): el peso de las series es el de un brazo y el volumen cuenta los
+   * dos lados. Falso por defecto: la instantánea del dispositivo guarda ejercicios leídos antes.
+   */
+  unilateral: z.boolean().default(false),
   workingWeight: workingWeightSchema.nullable(),
   lastSet: lastSetSchema.nullable(),
   // Nula por defecto: la instantánea del dispositivo guarda ejercicios leídos antes de que existiera.
@@ -86,6 +91,7 @@ export const createTrackedExerciseRequestSchema = z.discriminatedUnion('origin',
     origin: z.literal('catalog'),
     catalogId: z.string().min(1),
     notes: z.string().max(500).nullish(),
+    unilateral: z.boolean().optional(),
   }),
   z
     .object({
@@ -95,6 +101,7 @@ export const createTrackedExerciseRequestSchema = z.discriminatedUnion('origin',
       muscle: muscleSchema.nullish(),
       bodyPart: bodyPartSchema.nullish(),
       notes: z.string().max(500).nullish(),
+      unilateral: z.boolean().optional(),
     })
     // Un músculo solo vive en una parte del cuerpo (`MUSCLE_BODY_PART`): «glúteos» en pecho
     // agruparía la ficha y el calendario donde no toca, y no hay forma de corregirlo después.
@@ -108,12 +115,15 @@ export const createTrackedExerciseRequestSchema = z.discriminatedUnion('origin',
  * Lo que se puede cambiar de un ejercicio ya seguido. El nombre solo cuando es propio: el
  * de uno del catálogo viene del catálogo y en el idioma del usuario, así que renombrarlo
  * aquí no tendría dónde guardarse. El Worker lo rechaza mirando el origen de la ficha.
+ *
+ * `unilateral` sí vale para los dos: el catálogo no dice si un ejercicio se hace a un brazo.
  */
 export const updateTrackedExerciseRequestSchema = z
   .object({
     name: trackedExerciseNameSchema,
     notes: z.string().max(500).nullable(),
     archived: z.boolean(),
+    unilateral: z.boolean(),
   })
   .partial();
 
