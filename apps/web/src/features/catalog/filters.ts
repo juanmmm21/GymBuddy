@@ -14,8 +14,15 @@ import { BODY_PART_LABELS, BODY_PART_ORDER, MUSCLE_LABELS, equipmentLabel } from
 /** El valor de «sin filtro» en un desplegable: un `select` nativo no admite `undefined`. */
 export const NO_FILTER = '';
 
-/** Los nombres de los parámetros en la URL de la página de una parte del cuerpo. */
-export const FILTER_PARAMS = { equipment: 'equipment', muscle: 'muscle' } as const;
+/**
+ * Los nombres de los parámetros de los filtros en la URL. `bodyPart` solo lo lee la búsqueda: la
+ * página de una parte ya la lleva en la ruta.
+ */
+export const FILTER_PARAMS = {
+  bodyPart: 'bodyPart',
+  equipment: 'equipment',
+  muscle: 'muscle',
+} as const;
 
 export type CatalogFilterKey = keyof CatalogSearchFilters;
 
@@ -113,6 +120,23 @@ export function parseCatalogFilters(
 }
 
 /**
+ * Los filtros de la búsqueda que trae una URL: los de una parte del cuerpo más la propia parte. Un
+ * músculo que contradice la parte, o que esa parte ya no ofrece, se suelta igual que al elegirla en
+ * el desplegable (`withCatalogFilter`): un enlace no puede pedir lo que la barra no dejaría pedir.
+ */
+export function parseCatalogSearchFilters(params: URLSearchParams): CatalogSearchFilters {
+  const bodyPart = bodyPartSchema.safeParse(params.get(FILTER_PARAMS.bodyPart));
+  if (!bodyPart.success) return parseCatalogFilters(params, null);
+
+  const filters: CatalogSearchFilters = {
+    ...parseCatalogFilters(params, bodyPart.data),
+    bodyPart: bodyPart.data,
+  };
+  if (!offersMuscleFilter(bodyPart.data)) delete filters.muscle;
+  return filters;
+}
+
+/**
  * Cambia un filtro a partir del valor de su desplegable. Elegir «Todo» quita la clave en vez de
  * dejarla vacía: así la clave de caché y la URL de «sin filtro» son siempre las mismas. Cambiar de
  * parte del cuerpo suelta el músculo si no es de la nueva, o si la nueva ya no ofrece el desplegable
@@ -148,7 +172,7 @@ export function withCatalogFilter(
 /** Escribe los filtros en la URL conservando cualquier otro parámetro que ya hubiera. */
 export function applyCatalogFiltersToParams(
   params: URLSearchParams,
-  filters: CatalogFilters,
+  filters: CatalogSearchFilters,
 ): URLSearchParams {
   const next = new URLSearchParams(params);
   for (const key of Object.values(FILTER_PARAMS)) {
