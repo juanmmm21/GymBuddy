@@ -17,7 +17,7 @@ import {
   formatSessionDate,
   formatTime,
   formatVolumeLabel,
-  formatWeightLabel,
+  formatSetValueLabel,
   pluralize,
 } from '../../lib/format';
 import { parseResourceId } from '../../lib/ids';
@@ -184,10 +184,8 @@ function SetRow({ set, plates, position, locale }: SetRowProps) {
   return (
     <li className={styles.set}>
       <span className={styles.setPosition}>{position}</span>
-      {plates && <PlateStack weight={set.weight} locale={locale} />}
-      <span className={styles.setValue}>
-        {formatWeightLabel(set.weight, locale)} × {set.reps}
-      </span>
+      {plates && set.kind === 'strength' && <PlateStack weight={set.weight} locale={locale} />}
+      <span className={styles.setValue}>{formatSetValueLabel(set, locale)}</span>
       <span className={styles.setMeta}>
         {set.isWarmup && <Badge>Calentamiento</Badge>}
         {set.rpe !== null && <span>{formatRpe(set.rpe, locale)}</span>}

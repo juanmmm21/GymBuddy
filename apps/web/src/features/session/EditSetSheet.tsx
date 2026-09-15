@@ -4,7 +4,7 @@ import {
   type Locale,
   type PersonalRecord,
   type ResourceId,
-  type SetEntry,
+  type StrengthSetEntry,
 } from '@gymbuddy/shared';
 import { useState, type FormEvent } from 'react';
 import { freshRecords, useRemoveSet, useUpdateSet } from '../../api/mutations';
@@ -16,7 +16,7 @@ import { isCompleteSet, SetFields, type SetValues } from './SetFields';
 export interface EditSetSheetProps {
   readonly sessionId: ResourceId;
   /** La serie que se corrige, o `null` cuando no hay ninguna abierta. */
-  readonly set: SetEntry | null;
+  readonly set: StrengthSetEntry | null;
   readonly exerciseName: string;
   readonly locale: Locale;
   readonly onClose: () => void;
@@ -55,7 +55,7 @@ export function EditSetSheet({
 
 interface EditSetFormProps {
   readonly sessionId: ResourceId;
-  readonly set: SetEntry;
+  readonly set: StrengthSetEntry;
   readonly locale: Locale;
   readonly onUpdated: (records: readonly PersonalRecord[]) => void;
   readonly onRemoved: () => void;
@@ -145,7 +145,7 @@ function EditSetForm({ sessionId, set, locale, onUpdated, onRemoved }: EditSetFo
 }
 
 /** La serie guardada, tal y como la edita el formulario: el peso vuelve a gramos enteros. */
-function valuesOf(set: SetEntry): SetValues {
+function valuesOf(set: StrengthSetEntry): SetValues {
   return {
     weightGrams: parseKilogramsToGrams(set.weight),
     reps: set.reps,

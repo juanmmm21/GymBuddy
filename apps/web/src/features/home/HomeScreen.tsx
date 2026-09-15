@@ -17,7 +17,7 @@ import {
   formatStopwatch,
   formatTime,
   formatVolumeLabel,
-  formatWeightLabel,
+  formatSetValueLabel,
   pluralize,
 } from '../../lib/format';
 import { elapsedSecondsSince } from '../../lib/time';
@@ -157,16 +157,18 @@ function LiveSessionCard({ startedAt, session, locale }: LiveSessionCardProps) {
       )}
       {lastSet !== null && (
         <span className={styles.lastSet}>
-          {usesOlympicBar(lastSet.equipment) && (
-            <PlateStack weight={lastSet.weight} locale={locale} className={styles.lastSetPlates} />
+          {usesOlympicBar(lastSet.equipment) && lastSet.set.kind === 'strength' && (
+            <PlateStack
+              weight={lastSet.set.weight}
+              locale={locale}
+              className={styles.lastSetPlates}
+            />
           )}
           <span className={styles.lastSetText}>
             <span className={styles.lastSetName}>{lastSet.exerciseName}</span>
             <span className={styles.lastSetWhen}>Última serie</span>
           </span>
-          <span className={styles.lastSetValue}>
-            {formatWeightLabel(lastSet.weight, locale)} × {lastSet.reps}
-          </span>
+          <span className={styles.lastSetValue}>{formatSetValueLabel(lastSet.set, locale)}</span>
         </span>
       )}
       <span className={styles.liveAction} aria-hidden="true">

@@ -83,16 +83,23 @@ export function applyPendingWrites(
         if (current?.id !== write.sessionId) break;
         const { body } = write;
         if (!current.sets.some((set) => set.id === body.id)) {
-          const entry: SetEntry = {
+          const base = {
             id: body.id,
             trackedExerciseId: body.trackedExerciseId,
             orderIndex: nextOrderIndex(current.sets),
-            weight: body.weight,
-            reps: body.reps,
             rpe: body.rpe ?? null,
             isWarmup: body.isWarmup ?? false,
             completedAt: body.completedAt,
           };
+          const entry: SetEntry =
+            body.kind === 'cardio'
+              ? {
+                  ...base,
+                  kind: 'cardio',
+                  durationSeconds: body.durationSeconds,
+                  distanceMeters: body.distanceMeters ?? null,
+                }
+              : { ...base, kind: 'strength', weight: body.weight, reps: body.reps };
           current = { ...current, sets: [...current.sets, entry] };
         }
         pendingSetIds.add(body.id);
@@ -129,18 +136,35 @@ export function applyPendingWrites(
   return { session: current, pendingSetIds };
 }
 
-/** Una corrección parcial: lo que no viaja en la petición se queda como estaba. */
+/**
+ * Una corrección parcial: lo que no viaja en la petición se queda como estaba. Los campos del otro
+ * tipo se ignoran: el Worker rechazará esa corrección, y hasta entonces la serie sigue siendo lo que era.
+ */
 function correctedSet(
   set: SetEntry,
   body: Extract<SessionWrite, { kind: 'update_set' }>['body'],
 ): SetEntry {
-  return {
-    ...set,
-    weight: body.weight ?? set.weight,
-    reps: body.reps ?? set.reps,
+  const common = {
     // `null` es quitar el RPE; ausente es no tocarlo.
     rpe: body.rpe === undefined ? set.rpe : body.rpe,
     isWarmup: body.isWarmup ?? set.isWarmup,
+  };
+
+  if (set.kind === 'cardio') {
+    return {
+      ...set,
+      ...common,
+      durationSeconds: body.durationSeconds ?? set.durationSeconds,
+      // `null` es quitar la distancia; ausente es no tocarla.
+      distanceMeters: body.distanceMeters === undefined ? set.distanceMeters : body.distanceMeters,
+    };
+  }
+
+  return {
+    ...set,
+    ...common,
+    weight: body.weight ?? set.weight,
+    reps: body.reps ?? set.reps,
   };
 }
 

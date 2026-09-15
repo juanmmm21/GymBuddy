@@ -1,8 +1,8 @@
 import {
   EXPORT_FORMAT,
-  EXPORT_VERSION,
-  exportFileSchema,
+  READABLE_EXPORT_VERSIONS,
   planImport,
+  readableExportFileSchema,
   type ExportFile,
   type ImportPlan,
 } from '@gymbuddy/shared';
@@ -16,15 +16,16 @@ export type ImportFileReading =
   | { readonly status: 'not_gymbuddy' }
   /** Es una copia de GymBuddy con una forma que esta versión de la app no sabe leer. */
   | { readonly status: 'unsupported_version'; readonly version: unknown }
-  /** Dice ser de la versión que se lee, pero no cumple el contrato: retocada a mano o dañada. */
+  /** Dice ser de una versión que se lee, pero no cumple el contrato: retocada a mano o dañada. */
   | { readonly status: 'broken' }
   /** Válida, pero con algo que no cabe en ninguna petición: importarla dejaría una parte fuera. */
   | { readonly status: 'too_large' };
 
 /**
- * Lee el texto de un fichero de copia. Se valida con `exportFileSchema`, el mismo esquema con el
- * que se exportó, y la marca y la versión se miran antes: un fichero de una versión futura no es
- * un fichero roto, y quien lo tiene necesita saber que el problema es la app y no su copia.
+ * Lee el texto de un fichero de copia. Se valida con `readableExportFileSchema`, que acepta la
+ * versión con la que se exporta hoy y convierte las anteriores a ella, y la marca y la versión se
+ * miran antes: un fichero de una versión futura no es un fichero roto, y quien lo tiene necesita
+ * saber que el problema es la app y no su copia.
  */
 export function readImportFile(text: string): ImportFileReading {
   let parsed: unknown;
@@ -41,9 +42,11 @@ export function readImportFile(text: string): ImportFileReading {
   if (parsed.format !== EXPORT_FORMAT) return { status: 'not_gymbuddy' };
 
   const version = 'version' in parsed ? parsed.version : undefined;
-  if (version !== EXPORT_VERSION) return { status: 'unsupported_version', version };
+  if (typeof version !== 'number' || !READABLE_EXPORT_VERSIONS.includes(version)) {
+    return { status: 'unsupported_version', version };
+  }
 
-  const result = exportFileSchema.safeParse(parsed);
+  const result = readableExportFileSchema.safeParse(parsed);
   if (!result.success) {
     console.warn('La copia elegida no cumple el contrato', result.error.issues);
     return { status: 'broken' };

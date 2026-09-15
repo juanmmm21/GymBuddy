@@ -1,7 +1,8 @@
 import {
   endSessionRequestSchema,
   isoDatetimeSchema,
-  logSetRequestSchema,
+  logCardioSetRequestSchema,
+  logStrengthSetRequestSchema,
   resourceIdSchema,
   startSessionRequestSchema,
   updateSetRequestSchema,
@@ -14,7 +15,12 @@ import { z } from 'zod';
  * las 18:30 aparecería registrada a las 20:00, con el descanso y el calendario mal.
  */
 const startSessionBodySchema = startSessionRequestSchema.required({ startedAt: true });
-const logSetBodySchema = logSetRequestSchema.required({ completedAt: true });
+// Las dos formas por separado: `required` no existe sobre la unión. Una escritura encolada antes
+// del cardio no trae `kind` y se lee como fuerza, que es lo que era.
+const logSetBodySchema = z.union([
+  logStrengthSetRequestSchema.required({ completedAt: true }),
+  logCardioSetRequestSchema.required({ completedAt: true }),
+]);
 const endSessionBodySchema = endSessionRequestSchema.required({ endedAt: true });
 
 /** Lo que se pide escribir, antes de saber si sale directo o espera en la cola. */

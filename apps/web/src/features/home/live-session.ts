@@ -1,13 +1,12 @@
-import type { TrackedExercise, WeightKilograms, WorkoutSessionDetail } from '@gymbuddy/shared';
+import type { SetEntry, TrackedExercise, WorkoutSessionDetail } from '@gymbuddy/shared';
 import { UNKNOWN_EXERCISE_NAME, summarizeSession } from '../session/summary';
 
 /** La última serie de la sesión, con lo que hace falta para pintarla en Hoy. */
 export interface LiveLastSet {
   readonly exerciseName: string;
   readonly equipment: string | null;
-  readonly weight: WeightKilograms;
-  readonly reps: number;
-  readonly completedAt: string;
+  /** La serie tal cual: de fuerza lleva peso y repeticiones, de cardio su duración. */
+  readonly set: SetEntry;
 }
 
 /** Lo que resume la tarjeta de la sesión en curso. */
@@ -51,9 +50,7 @@ export function summarizeLiveSession(
         : {
             exerciseName: exercise?.name ?? UNKNOWN_EXERCISE_NAME,
             equipment: exercise?.equipment ?? null,
-            weight: latest.weight,
-            reps: latest.reps,
-            completedAt: latest.completedAt,
+            set: latest,
           },
   };
 }

@@ -1,6 +1,7 @@
 import {
   parseKilogramsToGrams,
   type SetEntry,
+  type StrengthSetEntry,
   type TrackedExercise,
   type WeightKilograms,
 } from '@gymbuddy/shared';
@@ -21,7 +22,8 @@ export interface SetProposal {
  *
  * Primero manda la sesión en curso —con lo que espera en la cola, que ya viene aplicado en
  * `sessionSets`—; si hoy todavía no lo ha hecho, la última vez que lo hizo. El calentamiento no
- * cuenta: proponer el peso de calentar para la serie de trabajo sería proponer de menos.
+ * cuenta: proponer el peso de calentar para la serie de trabajo sería proponer de menos. Una serie
+ * de cardio tampoco: no tiene peso que proponer.
  */
 export function proposeSet(
   exercise: TrackedExercise,
@@ -61,12 +63,15 @@ function valuesOf(weight: WeightKilograms, reps: number): SetValues {
 }
 
 /** La última serie efectiva de ese ejercicio en la sesión, comparando horas como instantes. */
-function latestEffectiveSet(sets: readonly SetEntry[], exerciseId: string): SetEntry | null {
-  let latest: SetEntry | null = null;
+function latestEffectiveSet(
+  sets: readonly SetEntry[],
+  exerciseId: string,
+): StrengthSetEntry | null {
+  let latest: StrengthSetEntry | null = null;
   let latestTime = Number.NEGATIVE_INFINITY;
 
   for (const set of sets) {
-    if (set.trackedExerciseId !== exerciseId || set.isWarmup) continue;
+    if (set.kind !== 'strength' || set.trackedExerciseId !== exerciseId || set.isWarmup) continue;
     const time = Date.parse(set.completedAt);
     if (Number.isNaN(time) || time < latestTime) continue;
     latest = set;

@@ -4,6 +4,7 @@ import {
   parseVolumeKilogramsToGrams,
   type Locale,
   type PersonalRecord,
+  type SetEntry,
   type WeightKilograms,
   type WeightUnit,
 } from '@gymbuddy/shared';
@@ -127,6 +128,60 @@ export function formatDuration(totalSeconds: number): string {
   if (hours === 0) return `${String(minutes)} min`;
 
   return minutes === 0 ? `${String(hours)} h` : `${String(hours)} h ${String(minutes)} min`;
+}
+
+/**
+ * Lo que duró una serie de cardio: "30 min", "1 h 5 min" o "12 min 30 s". A diferencia de una
+ * sesión, aquí los segundos sí cuentan: un sprint de 45 segundos es una serie de verdad.
+ */
+export function formatCardioDuration(totalSeconds: number): string {
+  const seconds = Math.max(0, Math.floor(totalSeconds));
+  const hours = Math.floor(seconds / SECONDS_PER_HOUR);
+  const minutes = Math.floor((seconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE);
+  const rest = seconds % SECONDS_PER_MINUTE;
+
+  const parts = [
+    hours > 0 ? `${String(hours)} h` : null,
+    minutes > 0 ? `${String(minutes)} min` : null,
+    rest > 0 || seconds === 0 ? `${String(rest)} s` : null,
+  ];
+  return parts.filter((part) => part !== null).join(' ');
+}
+
+const METERS_PER_KILOMETER = 1000;
+const METERS_PER_HUNDREDTH_KILOMETER = 10;
+
+/**
+ * Una distancia en metros enteros: "800 m" por debajo del kilómetro y "5,2 km" por encima, con dos
+ * decimales como mucho. El redondeo a centésimas se hace con enteros, sin pasar por coma flotante.
+ */
+export function formatDistanceLabel(meters: number, locale: Locale): string {
+  if (meters < METERS_PER_KILOMETER) return `${String(meters)} m`;
+
+  const hundredths = Math.floor(
+    (meters + METERS_PER_HUNDREDTH_KILOMETER / 2) / METERS_PER_HUNDREDTH_KILOMETER,
+  );
+  const whole = Math.floor(hundredths / 100);
+  const decimals = String(hundredths % 100)
+    .padStart(2, '0')
+    .replace(/0+$/, '');
+  const separator = locale === 'es' ? ',' : '.';
+
+  return `${String(whole)}${decimals === '' ? '' : separator + decimals} km`;
+}
+
+/**
+ * El valor de una serie tal y como se lee en una fila: "82,5 kg × 8" o "30 min · 5,2 km". Una sola
+ * función para las tres listas que pintan series, para que ninguna se olvide del cardio.
+ */
+export function formatSetValueLabel(set: SetEntry, locale: Locale): string {
+  if (set.kind === 'strength')
+    return `${formatWeightLabel(set.weight, locale)} × ${String(set.reps)}`;
+
+  const duration = formatCardioDuration(set.durationSeconds);
+  return set.distanceMeters === null
+    ? duration
+    : `${duration} · ${formatDistanceLabel(set.distanceMeters, locale)}`;
 }
 
 function padTwo(value: number): string {

@@ -63,7 +63,8 @@ export interface SessionTotals {
 
 /**
  * El volumen sale del dominio compartido (`sessionVolumeGrams`), que ya excluye el
- * calentamiento y opera en gramos enteros: aquí no se hace aritmética con pesos.
+ * calentamiento y opera en gramos enteros: aquí no se hace aritmética con pesos. El cardio
+ * cuenta como serie pero no suma volumen: no mueve gramos.
  */
 export function summarizeSession(sets: readonly SetEntry[]): SessionTotals {
   const exercises = new Set(sets.map((set) => set.trackedExerciseId));
@@ -72,7 +73,9 @@ export function summarizeSession(sets: readonly SetEntry[]): SessionTotals {
     setCount: sets.length,
     workingSetCount: sets.filter((set) => !set.isWarmup).length,
     exerciseCount: exercises.size,
-    volumeGrams: sessionVolumeGrams(sets.map(toProgressionSet)),
+    volumeGrams: sessionVolumeGrams(
+      sets.flatMap((set) => (set.kind === 'strength' ? [toProgressionSet(set)] : [])),
+    ),
   };
 }
 

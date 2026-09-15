@@ -20,6 +20,7 @@ import {
   formatRecordValueLabel,
   formatRpe,
   formatSessionDate,
+  formatSetValueLabel,
   formatTime,
   formatWeightLabel,
   pluralize,
@@ -342,9 +343,7 @@ interface SetRowProps {
 function SetRow({ set, locale }: SetRowProps) {
   return (
     <li className={styles.set}>
-      <span className={styles.setValue}>
-        {formatWeightLabel(set.weight, locale)} × {set.reps}
-      </span>
+      <span className={styles.setValue}>{formatSetValueLabel(set, locale)}</span>
       <span className={styles.setMeta}>
         {set.isWarmup && <Badge>Calentamiento</Badge>}
         {set.rpe !== null && <span>{formatRpe(set.rpe, locale)}</span>}

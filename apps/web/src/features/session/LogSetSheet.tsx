@@ -130,6 +130,7 @@ function LogSetForm({
         sessionId,
         body: {
           id: setId,
+          kind: 'strength',
           trackedExerciseId: exercise.id,
           weight: formatGramsAsKilograms(values.weightGrams),
           reps: values.reps,
