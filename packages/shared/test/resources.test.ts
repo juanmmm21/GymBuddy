@@ -26,6 +26,7 @@ import {
   muscleSchema,
   personalRecordSchema,
   setEntrySchema,
+  startCardioRequestSchema,
   startSessionRequestSchema,
   trackedExerciseSchema,
   userSchema,
@@ -290,6 +291,35 @@ describe('sesión', () => {
     });
 
     expect(parsed.success).toBe(true);
+  });
+
+  it('lleva el cardio en marcha como hora o nulo, y acepta la sesión guardada sin él', () => {
+    const open = {
+      id: SESSION_ID,
+      startedAt: '2026-09-07T18:00:00.000Z',
+      endedAt: null,
+      notes: null,
+      sets: [],
+    };
+
+    expect(
+      workoutSessionDetailSchema.safeParse({ ...open, cardioStartedAt: '2026-09-07T18:40:00.000Z' })
+        .success,
+    ).toBe(true);
+    expect(workoutSessionDetailSchema.safeParse({ ...open, cardioStartedAt: null }).success).toBe(
+      true,
+    );
+    expect(
+      workoutSessionDetailSchema.safeParse({ ...open, cardioStartedAt: 'a las siete' }).success,
+    ).toBe(false);
+  });
+
+  it('empezar el cardio admite la hora del móvil o ninguna', () => {
+    expect(startCardioRequestSchema.safeParse({}).success).toBe(true);
+    expect(
+      startCardioRequestSchema.safeParse({ startedAt: '2026-09-07T18:40:00.000+02:00' }).success,
+    ).toBe(true);
+    expect(startCardioRequestSchema.safeParse({ startedAt: 'ahora' }).success).toBe(false);
   });
 });
 

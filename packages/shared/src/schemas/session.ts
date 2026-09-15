@@ -57,6 +57,12 @@ export const workoutSessionSchema = z.object({
 
 export const workoutSessionDetailSchema = workoutSessionSchema.extend({
   sets: z.array(setEntrySchema),
+  /**
+   * Cuándo empezó el cardio que sigue en marcha: mientras dura, la sesión no se cierra sola
+   * (revisión del ADR 0008). Nulo sin cardio en marcha. Admite ausente porque el móvil guarda
+   * sesiones leídas antes de que existiera, y restaurarlas no puede fallar por eso.
+   */
+  cardioStartedAt: isoDatetimeSchema.nullish(),
 });
 
 /**
@@ -132,6 +138,14 @@ export const updateSetRequestSchema = z
   })
   .partial();
 
+/**
+ * Empezar el cardio que se apuntará al terminarlo. La hora la manda el móvil, igual que la de una
+ * serie: la cola offline puede entregarlo tarde y el cardio empezó cuando se pulsó.
+ */
+export const startCardioRequestSchema = z.object({
+  startedAt: isoDatetimeSchema.optional(),
+});
+
 export const endSessionRequestSchema = z.object({
   endedAt: isoDatetimeSchema.optional(),
   notes: z.string().max(1000).nullish(),
@@ -180,3 +194,4 @@ export type LogCardioSetRequest = z.infer<typeof logCardioSetRequestSchema>;
 export type UpdateSetRequest = z.infer<typeof updateSetRequestSchema>;
 export type LogSetResponse = z.infer<typeof logSetResponseSchema>;
 export type EndSessionRequest = z.infer<typeof endSessionRequestSchema>;
+export type StartCardioRequest = z.infer<typeof startCardioRequestSchema>;
