@@ -1,6 +1,7 @@
 import { muscleSchema, type Locale, type Muscle } from '@gymbuddy/shared';
 import { buildCatalogRows } from '../src/catalog/snapshot';
 import { CATALOG_BASE_URL, sourceMuscleFileSchema } from '../src/catalog/source';
+import { ROWS_PER_STATEMENT } from '../src/catalog/sync';
 import type { Database } from '../src/db/client';
 import { catalogExercise, catalogSyncState, type NewCatalogExerciseRow } from '../src/db/schema';
 
@@ -220,7 +221,10 @@ export async function seedCatalogSnapshot(
     rows.push(...built.rows);
   }
 
-  if (rows.length > 0) await db.insert(catalogExercise).values(rows);
+  // Por lotes, como la sincronización: más de seis filas en un INSERT pasan de los cien parámetros de D1.
+  for (let index = 0; index < rows.length; index += ROWS_PER_STATEMENT) {
+    await db.insert(catalogExercise).values(rows.slice(index, index + ROWS_PER_STATEMENT));
+  }
 
   return rows;
 }

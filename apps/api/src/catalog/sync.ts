@@ -22,7 +22,7 @@ const SYNC_STATE_ID = 'catalog';
  * así que en cada sentencia caben seis filas. El músculo más grande son 169 ejercicios:
  * veintiocho sentencias que salen en un único `batch`, es decir, un solo viaje a la base.
  */
-const ROWS_PER_STATEMENT = 6;
+export const ROWS_PER_STATEMENT = 6;
 
 export interface CatalogSyncOptions extends CatalogClientOptions {
   /** Momento del paso. Se inyecta para que los tests no dependan del reloj. */
