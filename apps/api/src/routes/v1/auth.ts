@@ -3,6 +3,7 @@ import {
   loginVerifyRequestSchema,
   registrationOptionsRequestSchema,
   registrationVerifyRequestSchema,
+  updateUserRequestSchema,
   type DeviceLink,
   type Invitation,
   type InvitationStatus,
@@ -21,7 +22,7 @@ import {
   startPasskeyRegistration,
 } from '../../auth/passkeys';
 import { readRelyingParty } from '../../auth/relying-party';
-import { toUser } from '../../auth/users';
+import { toUser, updateUser } from '../../auth/users';
 import { createDatabase } from '../../db/client';
 import type { UserRow } from '../../db/schema';
 import { requireUser, type AuthenticatedEnv } from '../../http/current-user';
@@ -134,7 +135,17 @@ export const authRoute = new Hono<AuthenticatedEnv>()
     return c.json(await sessionFor(account, secret, now), 201);
   })
 
-  .get('/auth/me', requireUser, (c) => c.json(toUser(c.get('user'))));
+  .get('/auth/me', requireUser, (c) => c.json(toUser(c.get('user'))))
+
+  /** Cambiar el propio perfil: el nombre desde Ajustes. Solo la cuenta de la sesión. */
+  .patch('/auth/me', requireUser, async (c) => {
+    const body = await parseJsonBody(c, updateUserRequestSchema);
+    const updated = await updateUser(createDatabase(c.env.DB), c.get('user').id, body);
+    // Borrada entre `requireUser` y la escritura: se responde como a un token sin cuenta.
+    if (updated === null) throw new ApiException('unauthorized', 'La cuenta ya no existe');
+
+    return c.json(toUser(updated));
+  });
 
 async function sessionFor(account: UserRow, secret: string, now: Date): Promise<Session> {
   const { token, expiresAt } = await issueSessionToken(account.id, secret, now);
