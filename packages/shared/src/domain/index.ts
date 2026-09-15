@@ -10,6 +10,17 @@ export {
   tenthsToRpe,
 } from './units';
 export {
+  CENTIPOUNDS_PER_POUND,
+  POUND_RESOLUTION_CENTIPOUNDS,
+  WEIGHT_UNITS,
+  centipoundsToGrams,
+  formatCentipoundsAsPounds,
+  gramsToCentipounds,
+  parsePoundsToCentipounds,
+  roundCentipoundsToResolution,
+} from './pounds';
+export type { WeightUnit } from './pounds';
+export {
   EPLEY_REP_DIVISOR,
   WORKING_WEIGHT_SESSIONS,
   bestEstimatedOneRepMaxGrams,
