@@ -72,8 +72,12 @@ export {
   replayPersonalRecords,
 } from './records';
 export {
+  CARDIO_IN_PROGRESS_LIMIT_MINUTES,
+  CARDIO_IN_PROGRESS_LIMIT_MS,
   SESSION_IDLE_LIMIT_MINUTES,
   SESSION_IDLE_LIMIT_MS,
+  cardioKeepsSessionAlive,
+  cardioSetStartedAt,
   continuesIdleSession,
   idleSessionEndAt,
   lastSessionActivityAt,

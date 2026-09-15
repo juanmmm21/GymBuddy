@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CARDIO_IN_PROGRESS_LIMIT_MINUTES,
   SESSION_IDLE_LIMIT_MINUTES,
+  cardioKeepsSessionAlive,
+  cardioSetStartedAt,
   continuesIdleSession,
   idleSessionEndAt,
   lastSessionActivityAt,
@@ -106,5 +109,67 @@ describe('continuesIdleSession', () => {
 
   it('una hora ilegible no reabre nada', () => {
     expect(continuesIdleSession(endedAt, 'no es una fecha')).toBe(false);
+  });
+});
+
+describe('cardio en marcha', () => {
+  const lastSet = '2026-09-14T10:25:00.000Z';
+  const cardioStartedAt = '2026-09-14T11:00:00.000Z';
+  const activity = { startedAt: START, setCompletedAts: [lastSet], cardioStartedAt };
+
+  it('empezar el cardio es actividad: pasa a ser la última', () => {
+    expect(lastSessionActivityAt(activity)).toBe(cardioStartedAt);
+    expect(lastSessionActivityAt({ ...activity, cardioStartedAt: null })).toBe(lastSet);
+  });
+
+  it('mientras dura, la sesión no se cierra aunque pase más de una hora sin series', () => {
+    expect(idleSessionEndAt(activity, minutesAfter(cardioStartedAt, 90))).toBeNull();
+    expect(
+      idleSessionEndAt(
+        activity,
+        minutesAfter(cardioStartedAt, CARDIO_IN_PROGRESS_LIMIT_MINUTES - 1),
+      ),
+    ).toBeNull();
+  });
+
+  it('un cardio olvidado deja de contar al cumplir su tope, y la sesión se cierra cuando empezó', () => {
+    expect(CARDIO_IN_PROGRESS_LIMIT_MINUTES).toBe(180);
+    expect(
+      idleSessionEndAt(activity, minutesAfter(cardioStartedAt, CARDIO_IN_PROGRESS_LIMIT_MINUTES)),
+    ).toBe(cardioStartedAt);
+  });
+
+  it('una hora de cardio ilegible no mantiene viva la sesión', () => {
+    expect(cardioKeepsSessionAlive('no es una fecha', minutesAfter(START, 5))).toBe(false);
+    expect(cardioKeepsSessionAlive(null, minutesAfter(START, 5))).toBe(false);
+    expect(cardioKeepsSessionAlive(undefined, minutesAfter(START, 5))).toBe(false);
+  });
+
+  it('un cardio que empieza después de ahora (reloj adelantado) sigue en marcha', () => {
+    expect(cardioKeepsSessionAlive(cardioStartedAt, minutesAfter(START, 30))).toBe(true);
+  });
+});
+
+describe('cardioSetStartedAt', () => {
+  it('una serie de cardio empezó su duración antes de apuntarse', () => {
+    expect(cardioSetStartedAt('2026-09-14T11:30:00.000Z', 1_800)).toBe('2026-09-14T11:00:00.000Z');
+  });
+
+  it('respeta el desfase horario comparando instantes', () => {
+    expect(cardioSetStartedAt('2026-09-14T13:30:00.000+02:00', 600)).toBe(
+      '2026-09-14T11:20:00.000Z',
+    );
+  });
+
+  it('con una hora ilegible devuelve la misma, que luego no reabre nada', () => {
+    expect(cardioSetStartedAt('no es una fecha', 600)).toBe('no es una fecha');
+  });
+
+  it('media hora de cinta apuntada fuera del margen continúa la sesión si empezó dentro', () => {
+    const endedAt = '2026-09-14T10:25:00.000Z';
+    const loggedAt = minutesAfter(endedAt, SESSION_IDLE_LIMIT_MINUTES + 10).toISOString();
+
+    expect(continuesIdleSession(endedAt, loggedAt)).toBe(false);
+    expect(continuesIdleSession(endedAt, cardioSetStartedAt(loggedAt, 1_800))).toBe(true);
   });
 });
