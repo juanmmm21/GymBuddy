@@ -10,6 +10,7 @@ import {
   weightKilogramsSchema,
 } from './common';
 import { personalRecordKindSchema } from './record';
+import { cardioDistanceMetersSchema, cardioDurationSecondsSchema } from './session';
 
 /*
  * La copia de seguridad del usuario. Sus esquemas se escriben aquí enteros y no derivan de los
@@ -22,8 +23,14 @@ import { personalRecordKindSchema } from './record';
 /** Marca con la que un importador reconoce el fichero antes de mirar nada más. */
 export const EXPORT_FORMAT = 'gymbuddy-export';
 
-/** Se sube cuando cambia la forma del fichero, nunca por un cambio de la API. */
-export const EXPORT_VERSION = 1;
+/**
+ * Se sube cuando cambia la forma del fichero, nunca por un cambio de la API. La 2 trajo las
+ * series de cardio (`kind`); una copia de la 1 se sigue leyendo, convertida al leerla.
+ */
+export const EXPORT_VERSION = 2;
+
+/** Las versiones que esta app sabe leer. Las viejas se convierten a la actual al validarlas. */
+export const READABLE_EXPORT_VERSIONS: readonly number[] = [1, EXPORT_VERSION];
 
 /** Tope de sesiones por página al exportar: cada una arrastra sus series y sus marcas. */
 export const MAX_EXPORT_SESSION_PAGE_SIZE = 50;
@@ -68,17 +75,33 @@ export const exportedRecordSchema = z.object({
   achievedAt: isoDatetimeSchema,
 });
 
-export const exportedSetSchema = z.object({
+const exportedSetBaseSchema = z.object({
   id: resourceIdSchema,
   trackedExerciseId: resourceIdSchema,
   orderIndex: z.int().nonnegative(),
-  weight: weightKilogramsSchema,
-  reps: z.int().positive(),
   rpe: rpeSchema.nullable(),
   isWarmup: z.boolean(),
   completedAt: isoDatetimeSchema,
+});
+
+export const exportedStrengthSetSchema = exportedSetBaseSchema.extend({
+  kind: z.literal('strength'),
+  weight: weightKilogramsSchema,
+  reps: z.int().positive(),
   records: z.array(exportedRecordSchema),
 });
+
+/** Sin marcas: las tres se miden en gramos y una serie de cardio no mueve ninguno. */
+export const exportedCardioSetSchema = exportedSetBaseSchema.extend({
+  kind: z.literal('cardio'),
+  durationSeconds: cardioDurationSecondsSchema,
+  distanceMeters: cardioDistanceMetersSchema.nullable(),
+});
+
+export const exportedSetSchema = z.discriminatedUnion('kind', [
+  exportedStrengthSetSchema,
+  exportedCardioSetSchema,
+]);
 
 export const exportedSessionSchema = z.object({
   id: resourceIdSchema,
@@ -159,6 +182,59 @@ export const exportFileSchema = exportFileShapeSchema.superRefine((file, context
   }
 });
 
+/*
+ * La versión 1, escrita entera y congelada: es la forma de las copias descargadas antes del
+ * cardio, y no puede cambiar aunque cambie la actual. Solo tenía series de fuerza.
+ */
+const exportedSetV1Schema = z.object({
+  id: resourceIdSchema,
+  trackedExerciseId: resourceIdSchema,
+  orderIndex: z.int().nonnegative(),
+  weight: weightKilogramsSchema,
+  reps: z.int().positive(),
+  rpe: rpeSchema.nullable(),
+  isWarmup: z.boolean(),
+  completedAt: isoDatetimeSchema,
+  records: z.array(exportedRecordSchema),
+});
+
+const exportFileV1Schema = z.object({
+  format: z.literal(EXPORT_FORMAT),
+  version: z.literal(1),
+  exportedAt: isoDatetimeSchema,
+  profile: exportedProfileSchema,
+  exercises: z.array(exportedExerciseSchema),
+  sessions: z.array(
+    z.object({
+      id: resourceIdSchema,
+      startedAt: isoDatetimeSchema,
+      endedAt: isoDatetimeSchema.nullable(),
+      notes: z.string().nullable(),
+      sets: z.array(exportedSetV1Schema),
+    }),
+  ),
+  routines: z.array(exportedRoutineSchema),
+});
+
+/**
+ * Una copia de cualquier versión legible, ya convertida a la actual. La conversión va antes de
+ * las comprobaciones de `exportFileSchema`, así que una copia vieja se valida con las mismas
+ * reglas que una nueva y quien la importa solo conoce una forma.
+ */
+export const readableExportFileSchema = z.union([
+  exportFileSchema,
+  exportFileV1Schema
+    .transform((file): ExportFileShape => ({
+      ...file,
+      version: EXPORT_VERSION,
+      sessions: file.sessions.map((session) => ({
+        ...session,
+        sets: session.sets.map((set) => ({ ...set, kind: 'strength' as const })),
+      })),
+    }))
+    .pipe(exportFileSchema),
+]);
+
 interface ExportFileIssue {
   readonly message: string;
   readonly path: readonly (string | number)[];
@@ -207,6 +283,7 @@ function findExportFileIssues(file: ExportFileShape): ExportFileIssue[] {
       claim('set', set.id, [...setPath, 'id']);
       requireExercise(set.trackedExerciseId, [...setPath, 'trackedExerciseId']);
 
+      if (set.kind !== 'strength') return;
       set.records.forEach((record, recordIndex) => {
         claim('record', record.id, [...setPath, 'records', recordIndex, 'id']);
       });
@@ -249,6 +326,8 @@ export type ExportedProfile = z.infer<typeof exportedProfileSchema>;
 export type ExportedExercise = z.infer<typeof exportedExerciseSchema>;
 export type ExportedRecord = z.infer<typeof exportedRecordSchema>;
 export type ExportedSet = z.infer<typeof exportedSetSchema>;
+export type ExportedStrengthSet = z.infer<typeof exportedStrengthSetSchema>;
+export type ExportedCardioSet = z.infer<typeof exportedCardioSetSchema>;
 export type ExportedSession = z.infer<typeof exportedSessionSchema>;
 export type ExportedRoutineItem = z.infer<typeof exportedRoutineItemSchema>;
 export type ExportedRoutine = z.infer<typeof exportedRoutineSchema>;

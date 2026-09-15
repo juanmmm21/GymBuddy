@@ -78,9 +78,12 @@ export function routineImportRows(routine: Pick<ExportedRoutine, 'items'>): numb
   return 1 + routine.items.length;
 }
 
-/** Filas que escribe una sesión: ella, sus series y las marcas de cada serie. */
+/** Filas que escribe una sesión: ella, sus series y las marcas de cada serie de fuerza. */
 export function sessionImportRows(session: Pick<ExportedSession, 'sets'>): number {
-  return session.sets.reduce((rows, set) => rows + 1 + set.records.length, 1);
+  return session.sets.reduce(
+    (rows, set) => rows + 1 + (set.kind === 'strength' ? set.records.length : 0),
+    1,
+  );
 }
 
 /**
