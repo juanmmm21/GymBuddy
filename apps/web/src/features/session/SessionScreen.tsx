@@ -10,7 +10,7 @@ import {
 } from '@gymbuddy/shared';
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
-import { useStartSession } from '../../api/mutations';
+import { useStartCardio, useStartSession } from '../../api/mutations';
 import { useRoutines, useTrackedExercises } from '../../api/queries';
 import { ScreenHeader, type BackLink } from '../../app/ScreenHeader';
 import { useStorage } from '../../app/StorageProvider';
@@ -34,7 +34,8 @@ import { openSessionSignals, sessionDeviceSignals } from '../mascot/mascot-signa
 import { describeRoutineSize } from '../routines/items';
 import { EditSetSheet } from './EditSetSheet';
 import { EndSessionSheet } from './EndSessionSheet';
-import { finalCardioOffer } from './final-cardio';
+import { CardioInProgressCard } from './CardioInProgressCard';
+import { finalCardioOffer, suggestedCardioExerciseId } from './final-cardio';
 import { SessionRecordItems } from './SessionRecordItems';
 import { LogSetSheet } from './LogSetSheet';
 import { logExerciseIdFor } from './log-target';
@@ -353,6 +354,13 @@ function ActiveSession({
     saveSessionRoutine(storage, { sessionId: session.id, ...link });
   }
 
+  const startCardio = useStartCardio();
+  const cardioStartedAt = session.cardioStartedAt ?? null;
+  const cardioExerciseId = suggestedCardioExerciseId(selectable, session.sets);
+  const handleStartCardio = (): void => {
+    startCardio.mutate({ sessionId: session.id });
+  };
+
   const mascotSignals = openSessionSignals(session);
   // La mascota recibe todas: solo le importa cuándo llegó la última, no cuántas se repiten.
   const mascotDevice = sessionDeviceSignals(lastSetAt, restTarget, records);
@@ -375,18 +383,35 @@ function ActiveSession({
         )}
       </LiveMascot>
 
-      {lastSetAt !== null && (
-        <RestTimer
-          lastSetAt={lastSetAt}
-          kind={restKind}
-          target={restTarget}
-          onTargetChange={(seconds) => {
-            onRestTargetChange(restKind, seconds);
+      {cardioStartedAt !== null ? (
+        <CardioInProgressCard
+          sessionId={session.id}
+          startedAt={cardioStartedAt}
+          locale={locale}
+          canLog={cardioExerciseId !== null}
+          onLog={() => {
+            openLog(cardioExerciseId);
           }}
-          companion={
-            <LiveMascot signals={mascotSignals} device={mascotDevice} locale={locale} spot="rest" />
-          }
         />
+      ) : (
+        lastSetAt !== null && (
+          <RestTimer
+            lastSetAt={lastSetAt}
+            kind={restKind}
+            target={restTarget}
+            onTargetChange={(seconds) => {
+              onRestTargetChange(restKind, seconds);
+            }}
+            companion={
+              <LiveMascot
+                signals={mascotSignals}
+                device={mascotDevice}
+                locale={locale}
+                spot="rest"
+              />
+            }
+          />
+        )
       )}
 
       <Button
@@ -399,6 +424,24 @@ function ActiveSession({
       >
         Registrar serie
       </Button>
+
+      {cardioStartedAt === null && cardioExerciseId !== null && (
+        <Button
+          variant="secondary"
+          size="lg"
+          fullWidth
+          loading={startCardio.isPending}
+          onClick={handleStartCardio}
+        >
+          Empezar cardio
+        </Button>
+      )}
+
+      {startCardio.isError && (
+        <Notice tone="danger" title="No se pudo empezar el cardio">
+          {describeError(startCardio.error)}
+        </Notice>
+      )}
 
       {routineId !== null && (
         <AsyncContent query={routines} quietRefetchError>
@@ -460,6 +503,7 @@ function ActiveSession({
         defaultExerciseId={logging?.exerciseId ?? null}
         routineProgress={progress}
         sessionSets={session.sets}
+        cardioStartedAt={cardioStartedAt}
         locale={locale}
         open={logging !== null}
         onClose={onCloseLog}
@@ -501,6 +545,10 @@ function ActiveSession({
         open={ending}
         onClose={onCloseEnd}
         onLogFinalCardio={onOpenFinalCardio}
+        onStartFinalCardio={() => {
+          handleStartCardio();
+          onCloseEnd();
+        }}
         onEnded={() => {
           // Cerrada la sesión, su rutina ya no guía nada.
           clearSessionRoutine(storage);

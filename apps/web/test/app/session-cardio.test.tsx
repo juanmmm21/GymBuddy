@@ -2,6 +2,7 @@ import type {
   CardioSetEntry,
   LogCardioSetRequest,
   SetEntry,
+  StartCardioRequest,
   TrackedExercise,
   UpdateSetRequest,
   WorkoutSessionDetail,
@@ -60,8 +61,17 @@ function serveCardioSession(
       isWarmup: body.isWarmup ?? false,
       completedAt: new Date().toISOString(),
     };
-    current = { ...current, sets: [...current.sets, entry] };
+    current = { ...current, sets: [...current.sets, entry], cardioStartedAt: null };
     return jsonResponse({ set: entry, records: [] }, 201);
+  });
+  fake.on('PUT', `/sessions/${activeSession.id}/cardio`, (request) => {
+    const body = request.body as StartCardioRequest;
+    current = { ...current, cardioStartedAt: body.startedAt ?? null };
+    return jsonResponse(current);
+  });
+  fake.on('DELETE', `/sessions/${activeSession.id}/cardio`, () => {
+    current = { ...current, cardioStartedAt: null };
+    return new Response(null, { status: 204 });
   });
   fake.on('PATCH', `/sessions/${activeSession.id}/sets/${loggedCardio.id}`, (request) => {
     const body = request.body as UpdateSetRequest;
@@ -368,5 +378,139 @@ describe('sesión: cardio final al terminar', () => {
 
     const summary = await openEndSheet(user);
     expect(within(summary).queryByText('¿Rematas con cardio?')).not.toBeInTheDocument();
+  });
+});
+
+describe('sesión: cardio en marcha', () => {
+  const minutesAgo = (minutes: number): string =>
+    new Date(Date.now() - minutes * 60_000).toISOString();
+
+  it('«Empezar cardio» lo pone en marcha con la hora de la pulsación y ocupa el sitio del descanso', async () => {
+    const user = userEvent.setup();
+    const before = Date.now();
+    const { fake } = renderApp({
+      path: '/session',
+      session,
+      setup: (fake) => {
+        serveCardioSession(fake, [benchPress, treadmill]);
+      },
+    });
+
+    await user.click(await screen.findByRole('button', { name: 'Empezar cardio' }));
+
+    const card = await screen.findByRole('region', { name: 'Cardio en marcha' });
+    expect(within(card).getByText(/La sesión no se cierra mientras dure/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Empezar cardio' })).not.toBeInTheDocument();
+    const put = fake.requests.find((request) => request.method === 'PUT');
+    const startedAt = (put?.body as StartCardioRequest).startedAt ?? '';
+    expect(Date.parse(startedAt)).toBeGreaterThanOrEqual(before);
+  });
+
+  it('sin ningún ejercicio de cardio no se ofrece empezarlo', async () => {
+    renderApp({
+      path: '/session',
+      session,
+      setup: (fake) => {
+        serveCardioSession(fake, [benchPress]);
+      },
+    });
+
+    expect(await screen.findByRole('button', { name: 'Registrar serie' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Empezar cardio' })).not.toBeInTheDocument();
+  });
+
+  it('«Apuntar cardio» abre la hoja con la cinta y el tiempo que lleva, y al registrarlo se apaga', async () => {
+    const user = userEvent.setup();
+    const { fake } = renderApp({
+      path: '/session',
+      session,
+      setup: (fake) => {
+        serveCardioSession(fake, [benchPress, treadmill], {
+          ...activeSession,
+          cardioStartedAt: minutesAgo(25),
+        });
+      },
+    });
+
+    const card = await screen.findByRole('region', { name: 'Cardio en marcha' });
+    await user.click(within(card).getByRole('button', { name: 'Apuntar cardio' }));
+
+    const log = await screen.findByRole('dialog', { name: 'Registrar serie' });
+    expect(within(log).getByRole('combobox', { name: 'Ejercicio' })).toHaveValue(treadmill.id);
+    expect(within(log).getByLabelText('Duración')).toHaveValue('25');
+    expect(within(log).getByText(/desde que empezaste el cardio/)).toBeInTheDocument();
+    await user.click(within(log).getByRole('button', { name: 'Registrar serie' }));
+
+    expect(await screen.findByRole('button', { name: 'Empezar cardio' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Cardio en marcha' })).not.toBeInTheDocument();
+    const body = fake.requests.find((request) => request.method === 'POST')
+      ?.body as LogCardioSetRequest;
+    expect(body).toMatchObject({ kind: 'cardio', durationSeconds: 1_500 });
+  });
+
+  it('«Quitar cardio» lo apaga sin apuntar nada', async () => {
+    const user = userEvent.setup();
+    const { fake } = renderApp({
+      path: '/session',
+      session,
+      setup: (fake) => {
+        serveCardioSession(fake, [benchPress, treadmill], {
+          ...activeSession,
+          cardioStartedAt: minutesAgo(5),
+        });
+      },
+    });
+
+    const card = await screen.findByRole('region', { name: 'Cardio en marcha' });
+    await user.click(within(card).getByRole('button', { name: 'Quitar cardio' }));
+
+    expect(await screen.findByRole('button', { name: 'Empezar cardio' })).toBeInTheDocument();
+    expect(fake.requests.some((request) => request.method === 'DELETE')).toBe(true);
+    expect(fake.requests.some((request) => request.method === 'POST')).toBe(false);
+  });
+
+  it('pasada la hora sin series, un cardio en marcha mantiene la sesión en pantalla', async () => {
+    const [set] = activeSession.sets;
+    if (set === undefined) throw new Error('La sesión de las fixtures trae una serie');
+    renderApp({
+      path: '/session',
+      session,
+      setup: (fake) => {
+        serveCardioSession(fake, [benchPress, treadmill], {
+          ...activeSession,
+          startedAt: minutesAgo(150),
+          sets: [{ ...set, completedAt: minutesAgo(120) }],
+          cardioStartedAt: minutesAgo(90),
+        });
+      },
+    });
+
+    expect(await screen.findByRole('region', { name: 'Cardio en marcha' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Empezar a entrenar' })).not.toBeInTheDocument();
+  });
+
+  it('desde «Terminar sesión» se puede empezar ahora, y con uno en marcha se ofrece apuntarlo', async () => {
+    const user = userEvent.setup();
+    renderApp({
+      path: '/session',
+      session,
+      setup: (fake) => {
+        serveCardioSession(fake, [benchPress, treadmill]);
+      },
+    });
+
+    await user.click(await screen.findByRole('button', { name: 'Terminar sesión' }));
+    const summary = await screen.findByRole('dialog', { name: 'Terminar sesión' });
+    await user.click(within(summary).getByRole('button', { name: 'Empezar cardio ahora' }));
+
+    expect(await screen.findByRole('region', { name: 'Cardio en marcha' })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Terminar sesión' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Terminar sesión' }));
+    const again = await screen.findByRole('dialog', { name: 'Terminar sesión' });
+    expect(within(again).getByText('Tu cardio sigue en marcha')).toBeInTheDocument();
+    expect(
+      within(again).queryByRole('button', { name: 'Empezar cardio ahora' }),
+    ).not.toBeInTheDocument();
   });
 });

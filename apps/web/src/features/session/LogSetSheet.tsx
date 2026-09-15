@@ -20,7 +20,9 @@ import {
   proposeCardioSet,
   proposeSet,
   setKindFor,
+  type CardioSetProposal,
 } from './set-proposal';
+import { cardioDurationSoFar } from './cardio-in-progress';
 import styles from './LogSetSheet.module.css';
 import {
   CardioSetFields,
@@ -47,6 +49,8 @@ export interface LogSetSheetProps {
   readonly routineProgress: RoutineProgress | null;
   /** Las series de la sesión con la cola encima: la última de cada ejercicio es lo que se propone. */
   readonly sessionSets: readonly SetEntry[];
+  /** El cardio en marcha: si lo hay, un cardio se abre con el tiempo que lleva y no con el de la última vez. */
+  readonly cardioStartedAt: string | null;
   readonly locale: Locale;
   readonly open: boolean;
   readonly onClose: () => void;
@@ -65,6 +69,7 @@ export function LogSetSheet({
   defaultExerciseId,
   routineProgress,
   sessionSets,
+  cardioStartedAt,
   locale,
   open,
   onClose,
@@ -85,6 +90,7 @@ export function LogSetSheet({
           initialExercise={initial}
           routineProgress={routineProgress}
           sessionSets={sessionSets}
+          cardioStartedAt={cardioStartedAt}
           locale={locale}
           onLogged={onLogged}
         />
@@ -99,6 +105,7 @@ interface LogSetFormProps {
   readonly initialExercise: TrackedExercise;
   readonly routineProgress: RoutineProgress | null;
   readonly sessionSets: readonly SetEntry[];
+  readonly cardioStartedAt: string | null;
   readonly locale: Locale;
   readonly onLogged: (records: readonly PersonalRecord[]) => void;
 }
@@ -109,15 +116,27 @@ function LogSetForm({
   initialExercise,
   routineProgress,
   sessionSets,
+  cardioStartedAt,
   locale,
   onLogged,
 }: LogSetFormProps) {
+  // Lo que se propone en cardio: con un cardio en marcha, el tiempo que lleva; si no, lo de la última vez.
+  const proposeCardio = (target: TrackedExercise): CardioSetProposal => {
+    const proposal = proposeCardioSet(target, sessionSets);
+    if (cardioStartedAt === null) return proposal;
+    return {
+      ...proposal,
+      values: {
+        ...proposal.values,
+        durationSeconds: cardioDurationSoFar(cardioStartedAt, Date.now()),
+      },
+    };
+  };
+
   const [exercise, setExercise] = useState(initialExercise);
   const [proposal, setProposal] = useState(() => proposeSet(initialExercise, sessionSets));
   const [values, setValues] = useState<SetValues>(proposal.values);
-  const [cardioProposal, setCardioProposal] = useState(() =>
-    proposeCardioSet(initialExercise, sessionSets),
-  );
+  const [cardioProposal, setCardioProposal] = useState(() => proposeCardio(initialExercise));
   const [cardioValues, setCardioValues] = useState<CardioSetValues>(cardioProposal.values);
   // Fijado al abrir la hoja y no al pulsar: reintentar tras un fallo es la misma serie, y la
   // cola offline no puede convertir un doble toque sin red en dos series.
@@ -136,7 +155,7 @@ function LogSetForm({
     if (next === undefined) return;
 
     const nextProposal = proposeSet(next, sessionSets);
-    const nextCardioProposal = proposeCardioSet(next, sessionSets);
+    const nextCardioProposal = proposeCardio(next);
     setExercise(next);
     setProposal(nextProposal);
     setValues(nextProposal.values);
@@ -206,7 +225,11 @@ function LogSetForm({
           values={cardioValues}
           onChange={setCardioValues}
           locale={locale}
-          durationHint={describeCardioProposal(cardioProposal.source)}
+          durationHint={
+            cardioStartedAt === null
+              ? describeCardioProposal(cardioProposal.source)
+              : 'El tiempo desde que empezaste el cardio. Cámbialo si paraste antes.'
+          }
         />
       )}
 
