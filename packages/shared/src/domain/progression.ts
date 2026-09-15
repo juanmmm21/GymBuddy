@@ -14,10 +14,16 @@ import { parseKilogramsToGrams } from './units';
  * ni un solo cálculo pase por coma flotante.
  */
 export interface ProgressionSet {
+  /** En un ejercicio a un brazo, el peso de **un** brazo: es lo que se coge y lo que se compara. */
   readonly weightGrams: number;
   readonly reps: number;
   readonly isWarmup: boolean;
   readonly completedAt: string;
+  /**
+   * Si la serie es de un ejercicio a un brazo. Viene del ejercicio y no de la serie, pero va aquí
+   * porque el volumen de una sesión suma series de ejercicios distintos.
+   */
+  readonly unilateral: boolean;
 }
 
 /** Una sesión reducida a lo que necesita la progresión: cuándo empezó y qué se levantó. */
@@ -71,18 +77,30 @@ export const EPLEY_REP_DIVISOR = 30;
  * Traduce una serie del contrato al dominio. Acepta cualquier objeto con esa forma —un
  * `SetEntry` lo es— en vez de importar el esquema: el dominio no depende del contrato.
  */
-export function toProgressionSet(entry: {
-  readonly weight: string;
-  readonly reps: number;
-  readonly isWarmup: boolean;
-  readonly completedAt: string;
-}): ProgressionSet {
+export function toProgressionSet(
+  entry: {
+    readonly weight: string;
+    readonly reps: number;
+    readonly isWarmup: boolean;
+    readonly completedAt: string;
+  },
+  unilateral: boolean,
+): ProgressionSet {
   return {
     weightGrams: parseKilogramsToGrams(entry.weight),
     reps: entry.reps,
     isWarmup: entry.isWarmup,
     completedAt: entry.completedAt,
+    unilateral,
   };
+}
+
+/**
+ * Cuántos lados trabaja una serie. A un brazo son dos: diez repeticiones con 20 kg en cada brazo
+ * mueven 400 kg y no 200 (lo decidió Juan). El peso máximo y el 1RM, en cambio, siguen por brazo.
+ */
+export function workedSides(unilateral: boolean): 1 | 2 {
+  return unilateral ? 2 : 1;
 }
 
 /** Las series que cuentan. El calentamiento no representa lo que el usuario mueve de verdad. */
@@ -128,12 +146,12 @@ export function oneRepMaxFromEpleyNumerator(numerator: number): number {
   return divideRoundingHalfUp(numerator, EPLEY_REP_DIVISOR);
 }
 
-/** Volumen de una serie: peso × repeticiones, en gramos. */
+/** Volumen de una serie: peso × repeticiones × lados, en gramos. */
 export function setVolumeGrams(set: ProgressionSet): number {
   assertNonNegativeInteger(set.weightGrams, 'peso en gramos');
   assertPositiveInteger(set.reps, 'repeticiones');
 
-  return set.weightGrams * set.reps;
+  return set.weightGrams * set.reps * workedSides(set.unilateral);
 }
 
 /** Volumen de una sesión: la suma de sus series efectivas. El calentamiento no suma. */

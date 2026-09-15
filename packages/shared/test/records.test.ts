@@ -10,11 +10,17 @@ import {
 } from '../src/domain/records';
 import type { ProgressionSet } from '../src/domain/progression';
 
-const set = (weightGrams: number, reps: number, isWarmup = false): ProgressionSet => ({
+const set = (
+  weightGrams: number,
+  reps: number,
+  isWarmup = false,
+  unilateral = false,
+): ProgressionSet => ({
   weightGrams,
   reps,
   isWarmup,
   completedAt: '2026-08-24T18:00:00.000Z',
+  unilateral,
 });
 
 const kinds = (bests: PersonalRecordBests, entry: ProgressionSet): string[] =>
@@ -27,6 +33,24 @@ describe('detectPersonalRecords', () => {
       { kind: 'estimated_1rm', valueGrams: 101_333 },
       { kind: 'max_volume', valueGrams: 640_000 },
     ]);
+  });
+
+  it('a un brazo, el peso y el 1RM son de un brazo y el volumen cuenta los dos lados', () => {
+    expect(detectPersonalRecords(set(20_000, 10, false, true), NO_PERSONAL_RECORDS)).toStrictEqual([
+      { kind: 'max_weight', valueGrams: 20_000 },
+      { kind: 'estimated_1rm', valueGrams: 26_667 },
+      { kind: 'max_volume', valueGrams: 400_000 },
+    ]);
+  });
+
+  it('a un brazo, la marca de volumen se compara con los dos lados', () => {
+    const bests: PersonalRecordBests = {
+      maxWeightGrams: 22_000,
+      estimatedOneRepMaxGrams: 30_000,
+      maxVolumeGrams: 380_000,
+    };
+
+    expect(kinds(bests, set(20_000, 10, false, true))).toStrictEqual(['max_volume']);
   });
 
   it('repetir exactamente la marca no es un récord', () => {
@@ -95,6 +119,7 @@ describe('replayPersonalRecords', () => {
     reps,
     orderIndex: options.orderIndex ?? 0,
     isWarmup: options.isWarmup ?? false,
+    unilateral: false,
   });
 
   const maxWeights = (records: readonly ReplayedRecord[]): [string, number][] =>

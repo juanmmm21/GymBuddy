@@ -21,7 +21,8 @@ const set = (
   reps: number,
   completedAt = '2026-08-24T18:00:00.000Z',
   isWarmup = false,
-): ProgressionSet => ({ weightGrams, reps, isWarmup, completedAt });
+  unilateral = false,
+): ProgressionSet => ({ weightGrams, reps, isWarmup, completedAt, unilateral });
 
 const top = (startedAt: string, weightGrams: number, reps = 8): SessionTopSet => ({
   sessionId: startedAt,
@@ -33,12 +34,15 @@ const top = (startedAt: string, weightGrams: number, reps = 8): SessionTopSet =>
 describe('toProgressionSet', () => {
   it('convierte el peso del contrato a gramos exactos', () => {
     expect(
-      toProgressionSet({
-        weight: '82.50',
-        reps: 8,
-        isWarmup: false,
-        completedAt: '2026-08-24T18:00:00.000Z',
-      }),
+      toProgressionSet(
+        {
+          weight: '82.50',
+          reps: 8,
+          isWarmup: false,
+          completedAt: '2026-08-24T18:00:00.000Z',
+        },
+        false,
+      ),
     ).toStrictEqual(set(82_500, 8));
   });
 });
@@ -106,6 +110,20 @@ describe('volumen', () => {
     ];
 
     expect(sessionVolumeGrams(sets)).toBe(660_000 + 577_500);
+  });
+
+  it('a un brazo cuenta los dos lados: 10 × 20 kg en cada brazo son 400 kg', () => {
+    expect(setVolumeGrams(set(20_000, 10, '2026-08-24T18:00:00.000Z', false, true))).toBe(400_000);
+  });
+
+  it('una sesión mezcla ejercicios a un brazo y a dos sin confundirlos', () => {
+    const sets = [set(80_000, 8), set(20_000, 10, '2026-08-24T18:10:00.000Z', false, true)];
+
+    expect(sessionVolumeGrams(sets)).toBe(640_000 + 400_000);
+  });
+
+  it('el calentamiento a un brazo tampoco suma', () => {
+    expect(sessionVolumeGrams([set(12_000, 12, '2026-08-24T18:00:00.000Z', true, true)])).toBe(0);
   });
 
   it('una sesión de solo calentamiento no suma volumen', () => {
@@ -187,6 +205,31 @@ describe('summarizeWorkingWeight', () => {
 
   it('sin sesiones no hay resumen', () => {
     expect(summarizeWorkingWeight([])).toBeNull();
+  });
+});
+
+describe('progresión de un ejercicio a un brazo', () => {
+  it('el peso de arriba y el 1RM van por brazo; el volumen, con los dos lados', () => {
+    const sessions = [
+      {
+        sessionId: 'a',
+        startedAt: '2026-08-24T18:00:00.000Z',
+        sets: [set(20_000, 10, '2026-08-24T18:05:00.000Z', false, true)],
+      },
+    ];
+
+    expect(progressionPoints(sessions)).toStrictEqual([
+      {
+        sessionId: 'a',
+        startedAt: '2026-08-24T18:00:00.000Z',
+        topWeightGrams: 20_000,
+        topReps: 10,
+        estimatedOneRepMaxGrams: 26_667,
+        volumeGrams: 400_000,
+        totalReps: 10,
+        setCount: 1,
+      },
+    ]);
   });
 });
 

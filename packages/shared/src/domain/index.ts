@@ -34,6 +34,7 @@ export {
   summarizeWorkingWeight,
   toProgressionSet,
   topSetsBySession,
+  workedSides,
   workingWeightGrams,
 } from './progression';
 export type {

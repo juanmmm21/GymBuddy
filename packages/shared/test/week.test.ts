@@ -22,6 +22,7 @@ const set = (weightGrams: number, reps: number, isWarmup = false): ProgressionSe
   reps,
   isWarmup,
   completedAt: NOW.toISOString(),
+  unilateral: false,
 });
 
 const entry = (
@@ -97,6 +98,7 @@ describe('weeklyBodyPartCalendar', () => {
       reps: 10,
       isWarmup: false,
       completedAt: '2026-09-10T00:10:00.000Z',
+      unilateral: false,
     };
 
     const days = weeklyBodyPartCalendar([entry(WEDNESDAY, 'back', late)], NOW);
@@ -111,6 +113,20 @@ describe('weeklyBodyPartCalendar', () => {
     expect(days[3]?.trained).toBe(true);
     expect(days[3]?.bodyPart).toBeNull();
     expect(days[3]?.volumeGrams).toBe(40_000 * 12);
+  });
+
+  it('un ejercicio a un brazo pesa el doble al decidir la parte del día', () => {
+    // 20 kg × 10 por brazo son 400 kg: más que los 300 kg de la pierna, aunque la mancuerna pese menos.
+    const days = weeklyBodyPartCalendar(
+      [
+        entry(THURSDAY, 'back', { ...set(20_000, 10), unilateral: true }),
+        entry(THURSDAY, 'legs', set(30_000, 10)),
+      ],
+      NOW,
+    );
+
+    expect(days[3]?.bodyPart).toBe('back');
+    expect(days[3]?.volumeGrams).toBe(400_000 + 300_000);
   });
 
   it('lo que no se puede clasificar suma al día pero no compite por la etiqueta', () => {
