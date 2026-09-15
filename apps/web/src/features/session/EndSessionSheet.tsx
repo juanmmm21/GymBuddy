@@ -1,18 +1,25 @@
-import type { Locale, PersonalRecord, WorkoutSessionDetail } from '@gymbuddy/shared';
+import type {
+  Locale,
+  PersonalRecord,
+  TrackedExercise,
+  WorkoutSessionDetail,
+} from '@gymbuddy/shared';
 import { useState, type FormEvent } from 'react';
 import { useEndSession } from '../../api/mutations';
 import { Button, Notice, Sheet, TextArea } from '../../components/index';
 import { describeError } from '../../lib/errors';
-import { formatRecordValueLabel, formatVolumeLabel, pluralize } from '../../lib/format';
+import { formatVolumeLabel, pluralize } from '../../lib/format';
 import { MAX_SESSION_NOTES_LENGTH, normalizeNotes } from '../../lib/notes';
-import { RECORD_LABELS } from '../exercises/labels';
+import { SessionRecordItems } from './SessionRecordItems';
 import { summarizeSession } from './summary';
 import styles from './EndSessionSheet.module.css';
 
 export interface EndSessionSheetProps {
   readonly session: WorkoutSessionDetail;
-  /** Las marcas rotas durante esta sesión, tal como las devolvió cada serie. */
+  /** Las marcas rotas durante esta sesión, ya con una sola por ejercicio y tipo. */
   readonly records: readonly PersonalRecord[];
+  /** Para nombrar el ejercicio de cada marca; con los archivados. */
+  readonly exercises: readonly TrackedExercise[];
   readonly locale: Locale;
   readonly open: boolean;
   readonly onClose: () => void;
@@ -23,6 +30,7 @@ export interface EndSessionSheetProps {
 export function EndSessionSheet({
   session,
   records,
+  exercises,
   locale,
   open,
   onClose,
@@ -30,7 +38,13 @@ export function EndSessionSheet({
 }: EndSessionSheetProps) {
   return (
     <Sheet open={open} onClose={onClose} title="Terminar sesión">
-      <EndSessionForm session={session} records={records} locale={locale} onEnded={onEnded} />
+      <EndSessionForm
+        session={session}
+        records={records}
+        exercises={exercises}
+        locale={locale}
+        onEnded={onEnded}
+      />
     </Sheet>
   );
 }
@@ -38,11 +52,12 @@ export function EndSessionSheet({
 interface EndSessionFormProps {
   readonly session: WorkoutSessionDetail;
   readonly records: readonly PersonalRecord[];
+  readonly exercises: readonly TrackedExercise[];
   readonly locale: Locale;
   readonly onEnded: () => void;
 }
 
-function EndSessionForm({ session, records, locale, onEnded }: EndSessionFormProps) {
+function EndSessionForm({ session, records, exercises, locale, onEnded }: EndSessionFormProps) {
   const [notes, setNotes] = useState(session.notes ?? '');
   const end = useEndSession();
   const totals = summarizeSession(session.sets);
@@ -72,11 +87,7 @@ function EndSessionForm({ session, records, locale, onEnded }: EndSessionFormPro
       {records.length > 0 && (
         <Notice tone="success" title={pluralize(records.length, 'marca nueva', 'marcas nuevas')}>
           <ul className={styles.records}>
-            {records.map((record) => (
-              <li key={record.id}>
-                {RECORD_LABELS[record.kind]}: {formatRecordValueLabel(record, locale)}
-              </li>
-            ))}
+            <SessionRecordItems records={records} exercises={exercises} locale={locale} />
           </ul>
         </Notice>
       )}

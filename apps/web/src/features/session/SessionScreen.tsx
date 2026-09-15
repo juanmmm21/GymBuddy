@@ -1,11 +1,12 @@
-import type {
-  Locale,
-  PersonalRecord,
-  ResourceId,
-  Routine,
-  SetEntry,
-  TrackedExercise,
-  WorkoutSessionDetail,
+import {
+  bestPersonalRecords,
+  type Locale,
+  type PersonalRecord,
+  type ResourceId,
+  type Routine,
+  type SetEntry,
+  type TrackedExercise,
+  type WorkoutSessionDetail,
 } from '@gymbuddy/shared';
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
@@ -19,7 +20,6 @@ import { Badge, Button, Notice, PlateStack, Surface } from '../../components/ind
 import { useNow } from '../../hooks/use-now';
 import { describeError } from '../../lib/errors';
 import {
-  formatRecordValueLabel,
   formatRpe,
   formatStopwatch,
   formatTime,
@@ -29,12 +29,12 @@ import {
 import { newResourceId, parseResourceId } from '../../lib/ids';
 import { elapsedSecondsSince } from '../../lib/time';
 import { useOpenSession } from '../../offline/use-open-session';
-import { RECORD_LABELS } from '../exercises/labels';
 import { LiveMascot } from '../mascot/LiveMascot';
 import { openSessionSignals, sessionDeviceSignals } from '../mascot/mascot-signals';
 import { describeRoutineSize } from '../routines/items';
 import { EditSetSheet } from './EditSetSheet';
 import { EndSessionSheet } from './EndSessionSheet';
+import { SessionRecordItems } from './SessionRecordItems';
 import { LogSetSheet } from './LogSetSheet';
 import { logExerciseIdFor } from './log-target';
 import { SESSION_EXERCISE_PARAM, SESSION_ROUTINE_PARAM } from './paths';
@@ -342,7 +342,9 @@ function ActiveSession({
   }
 
   const mascotSignals = openSessionSignals(session);
+  // La mascota recibe todas: solo le importa cuándo llegó la última, no cuántas se repiten.
   const mascotDevice = sessionDeviceSignals(lastSetAt, restTarget, records);
+  const bestRecords = bestPersonalRecords(records);
 
   return (
     <div className={styles.stack}>
@@ -352,14 +354,10 @@ function ActiveSession({
         {records.length > 0 && (
           <div className={styles.records}>
             <p className={styles.recordsCount}>
-              {pluralize(records.length, 'marca nueva', 'marcas nuevas')}
+              {pluralize(bestRecords.length, 'marca nueva', 'marcas nuevas')}
             </p>
             <ul className={styles.recordsList}>
-              {records.map((record) => (
-                <li key={record.id}>
-                  {RECORD_LABELS[record.kind]}: {formatRecordValueLabel(record, locale)}
-                </li>
-              ))}
+              <SessionRecordItems records={bestRecords} exercises={exercises} locale={locale} />
             </ul>
           </div>
         )}
@@ -484,7 +482,8 @@ function ActiveSession({
 
       <EndSessionSheet
         session={session}
-        records={records}
+        records={bestRecords}
+        exercises={exercises}
         locale={locale}
         open={ending}
         onClose={onCloseEnd}
