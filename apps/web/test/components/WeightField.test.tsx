@@ -132,7 +132,8 @@ describe('WeightField', () => {
     const user = userEvent.setup();
     render(<Harness initial={20_000} />);
 
-    expect(screen.getByText('≈ 44,1 lb')).toBeInTheDocument();
+    // En kilos no se lee ninguna libra: Juan lo quiere todo en kilos.
+    expect(screen.queryByText(/\d lb$/)).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'lb' }));
 
     expect(screen.getByLabelText('Peso')).toHaveValue('44.1');

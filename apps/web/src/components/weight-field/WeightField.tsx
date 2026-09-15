@@ -31,15 +31,14 @@ const INVALID_MESSAGES: Readonly<Record<WeightUnit, string>> = {
   lb: 'Escribe un peso en libras, por ejemplo 100 o 112,5',
 };
 
-const OTHER_UNIT: Readonly<Record<WeightUnit, WeightUnit>> = { kg: 'lb', lb: 'kg' };
-
 /**
  * Campo numérico de peso. El valor vive en gramos enteros; lo que se teclea se convierte
  * al confirmar (al salir del campo o con Intro), nunca en cada pulsación, para que
  * escribir "8" de camino a "82,5" no dispare tres cambios de peso.
  *
- * Se teclea en kilos o en libras y debajo se lee siempre el mismo peso en la otra unidad: la
- * unidad es solo una forma de escribirlo, lo que sale del campo sigue siendo gramos.
+ * Se teclea en kilos o, a demanda, en libras (hay máquinas rotuladas así). Juan quiere leerlo todo
+ * en kilos: en libras, debajo sale el peso en kilos, y en kilos no se enseña ninguna libra. La unidad
+ * es solo una forma de escribirlo; lo que sale del campo sigue siendo gramos.
  */
 export function WeightField({
   label,
@@ -179,10 +178,8 @@ export function WeightField({
         </button>
       </div>
 
-      {valueGrams !== null && (
-        <p className={styles.equivalent}>
-          ≈ {formatWeightInUnit(valueGrams, OTHER_UNIT[activeUnit], locale)}
-        </p>
+      {valueGrams !== null && activeUnit === 'lb' && (
+        <p className={styles.equivalent}>≈ {formatWeightInUnit(valueGrams, 'kg', locale)}</p>
       )}
 
       <div className={styles.steps} role="group" aria-label="Salto de peso">
