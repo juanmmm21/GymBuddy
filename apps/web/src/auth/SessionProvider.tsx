@@ -1,4 +1,4 @@
-import type { Session, SessionRefresh } from '@gymbuddy/shared';
+import type { Session, SessionRefresh, User } from '@gymbuddy/shared';
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import type { StorageLike } from '../lib/storage';
 import { clearStoredSession, loadStoredSession, saveStoredSession } from './session-store';
@@ -9,6 +9,8 @@ export interface SessionContextValue {
   readonly signOut: () => void;
   /** El Worker mandó un token nuevo para la misma cuenta: se guarda sin tocar nada más. */
   readonly renew: (refresh: SessionRefresh) => void;
+  /** El perfil cambió en el Worker: mismo token, usuario nuevo. */
+  readonly updateUser: (user: User) => void;
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -58,9 +60,24 @@ export function SessionProvider({ storage, children, initialSession }: SessionPr
     [session, storage],
   );
 
+  /**
+   * Solo si es la misma cuenta: una respuesta que llega tras salir y entrar con otra no puede
+   * colarle a esta el nombre de la anterior.
+   */
+  const updateUser = useCallback(
+    (user: User): void => {
+      if (session?.user.id !== user.id) return;
+
+      const next: Session = { ...session, user };
+      saveStoredSession(storage, next);
+      setSession(next);
+    },
+    [session, storage],
+  );
+
   const value = useMemo<SessionContextValue>(
-    () => ({ session, signIn, signOut, renew }),
-    [session, signIn, signOut, renew],
+    () => ({ session, signIn, signOut, renew, updateUser }),
+    [session, signIn, signOut, renew, updateUser],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

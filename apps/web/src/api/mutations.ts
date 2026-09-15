@@ -14,6 +14,8 @@ import type {
   UpdateRoutineRequest,
   UpdateSetRequest,
   UpdateTrackedExerciseRequest,
+  UpdateUserRequest,
+  User,
   WorkoutSession,
 } from '@gymbuddy/shared';
 import {
@@ -37,11 +39,13 @@ import {
   startSession,
   updateRoutine,
   updateSet,
+  updateCurrentUser,
   updateTrackedExercise,
 } from './endpoints';
 import type { SubmitOutcome } from '../offline/write-queue';
 import { useWriteQueue } from '../offline/WriteQueueProvider';
 import { useStorage } from '../app/StorageProvider';
+import { useSession } from '../auth/SessionProvider';
 import { forgetSessionRoutineFor } from '../features/session/session-routine-store';
 import { useApiClient } from './provider';
 import { queryKeys } from './queries';
@@ -373,6 +377,23 @@ export function useCreateInvitation(): UseMutationResult<Invitation, Error, void
   return useMutation({
     mutationFn: () => createInvitation(client),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.invitations }),
+  });
+}
+
+/**
+ * Cambia el propio perfil. El usuario vive en la sesión guardada (Hoy saluda con él), no en la
+ * caché de consultas: se sustituye ahí, en el hook y no en la pantalla, para que se guarde
+ * aunque quien pulsó ya se haya ido de Ajustes. No pasa por la cola offline: sin red, falla.
+ */
+export function useUpdateProfile(): UseMutationResult<User, Error, UpdateUserRequest> {
+  const client = useApiClient();
+  const { updateUser } = useSession();
+
+  return useMutation({
+    mutationFn: (body: UpdateUserRequest) => updateCurrentUser(client, body),
+    onSuccess: (user) => {
+      updateUser(user);
+    },
   });
 }
 

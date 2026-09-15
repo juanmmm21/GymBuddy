@@ -66,6 +66,7 @@ import {
   type TrackedExercise,
   type TrainingSignals,
   type UpdateTrackedExerciseRequest,
+  type UpdateUserRequest,
   type User,
   type WeeklyCalendar,
   type WorkoutSession,
@@ -181,6 +182,11 @@ export function verifyDeviceLink(
 
 export function fetchCurrentUser(client: ApiClient): Promise<User> {
   return client.request({ method: 'GET', path: '/auth/me', schema: userSchema });
+}
+
+/** Cambia el propio perfil (el nombre, desde Ajustes) y devuelve cómo queda. */
+export function updateCurrentUser(client: ApiClient, body: UpdateUserRequest): Promise<User> {
+  return client.request({ method: 'PATCH', path: '/auth/me', schema: userSchema, body });
 }
 
 export interface ListTrackedExercisesOptions {
