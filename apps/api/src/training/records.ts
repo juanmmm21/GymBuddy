@@ -14,6 +14,7 @@ import { chunk, MAX_PARAMS_PER_LOOKUP, rowsPerInsert } from '../db/batching';
 import type { Database } from '../db/client';
 import {
   findRecordBests,
+  findTrackedExerciseUnilateral,
   listRecordReplaySets,
   listRecordsForExercise,
   listRecordsForExercises,
@@ -42,14 +43,18 @@ export async function applyPersonalRecords(
   const measure = setMeasureOf(row);
   if (measure.kind !== 'strength') return [];
 
+  const [unilateral, bests] = await Promise.all([
+    findTrackedExerciseUnilateral(db, userId, row.trackedExerciseId),
+    findCurrentBests(db, userId, row.trackedExerciseId, row.id),
+  ]);
   const set: ProgressionSet = {
     weightGrams: measure.weightGrams,
     reps: measure.reps,
     isWarmup: row.isWarmup,
     completedAt: row.completedAt,
+    unilateral,
   };
 
-  const bests = await findCurrentBests(db, userId, row.trackedExerciseId, row.id);
   const detected = detectPersonalRecords(set, bests);
   if (detected.length === 0) return [];
 

@@ -75,7 +75,7 @@ export async function getExerciseStats(
   const sessions: ProgressionSession[] = history.map((entry) => ({
     sessionId: entry.sessionId,
     startedAt: entry.startedAt,
-    sets: entry.sets.flatMap(toProgressionSet),
+    sets: entry.sets.flatMap((row) => toProgressionSet(row, facts.unilateral)),
   }));
 
   const topSets = topSetsBySession(sessions);
@@ -210,6 +210,7 @@ export async function getWeeklyCalendar(
               reps: measure.reps,
               isWarmup: row.isWarmup,
               completedAt: row.completedAt,
+              unilateral: row.unilateral,
             }
           : { kind: 'cardio', isWarmup: row.isWarmup },
     };
@@ -290,7 +291,7 @@ async function findStalledExercises(db: Database, userId: string): Promise<Stall
  * La progresión se mide en gramos, así que una serie de cardio no entra: devuelve una lista vacía
  * para usarse con `flatMap`. Una sesión de solo cardio queda sin series y sin punto en la gráfica.
  */
-function toProgressionSet(row: SetEntryRow): ProgressionSet[] {
+function toProgressionSet(row: SetEntryRow, unilateral: boolean): ProgressionSet[] {
   const measure = setMeasureOf(row);
   if (measure.kind !== 'strength') return [];
 
@@ -300,6 +301,7 @@ function toProgressionSet(row: SetEntryRow): ProgressionSet[] {
       reps: measure.reps,
       isWarmup: row.isWarmup,
       completedAt: row.completedAt,
+      unilateral,
     },
   ];
 }

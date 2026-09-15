@@ -15,10 +15,17 @@ import {
   type LastSet,
   type WorkingWeight,
 } from '@gymbuddy/shared';
-import { and, eq, getTableColumns, inArray, isNull } from 'drizzle-orm';
+import { and, eq, exists, getTableColumns, inArray, isNull, sql } from 'drizzle-orm';
+import type { BatchItem } from 'drizzle-orm/batch';
+import { runBatch } from '../db/batching';
 import type { Database } from '../db/client';
 import { listLastCardioSets, listLastEffectiveSets, listTopSetsPerSession } from '../db/queries';
-import { catalogExercise, trackedExercise, type TrackedExerciseRow } from '../db/schema';
+import {
+  catalogExercise,
+  personalRecord,
+  trackedExercise,
+  type TrackedExerciseRow,
+} from '../db/schema';
 import { ApiException } from '../http/errors';
 
 /** Los campos del catálogo que hacen falta para pintar la ficha de un ejercicio seguido. */
@@ -109,6 +116,7 @@ export async function createTrackedExercise(
     customMuscle: request.origin === 'custom' ? (request.muscle ?? null) : null,
     customBodyPart: request.origin === 'custom' ? (request.bodyPart ?? null) : null,
     notes: request.notes ?? null,
+    unilateral: request.unilateral ?? false,
     createdAt: now.toISOString(),
     archivedAt: null,
   };
@@ -152,8 +160,9 @@ export async function createTrackedExercise(
 }
 
 /**
- * Cambia el nombre —solo si el ejercicio es propio— y las notas, y archiva o recupera. La
- * baja es blanda: borrar la fila se llevaría por delante el historial que cuelga de ella.
+ * Cambia el nombre —solo si el ejercicio es propio— y las notas, archiva o recupera, y lo marca
+ * o desmarca como a un brazo. La baja es blanda: borrar la fila se llevaría por delante el
+ * historial que cuelga de ella.
  */
 export async function updateTrackedExercise(
   db: Database,
@@ -171,15 +180,22 @@ export async function updateTrackedExercise(
   if (request.archived !== undefined) {
     changes.archivedAt = request.archived ? now.toISOString() : null;
   }
+  const rescale: BatchItem<'sqlite'>[] = [];
+  if (request.unilateral !== undefined) {
+    changes.unilateral = request.unilateral;
+    rescale.push(maxVolumeRescaleStatement(db, userId, exerciseId, request.unilateral));
+  }
 
   if (Object.keys(changes).length > 0) {
-    const updated = await db
-      .update(trackedExercise)
-      .set(changes)
-      .where(and(eq(trackedExercise.id, exerciseId), eq(trackedExercise.userId, userId)))
-      .returning();
-
-    if (updated.length === 0) throw exerciseNotFound(exerciseId);
+    // El reescalado va antes que la marca en el mismo lote: mira el valor viejo de `unilateral`
+    // para no aplicarse dos veces si llega repetido, y D1 ejecuta el lote como una transacción.
+    await runBatch(db, [
+      ...rescale,
+      db
+        .update(trackedExercise)
+        .set(changes)
+        .where(and(eq(trackedExercise.id, exerciseId), eq(trackedExercise.userId, userId))),
+    ]);
   }
 
   const exercise = await findTrackedExercise(db, userId, exerciseId, locale);
@@ -188,10 +204,56 @@ export async function updateTrackedExercise(
   return exercise;
 }
 
+/**
+ * La marca de volumen guardada de un ejercicio cuando cambia a un brazo o deja de serlo. El volumen
+ * del historial se calcula con la marca de hoy, así que la marca tiene que cambiar con él: pasa a
+ * contar dos lados o vuelve a uno. Basta con multiplicar o dividir, sin recorrer series, porque el
+ * factor es el mismo en todas y el orden entre ellas no cambia: la serie que tenía la marca la sigue
+ * teniendo.
+ *
+ * Solo toca algo si el ejercicio **aún no** tenía el valor pedido; así, un reenvío no la duplica.
+ * Al dividir se redondea al alza de forma explícita: una marca contada a dos lados siempre es par,
+ * pero una copiada a mano podría no serlo, y un peso nunca va con fracción de gramo.
+ */
+function maxVolumeRescaleStatement(
+  db: Database,
+  userId: string,
+  exerciseId: string,
+  unilateral: boolean,
+): BatchItem<'sqlite'> {
+  const rescaled = unilateral
+    ? sql<number>`${personalRecord.valueGrams} * 2`
+    : sql<number>`(${personalRecord.valueGrams} + 1) / 2`;
+
+  return db
+    .update(personalRecord)
+    .set({ valueGrams: rescaled })
+    .where(
+      and(
+        eq(personalRecord.userId, userId),
+        eq(personalRecord.trackedExerciseId, exerciseId),
+        eq(personalRecord.kind, 'max_volume'),
+        exists(
+          db
+            .select({ id: trackedExercise.id })
+            .from(trackedExercise)
+            .where(
+              and(
+                eq(trackedExercise.id, exerciseId),
+                eq(trackedExercise.userId, userId),
+                eq(trackedExercise.unilateral, !unilateral),
+              ),
+            ),
+        ),
+      ),
+    );
+}
+
 /** Lo que las estadísticas necesitan saber de un ejercicio sin traerse su ficha entera. */
 export interface TrackedExerciseFacts {
   readonly bodyPart: BodyPart | null;
   readonly archived: boolean;
+  readonly unilateral: boolean;
 }
 
 /**
@@ -212,6 +274,7 @@ export async function listTrackedExerciseFacts(
       catalogBodyPart: catalogExercise.bodyPart,
       customBodyPart: trackedExercise.customBodyPart,
       archivedAt: trackedExercise.archivedAt,
+      unilateral: trackedExercise.unilateral,
     })
     .from(trackedExercise)
     .leftJoin(catalogExercise, eq(trackedExercise.catalogId, catalogExercise.catalogId))
@@ -223,6 +286,7 @@ export async function listTrackedExerciseFacts(
       {
         bodyPart: parseNullableBodyPart(row.catalogBodyPart ?? row.customBodyPart),
         archived: row.archivedAt !== null,
+        unilateral: row.unilateral,
       },
     ]),
   );
@@ -482,6 +546,7 @@ function toTrackedExercise(
     gifUrl: fromCatalog ? catalog.gifUrl : null,
     equipment: fromCatalog ? catalog.equipment : null,
     notes: exercise.notes,
+    unilateral: exercise.unilateral,
     workingWeight: progress.workingWeights.get(exercise.id) ?? null,
     lastSet: progress.lastSets.get(exercise.id) ?? null,
     lastCardioSet: progress.lastCardioSets.get(exercise.id) ?? null,

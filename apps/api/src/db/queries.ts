@@ -123,6 +123,7 @@ export interface WindowSetRow {
   distanceMeters: number | null;
   isWarmup: boolean;
   completedAt: string;
+  unilateral: boolean;
 }
 
 /**
@@ -155,6 +156,7 @@ export async function listSetsInWindow(
       distanceMeters: setEntry.distanceMeters,
       isWarmup: setEntry.isWarmup,
       completedAt: setEntry.completedAt,
+      unilateral: trackedExercise.unilateral,
     })
     .from(setEntry)
     .innerJoin(workoutSession, eq(workoutSession.id, setEntry.sessionId))
@@ -182,6 +184,7 @@ export async function listSetsInWindow(
     distanceMeters: row.distanceMeters,
     isWarmup: row.isWarmup,
     completedAt: row.completedAt,
+    unilateral: row.unilateral,
   }));
 }
 
@@ -414,10 +417,14 @@ export async function findRecordBests(
       maxEpleyNumerator: sql<
         number | null
       >`max(${setEntry.weightGrams} * (${EPLEY_REP_DIVISOR} + ${setEntry.reps}))`,
-      maxVolumeGrams: sql<number | null>`max(${setEntry.weightGrams} * ${setEntry.reps})`,
+      // El volumen de una serie a un brazo cuenta los dos lados, igual que `setVolumeGrams`.
+      maxVolumeGrams: sql<
+        number | null
+      >`max(${setEntry.weightGrams} * ${setEntry.reps} * (case when ${trackedExercise.unilateral} then 2 else 1 end))`,
     })
     .from(setEntry)
     .innerJoin(workoutSession, eq(workoutSession.id, setEntry.sessionId))
+    .innerJoin(trackedExercise, eq(trackedExercise.id, setEntry.trackedExerciseId))
     .where(
       and(
         eq(workoutSession.userId, userId),
@@ -433,6 +440,25 @@ export async function findRecordBests(
   return row ?? { maxWeightGrams: null, maxEpleyNumerator: null, maxVolumeGrams: null };
 }
 
+/**
+ * Si un ejercicio del usuario es a un brazo. Lo pide el registro de marcas, que solo tiene la serie:
+ * de eso depende su volumen. Un ejercicio que no existe responde falso; quien registra ya comprobó
+ * antes que es suyo.
+ */
+export async function findTrackedExerciseUnilateral(
+  db: Database,
+  userId: string,
+  trackedExerciseId: string,
+): Promise<boolean> {
+  const [row] = await db
+    .select({ unilateral: trackedExercise.unilateral })
+    .from(trackedExercise)
+    .where(and(eq(trackedExercise.id, trackedExerciseId), eq(trackedExercise.userId, userId)))
+    .limit(1);
+
+  return row?.unilateral ?? false;
+}
+
 /** Una serie que puede marcar récord, con lo que hace falta para recorrerlas en orden. */
 export interface RecordReplaySetRow {
   id: string;
@@ -442,6 +468,7 @@ export interface RecordReplaySetRow {
   reps: number;
   isWarmup: boolean;
   completedAt: string;
+  unilateral: boolean;
 }
 
 /**
@@ -467,9 +494,11 @@ export async function listRecordReplaySets(
           reps: strengthReps,
           isWarmup: setEntry.isWarmup,
           completedAt: setEntry.completedAt,
+          unilateral: trackedExercise.unilateral,
         })
         .from(setEntry)
         .innerJoin(workoutSession, eq(workoutSession.id, setEntry.sessionId))
+        .innerJoin(trackedExercise, eq(trackedExercise.id, setEntry.trackedExerciseId))
         .where(
           and(
             eq(workoutSession.userId, userId),
