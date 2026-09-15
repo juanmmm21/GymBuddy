@@ -77,7 +77,7 @@ describe('formatSetValueLabel', () => {
 
 describe('el cardio en los resúmenes de la sesión', () => {
   it('cuenta como serie y como ejercicio, pero no suma volumen', () => {
-    const totals = summarizeSession([strengthSet(), cardioSet()]);
+    const totals = summarizeSession([strengthSet(), cardioSet()], []);
 
     expect(totals).toEqual({
       setCount: 2,

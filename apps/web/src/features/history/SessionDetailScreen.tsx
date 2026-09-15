@@ -91,7 +91,7 @@ interface SessionBodyProps {
 
 function SessionBody({ session, exercises, locale }: SessionBodyProps) {
   const groups = groupSetsByExercise(session.sets, exercises);
-  const totals = summarizeSession(session.sets);
+  const totals = summarizeSession(session.sets, exercises);
   const endedAt = session.endedAt;
   const duration = endedAt === null ? null : durationSecondsBetween(session.startedAt, endedAt);
 

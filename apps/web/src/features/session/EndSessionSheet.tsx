@@ -88,7 +88,7 @@ function EndSessionForm({
 }: EndSessionFormProps) {
   const [notes, setNotes] = useState(session.notes ?? '');
   const end = useEndSession();
-  const totals = summarizeSession(session.sets);
+  const totals = summarizeSession(session.sets, exercises);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();

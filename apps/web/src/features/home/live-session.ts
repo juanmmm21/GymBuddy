@@ -26,7 +26,7 @@ export function summarizeLiveSession(
   session: WorkoutSessionDetail,
   exercises: readonly TrackedExercise[],
 ): LiveSessionSummary {
-  const totals = summarizeSession(session.sets);
+  const totals = summarizeSession(session.sets, exercises);
   let latest: WorkoutSessionDetail['sets'][number] | null = null;
   let latestTime = Number.NEGATIVE_INFINITY;
 

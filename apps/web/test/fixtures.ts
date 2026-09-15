@@ -45,6 +45,7 @@ export const benchPress: TrackedExercise = {
   gifUrl: 'https://cdn.jsdelivr.net/gh/x/y@v1.1.0/pectorals/barbell-bench-press.gif',
   equipment: 'barbell',
   notes: null,
+  unilateral: false,
   workingWeight: {
     weight: '82.50',
     reps: 8,
@@ -67,6 +68,7 @@ export const customCurl: TrackedExercise = {
   gifUrl: null,
   equipment: null,
   notes: null,
+  unilateral: false,
   workingWeight: null,
   lastSet: null,
   lastCardioSet: null,
@@ -269,6 +271,7 @@ export const squat: TrackedExercise = {
   gifUrl: 'https://cdn.jsdelivr.net/gh/x/y@v1.1.0/quads/barbell-full-squat.gif',
   equipment: 'barbell',
   notes: 'Barra baja, mirada al frente.',
+  unilateral: false,
   workingWeight: {
     weight: '100.00',
     reps: 5,
@@ -555,6 +558,7 @@ export const exportSnapshot: ExportSnapshot = {
       notes: null,
       createdAt: '2026-09-01T10:00:00.000Z',
       archivedAt: null,
+      unilateral: false,
     },
   ],
   routines: [

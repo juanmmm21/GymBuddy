@@ -65,16 +65,29 @@ export interface SessionTotals {
  * El volumen sale del dominio compartido (`sessionVolumeGrams`), que ya excluye el
  * calentamiento y opera en gramos enteros: aquí no se hace aritmética con pesos. El cardio
  * cuenta como serie pero no suma volumen: no mueve gramos.
+ *
+ * Los ejercicios hacen falta para saber cuáles son a un brazo, que cuentan los dos lados. Uno que
+ * no esté en la lista cuenta un lado: sin su ficha no se puede saber más.
  */
-export function summarizeSession(sets: readonly SetEntry[]): SessionTotals {
-  const exercises = new Set(sets.map((set) => set.trackedExerciseId));
+export function summarizeSession(
+  sets: readonly SetEntry[],
+  exercises: readonly Pick<TrackedExercise, 'id' | 'unilateral'>[],
+): SessionTotals {
+  const exerciseIds = new Set(sets.map((set) => set.trackedExerciseId));
+  const unilateralIds = new Set(
+    exercises.flatMap((exercise) => (exercise.unilateral ? [exercise.id] : [])),
+  );
 
   return {
     setCount: sets.length,
     workingSetCount: sets.filter((set) => !set.isWarmup).length,
-    exerciseCount: exercises.size,
+    exerciseCount: exerciseIds.size,
     volumeGrams: sessionVolumeGrams(
-      sets.flatMap((set) => (set.kind === 'strength' ? [toProgressionSet(set)] : [])),
+      sets.flatMap((set) =>
+        set.kind === 'strength'
+          ? [toProgressionSet(set, unilateralIds.has(set.trackedExerciseId))]
+          : [],
+      ),
     ),
   };
 }

@@ -90,7 +90,7 @@ describe('summarizeSession', () => {
       isWarmup: true,
     });
 
-    const totals = summarizeSession([warmup, firstBench, squatSet]);
+    const totals = summarizeSession([warmup, firstBench, squatSet], [benchPress, squat]);
 
     expect(totals.setCount).toBe(3);
     expect(totals.workingSetCount).toBe(2);
@@ -99,8 +99,17 @@ describe('summarizeSession', () => {
     expect(totals.volumeGrams).toBe(80_000 * 8 + 100_000 * 5);
   });
 
+  it('un ejercicio a un brazo suma los dos lados al volumen', () => {
+    const totals = summarizeSession(
+      [firstBench, squatSet],
+      [{ ...benchPress, unilateral: true }, squat],
+    );
+
+    expect(totals.volumeGrams).toBe(80_000 * 8 * 2 + 100_000 * 5);
+  });
+
   it('una sesión vacía no tiene nada que contar', () => {
-    expect(summarizeSession([])).toEqual({
+    expect(summarizeSession([], [])).toEqual({
       setCount: 0,
       workingSetCount: 0,
       exerciseCount: 0,
