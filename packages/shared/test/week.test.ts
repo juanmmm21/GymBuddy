@@ -27,8 +27,10 @@ const set = (weightGrams: number, reps: number, isWarmup = false): ProgressionSe
 const entry = (
   sessionStartedAt: string,
   bodyPart: BodyPart | null,
-  progressionSet: ProgressionSet,
+  progressionSet: WeekSetEntry['set'],
 ): WeekSetEntry => ({ sessionStartedAt, bodyPart, set: progressionSet });
+
+const cardio = (isWarmup = false): WeekSetEntry['set'] => ({ kind: 'cardio', isWarmup });
 
 describe('aritmética de la semana', () => {
   it('la semana empieza el lunes', () => {
@@ -156,6 +158,41 @@ describe('weeklyBodyPartCalendar', () => {
     expect(days[3]?.trained).toBe(true);
     expect(days[3]?.bodyPart).toBeNull();
     expect(days[3]?.volumeGrams).toBe(0);
+    expect(days[3]?.setCount).toBe(0);
+  });
+
+  it('un día de solo cardio entrenó con su parte del cuerpo y sin volumen', () => {
+    const days = weeklyBodyPartCalendar(
+      [entry(THURSDAY, 'cardio', cardio()), entry(THURSDAY, 'cardio', cardio())],
+      NOW,
+    );
+
+    expect(days[3]?.trained).toBe(true);
+    expect(days[3]?.bodyPart).toBe('cardio');
+    expect(days[3]?.volumeGrams).toBe(0);
+    expect(days[3]?.setCount).toBe(2);
+  });
+
+  it('el cardio del final no le quita la etiqueta a la parte que movió peso', () => {
+    const days = weeklyBodyPartCalendar(
+      [
+        entry(THURSDAY, 'legs', set(100_000, 5)),
+        entry(THURSDAY, 'cardio', cardio()),
+        entry(THURSDAY, 'cardio', cardio()),
+      ],
+      NOW,
+    );
+
+    expect(days[3]?.bodyPart).toBe('legs');
+    expect(days[3]?.volumeGrams).toBe(500_000);
+    expect(days[3]?.setCount).toBe(3);
+  });
+
+  it('un cardio de calentamiento no cuenta como serie, igual que el de fuerza', () => {
+    const days = weeklyBodyPartCalendar([entry(THURSDAY, 'cardio', cardio(true))], NOW);
+
+    expect(days[3]?.trained).toBe(true);
+    expect(days[3]?.bodyPart).toBeNull();
     expect(days[3]?.setCount).toBe(0);
   });
 

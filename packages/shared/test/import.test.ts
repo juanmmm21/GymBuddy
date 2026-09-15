@@ -60,6 +60,7 @@ function customExercise(index: number): ExportedExercise {
 function set(index: number, completedAt: string, records = 0): ExportedSet {
   return {
     id: idAt('bbbbbbbb', index),
+    kind: 'strength',
     trackedExerciseId: BENCH_ID,
     orderIndex: index,
     weight: '82.50',
@@ -213,6 +214,25 @@ describe('planImport', () => {
     const plan = planImport({ exercises: [], routines: [], sessions });
 
     expect(plan.sessions.map((batch) => batch.length)).toEqual([MAX_IMPORT_SESSIONS_PER_BATCH, 1]);
+  });
+
+  it('una serie de cardio es una fila: no trae marcas', () => {
+    const withCardio = session(0, [
+      set(0, '2026-09-04T18:10:00.000Z', 3),
+      {
+        id: idAt('dddddddd', 0),
+        kind: 'cardio',
+        trackedExerciseId: BENCH_ID,
+        orderIndex: 1,
+        durationSeconds: 1_200,
+        distanceMeters: null,
+        rpe: null,
+        isWarmup: false,
+        completedAt: '2026-09-04T18:40:00.000Z',
+      },
+    ]);
+
+    expect(sessionImportRows(withCardio)).toBe(1 + 4 + 1);
   });
 
   it('corta las sesiones por filas: series y marcas cuentan', () => {

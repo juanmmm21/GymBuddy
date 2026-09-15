@@ -18,6 +18,8 @@ import {
   routineSchema,
   updateRoutineRequestSchema,
   exerciseHistorySchema,
+  MAX_CARDIO_DISTANCE_METERS,
+  MAX_CARDIO_DURATION_SECONDS,
   logSetRequestSchema,
   updateSetRequestSchema,
   updateTrackedExerciseRequestSchema,
@@ -163,6 +165,7 @@ describe('estado de la sincronización del catálogo', () => {
 describe('series', () => {
   const validSet = {
     id: SET_ID,
+    kind: 'strength',
     trackedExerciseId: EXERCISE_ID,
     orderIndex: 0,
     weight: '82.50',
@@ -455,6 +458,7 @@ describe('historial de un ejercicio', () => {
           sets: [
             {
               id: SET_ID,
+              kind: 'strength',
               trackedExerciseId: EXERCISE_ID,
               orderIndex: 1,
               weight: '82.50',
@@ -686,5 +690,100 @@ describe('calendario de la semana', () => {
     });
 
     expect(parsed.success).toBe(false);
+  });
+});
+
+describe('series de cardio', () => {
+  const cardioSet = {
+    id: SET_ID,
+    kind: 'cardio',
+    trackedExerciseId: EXERCISE_ID,
+    orderIndex: 3,
+    durationSeconds: 1_800,
+    distanceMeters: 5_000,
+    rpe: 6,
+    isWarmup: false,
+    completedAt: '2026-09-07T19:10:00.000Z',
+  };
+
+  it('acepta una serie de cardio con duración y distancia, y sin distancia', () => {
+    expect(setEntrySchema.safeParse(cardioSet).success).toBe(true);
+    expect(setEntrySchema.safeParse({ ...cardioSet, distanceMeters: null }).success).toBe(true);
+  });
+
+  it('una serie de cardio no lleva peso: sin duración no es válida', () => {
+    const { durationSeconds: _duration, ...withoutDuration } = cardioSet;
+
+    expect(setEntrySchema.safeParse({ ...withoutDuration, weight: '0.00', reps: 1 }).success).toBe(
+      false,
+    );
+  });
+
+  it('duración y distancia van en enteros positivos y con tope', () => {
+    for (const durationSeconds of [0, -60, 90.5, MAX_CARDIO_DURATION_SECONDS + 1]) {
+      expect(setEntrySchema.safeParse({ ...cardioSet, durationSeconds }).success).toBe(false);
+    }
+    for (const distanceMeters of [0, 5.2, MAX_CARDIO_DISTANCE_METERS + 1]) {
+      expect(setEntrySchema.safeParse({ ...cardioSet, distanceMeters }).success).toBe(false);
+    }
+  });
+
+  it('una serie sin tipo no es una serie del contrato de respuesta', () => {
+    const { kind: _kind, ...withoutKind } = cardioSet;
+
+    expect(setEntrySchema.safeParse(withoutKind).success).toBe(false);
+  });
+
+  it('al registrar, un cuerpo sin tipo sigue siendo de fuerza: la cola offline guarda cuerpos viejos', () => {
+    const parsed = logSetRequestSchema.parse({
+      id: SET_ID,
+      trackedExerciseId: EXERCISE_ID,
+      weight: '60.00',
+      reps: 10,
+    });
+
+    expect(parsed.kind).toBe('strength');
+  });
+
+  it('registra una serie de cardio con la distancia opcional', () => {
+    const parsed = logSetRequestSchema.parse({
+      id: SET_ID,
+      kind: 'cardio',
+      trackedExerciseId: EXERCISE_ID,
+      durationSeconds: 900,
+    });
+
+    expect(parsed).toEqual({
+      id: SET_ID,
+      kind: 'cardio',
+      trackedExerciseId: EXERCISE_ID,
+      durationSeconds: 900,
+    });
+  });
+
+  it('no registra una serie de cardio con kilos ni una de fuerza con duración', () => {
+    expect(
+      logSetRequestSchema.safeParse({
+        id: SET_ID,
+        kind: 'cardio',
+        trackedExerciseId: EXERCISE_ID,
+        weight: '60.00',
+        reps: 10,
+      }).success,
+    ).toBe(false);
+    expect(
+      logSetRequestSchema.safeParse({
+        id: SET_ID,
+        kind: 'strength',
+        trackedExerciseId: EXERCISE_ID,
+        durationSeconds: 900,
+      }).success,
+    ).toBe(false);
+  });
+
+  it('al corregir deja cambiar la duración y quitar la distancia', () => {
+    expect(updateSetRequestSchema.safeParse({ durationSeconds: 1_500 }).success).toBe(true);
+    expect(updateSetRequestSchema.safeParse({ distanceMeters: null }).success).toBe(true);
+    expect(updateSetRequestSchema.safeParse({ durationSeconds: 0 }).success).toBe(false);
   });
 });

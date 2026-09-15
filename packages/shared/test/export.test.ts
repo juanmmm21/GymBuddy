@@ -7,6 +7,7 @@ import {
   exportSessionPageSchema,
   exportedExerciseSchema,
   exportedRoutineItemSchema,
+  readableExportFileSchema,
   type ExportSnapshot,
   type ExportedSession,
 } from '../src/schemas/index';
@@ -19,6 +20,7 @@ const RECORD_ID = 'f2a8c3d1-7b64-4e09-a5c1-8d3e6b0f9a17';
 const ROUTINE_ID = '8b2e5c07-6a41-4d93-b7f8-0c3a1e6d9b52';
 const ROUTINE_ITEM_ID = 'c7d90a12-4e83-4b60-95af-31d2e8c74b06';
 const UNKNOWN_ID = '0b9e7d65-4c3a-4b21-9f8e-7d6c5b4a3f21';
+const CARDIO_SET_ID = '6c0a2e84-1d57-4b3f-9e26-a8d4c1f07b95';
 
 function snapshot(): ExportSnapshot {
   return {
@@ -79,6 +81,7 @@ function session(): ExportedSession {
     sets: [
       {
         id: SET_ID,
+        kind: 'strength',
         trackedExerciseId: BENCH_ID,
         orderIndex: 0,
         weight: '82.50',
@@ -228,5 +231,109 @@ describe('piezas de la exportación', () => {
     const page = { items: [session()], total: 1, limit: 50, offset: 0 };
 
     expect(exportSessionPageSchema.parse(page)).toEqual(page);
+  });
+});
+
+describe('series de cardio en la copia', () => {
+  const cardioSet = {
+    id: CARDIO_SET_ID,
+    kind: 'cardio' as const,
+    trackedExerciseId: PLANK_ID,
+    orderIndex: 1,
+    durationSeconds: 1_800,
+    distanceMeters: 5_200,
+    rpe: null,
+    isWarmup: false,
+    completedAt: '2026-09-04T18:50:00.000Z',
+  };
+
+  it('viaja con su duración y su distancia, sin peso ni marcas', () => {
+    const withCardio = { ...session(), sets: [...session().sets, cardioSet] };
+    const file = buildExportFile(snapshot(), [withCardio]);
+
+    expect(exportFileSchema.parse(JSON.parse(JSON.stringify(file)))).toEqual(file);
+  });
+
+  it('rechaza una serie de cardio con peso en vez de duración', () => {
+    const file = JSON.parse(JSON.stringify(buildExportFile(snapshot(), [session()]))) as {
+      sessions: { sets: Record<string, unknown>[] }[];
+    };
+    const firstSet = file.sessions[0]?.sets[0];
+    if (firstSet === undefined) throw new Error('La fixture no tiene series');
+    firstSet.kind = 'cardio';
+
+    expect(exportFileSchema.safeParse(file).success).toBe(false);
+  });
+
+  it('una serie sin tipo no es de la versión actual', () => {
+    const file = JSON.parse(JSON.stringify(buildExportFile(snapshot(), [session()]))) as {
+      sessions: { sets: Record<string, unknown>[] }[];
+    };
+    delete file.sessions[0]?.sets[0]?.kind;
+
+    expect(exportFileSchema.safeParse(file).success).toBe(false);
+  });
+});
+
+describe('copias de la versión 1', () => {
+  interface LooseFile {
+    version: unknown;
+    sessions: { sets: Record<string, unknown>[] }[];
+  }
+
+  function versionOne(): LooseFile {
+    const current = JSON.parse(
+      JSON.stringify(buildExportFile(snapshot(), [session()])),
+    ) as LooseFile;
+    for (const exported of current.sessions) {
+      for (const set of exported.sets) delete set.kind;
+    }
+    current.version = 1;
+    return current;
+  }
+
+  it('se leen convertidas a la versión actual, con sus series como fuerza', () => {
+    const result = readableExportFileSchema.safeParse(versionOne());
+
+    expect(result.success).toBe(true);
+    expect(result.data?.version).toBe(EXPORT_VERSION);
+    expect(result.data).toEqual(buildExportFile(snapshot(), [session()]));
+  });
+
+  it('la actual se lee igual por el mismo esquema', () => {
+    const file = buildExportFile(snapshot(), [session()]);
+
+    expect(readableExportFileSchema.parse(file)).toEqual(file);
+  });
+
+  it('una copia vieja se valida con las reglas de la actual', () => {
+    const orphan = versionOne();
+    const firstSet = orphan.sessions[0]?.sets[0];
+    if (firstSet === undefined) throw new Error('La fixture no tiene series');
+    firstSet.trackedExerciseId = UNKNOWN_ID;
+
+    expect(readableExportFileSchema.safeParse(orphan).success).toBe(false);
+  });
+
+  it('la versión 1 no admitía cardio: una serie de cardio ahí es un fichero roto', () => {
+    const file = versionOne();
+    file.sessions[0]?.sets.push({
+      id: CARDIO_SET_ID,
+      trackedExerciseId: PLANK_ID,
+      orderIndex: 1,
+      durationSeconds: 600,
+      distanceMeters: null,
+      rpe: null,
+      isWarmup: false,
+      completedAt: '2026-09-04T18:50:00.000Z',
+    });
+
+    expect(readableExportFileSchema.safeParse(file).success).toBe(false);
+  });
+
+  it('una versión futura no se lee', () => {
+    const file = { ...buildExportFile(snapshot(), [session()]), version: EXPORT_VERSION + 1 };
+
+    expect(readableExportFileSchema.safeParse(file).success).toBe(false);
   });
 });
