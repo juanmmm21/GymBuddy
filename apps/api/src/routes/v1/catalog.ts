@@ -1,9 +1,12 @@
 import {
   bodyPartSchema,
   catalogFiltersSchema,
+  catalogSearchFiltersSchema,
   isMuscleInBodyPart,
   localeSchema,
   muscleSchema,
+  type BodyPart,
+  type Muscle,
 } from '@gymbuddy/shared';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -32,7 +35,7 @@ const pageQuerySchema = catalogFiltersSchema.extend({
   offset: z.coerce.number().int().min(0).default(0),
 });
 
-const searchQuerySchema = catalogFiltersSchema.extend({
+const searchQuerySchema = catalogSearchFiltersSchema.extend({
   q: z.string().min(1, 'Hace falta algo que buscar'),
   lang: langSchema,
   limit: z.coerce.number().int().min(1).max(MAX_SEARCH_LIMIT).default(DEFAULT_SEARCH_LIMIT),
@@ -50,13 +53,7 @@ export const catalogRoute = new Hono<{ Bindings: Env }>()
       'No existe esa parte del cuerpo',
     );
     const { lang, limit, offset, equipment, muscle } = parseQuery(c, pageQuerySchema);
-    // Un músculo de otra parte del cuerpo no es «ningún resultado» sino una petición mal armada: la
-    // PWA solo ofrece los de esta parte, y responder una lista vacía escondería el fallo.
-    if (!isMuscleInBodyPart(muscle, bodyPart)) {
-      throw new ApiException('validation_failed', 'Parámetros de consulta inválidos', [
-        { path: 'muscle', message: `Ese músculo no es de la parte del cuerpo "${bodyPart}"` },
-      ]);
-    }
+    assertMuscleInBodyPart(muscle, bodyPart);
 
     return c.json(
       await listExercisesByBodyPart(createDatabase(c.env.DB), {
@@ -85,14 +82,27 @@ export const catalogRoute = new Hono<{ Bindings: Env }>()
   })
 
   .get('/catalog/search', async (c) => {
-    const { q, lang, limit, equipment, muscle } = parseQuery(c, searchQuerySchema);
+    const { q, lang, limit, bodyPart, equipment, muscle } = parseQuery(c, searchQuerySchema);
+    assertMuscleInBodyPart(muscle, bodyPart);
 
     return c.json(
       await searchCatalogExercises(createDatabase(c.env.DB), {
         query: q,
-        filters: { equipment, muscle },
+        filters: { bodyPart, equipment, muscle },
         locale: lang,
         limit,
       }),
     );
   });
+
+/**
+ * Un músculo de otra parte del cuerpo no es «ningún resultado» sino una petición mal armada: la PWA
+ * solo ofrece los de la parte elegida, y responder una lista vacía escondería el fallo.
+ */
+function assertMuscleInBodyPart(muscle: Muscle | undefined, bodyPart: BodyPart | undefined): void {
+  if (isMuscleInBodyPart(muscle, bodyPart)) return;
+
+  throw new ApiException('validation_failed', 'Parámetros de consulta inválidos', [
+    { path: 'muscle', message: `Ese músculo no es de la parte del cuerpo "${bodyPart ?? ''}"` },
+  ]);
+}

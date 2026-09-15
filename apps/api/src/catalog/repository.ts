@@ -7,6 +7,7 @@ import {
   type CatalogExercise,
   type CatalogFilters,
   type CatalogExercisePage,
+  type CatalogSearchFilters,
   type CatalogExerciseSummary,
   type Locale,
 } from '@gymbuddy/shared';
@@ -108,7 +109,7 @@ export async function findCatalogExercise(
 
 export interface CatalogSearchQuery {
   readonly query: string;
-  readonly filters: CatalogFilters;
+  readonly filters: CatalogSearchFilters;
   readonly locale: Locale;
   readonly limit: number;
 }
@@ -148,12 +149,16 @@ export async function searchCatalogExercises(
 }
 
 /**
- * El músculo es una igualdad con un parámetro y el equipamiento un `IN` con las etiquetas de su
- * grupo (cuatro las de «Máquina»): cinco más como mucho, lejos de los cien de D1 aunque la búsqueda
- * ya gaste los suyos. Sin filtros no añade nada y la consulta queda como estaba.
+ * La parte del cuerpo y el músculo son igualdades con un parámetro cada una y el equipamiento un
+ * `IN` con las etiquetas de su grupo (cuatro las de «Máquina»): seis más como mucho, lejos de los
+ * cien de D1 aunque la búsqueda ya gaste los suyos. Sin filtros no añade nada y la consulta queda
+ * como estaba. La página de una parte no pasa `bodyPart`: ya filtra por la de su ruta.
  */
-function filterConditions(filters: CatalogFilters): SQL[] {
+function filterConditions(filters: CatalogSearchFilters): SQL[] {
   const conditions: SQL[] = [];
+  if (filters.bodyPart !== undefined) {
+    conditions.push(eq(catalogExercise.bodyPart, filters.bodyPart));
+  }
   if (filters.equipment !== undefined) {
     conditions.push(
       inArray(catalogExercise.equipment, [...equipmentTagsOfFilter(filters.equipment)]),
