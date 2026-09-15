@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { flushSync } from 'react-dom';
 import { RouterProvider, type createMemoryRouter } from 'react-router';
 import { ApiClient } from '../api/client';
 import { invalidateTrainingData } from '../api/mutations';
@@ -43,6 +44,17 @@ export interface AppProps {
 /** Medio minuto sin volver a pedir lo mismo: entre pantalla y pantalla no cambia nada. */
 const STALE_TIME_MS = 30_000;
 
+/**
+ * Deja al router aplicar una navegación sin transición cuando se le pide (`flushSync: true`): el
+ * buscador del catálogo escribe así el texto en la URL, o el campo se quedaría por detrás de lo
+ * tecleado. Se pasa a mano y no con el `RouterProvider` de `react-router/dom` porque en Vitest ese
+ * carga otra copia del paquete, que no comparte el contexto del router con el resto de la app.
+ */
+function flushRouterUpdate(update: () => unknown): undefined {
+  flushSync(update);
+  return undefined;
+}
+
 export function App({
   apiBaseUrl,
   storage,
@@ -83,7 +95,7 @@ export function App({
             <ApiBoundary apiBaseUrl={apiBaseUrl} fetchImpl={fetchImpl} queryClient={queryClient}>
               <AuthenticatorProvider authenticator={authenticator}>
                 <InstallProvider support={installSupport}>
-                  <RouterProvider router={appRouter} />
+                  <RouterProvider router={appRouter} flushSync={flushRouterUpdate} />
                 </InstallProvider>
               </AuthenticatorProvider>
             </ApiBoundary>
