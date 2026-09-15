@@ -17,6 +17,7 @@ import { AsyncContent } from '../../components/async-content/AsyncContent';
 import { Badge, Button, Notice, Surface } from '../../components/index';
 import { describeError } from '../../lib/errors';
 import {
+  formatRecordValueLabel,
   formatRpe,
   formatSessionDate,
   formatTime,
@@ -273,9 +274,7 @@ function StatsSection({ stats, locale }: StatsSectionProps) {
             {records.map((record) => (
               <li key={record.id} className={styles.record}>
                 <span className={styles.recordLabel}>{RECORD_LABELS[record.kind]}</span>
-                <span className={styles.recordValue}>
-                  {formatWeightLabel(record.value, locale)}
-                </span>
+                <span className={styles.recordValue}>{formatRecordValueLabel(record, locale)}</span>
                 <span className={styles.recordDate}>
                   {formatSessionDate(record.achievedAt, locale)}
                 </span>

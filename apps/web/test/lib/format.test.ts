@@ -4,10 +4,10 @@ import {
   formatDaysAgo,
   formatDuration,
   formatRpe,
+  formatRecordValueLabel,
   formatSessionDate,
   formatShortDate,
   formatStopwatch,
-  formatSetWeightLabel,
   formatVolumeLabel,
   formatWeightInUnit,
   formatWeightLabel,
@@ -41,10 +41,11 @@ describe('formatWeightInUnit', () => {
   });
 });
 
-describe('formatSetWeightLabel', () => {
-  it('en libras lleva detrás los kilos; en kilos va solo', () => {
-    expect(formatSetWeightLabel('45.36', 'lb', 'es')).toBe('100 lb · 45,36 kg');
-    expect(formatSetWeightLabel('82.50', 'kg', 'es')).toBe('82,5 kg');
+describe('formatRecordValueLabel', () => {
+  it('lee la marca en kilos, también un volumen que no cabe en el ancho de un peso', () => {
+    expect(formatRecordValueLabel({ value: '104.50' }, 'es')).toBe('104,5 kg');
+    // Una prensa de 1100 kg a 10 repeticiones: con el formateador de peso reventaba.
+    expect(formatRecordValueLabel({ value: '11000.00' }, 'es')).toBe('11000 kg');
   });
 });
 

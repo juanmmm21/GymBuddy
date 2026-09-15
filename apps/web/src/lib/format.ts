@@ -1,7 +1,9 @@
 import {
   formatGramsAsVolumeKilograms,
   parseKilogramsToGrams,
+  parseVolumeKilogramsToGrams,
   type Locale,
+  type PersonalRecord,
   type WeightKilograms,
   type WeightUnit,
 } from '@gymbuddy/shared';
@@ -32,18 +34,15 @@ export function formatWeightInUnit(grams: number, unit: WeightUnit, locale: Loca
 }
 
 /**
- * El peso de una serie en la unidad en que se registra ese ejercicio. En libras lleva detrás los
- * kilos ("100 lb · 45,36 kg"): lo pidió Juan, que entrena con máquinas en libras y piensa en kilos.
- * En kilos va solo, como siempre, para no llenar de libras las listas de quien no las usa.
+ * El valor de una marca, siempre en kilos. No pasa por `formatWeightLabel` porque llega con el ancho
+ * del volumen (`volumeKilogramsSchema`): una marca de volumen de más de 9999 kg, una prensa pesada a
+ * diez repeticiones, no cabe en el patrón de un peso y reventaría la pantalla.
  */
-export function formatSetWeightLabel(
-  weight: WeightKilograms,
-  unit: WeightUnit,
+export function formatRecordValueLabel(
+  record: Pick<PersonalRecord, 'value'>,
   locale: Locale,
 ): string {
-  const grams = parseKilogramsToGrams(weight);
-  if (unit === 'kg') return formatWeightInUnit(grams, 'kg', locale);
-  return `${formatWeightInUnit(grams, 'lb', locale)} · ${formatWeightInUnit(grams, 'kg', locale)}`;
+  return formatVolumeLabel(parseVolumeKilogramsToGrams(record.value), locale);
 }
 
 /**

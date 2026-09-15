@@ -13,6 +13,7 @@ import { Badge, Notice, PlateStack, Surface } from '../../components/index';
 import { useNow } from '../../hooks/use-now';
 import {
   formatDaysAgo,
+  formatRecordValueLabel,
   formatStopwatch,
   formatTime,
   formatVolumeLabel,
@@ -100,7 +101,7 @@ function SignalsSummary({ signals, locale }: SignalsSummaryProps) {
           <div className={styles.metric}>
             <span className={styles.metricLabel}>Último récord</span>
             <span className={styles.recordValue}>
-              {formatWeightLabel(signals.latestRecord.value, locale)}
+              {formatRecordValueLabel(signals.latestRecord, locale)}
             </span>
             <Badge tone="record">{RECORD_LABELS[signals.latestRecord.kind]}</Badge>
           </div>

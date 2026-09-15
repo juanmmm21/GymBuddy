@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react';
 import { useEndSession } from '../../api/mutations';
 import { Button, Notice, Sheet, TextArea } from '../../components/index';
 import { describeError } from '../../lib/errors';
-import { formatVolumeLabel, formatWeightLabel, pluralize } from '../../lib/format';
+import { formatRecordValueLabel, formatVolumeLabel, pluralize } from '../../lib/format';
 import { MAX_SESSION_NOTES_LENGTH, normalizeNotes } from '../../lib/notes';
 import { RECORD_LABELS } from '../exercises/labels';
 import { summarizeSession } from './summary';
@@ -74,7 +74,7 @@ function EndSessionForm({ session, records, locale, onEnded }: EndSessionFormPro
           <ul className={styles.records}>
             {records.map((record) => (
               <li key={record.id}>
-                {RECORD_LABELS[record.kind]}: {formatWeightLabel(record.value, locale)}
+                {RECORD_LABELS[record.kind]}: {formatRecordValueLabel(record, locale)}
               </li>
             ))}
           </ul>
