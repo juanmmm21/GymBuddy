@@ -1,9 +1,7 @@
 import {
   formatGramsAsVolumeKilograms,
   parseKilogramsToGrams,
-  parseVolumeKilogramsToGrams,
   type Locale,
-  type PersonalRecord,
   type WeightKilograms,
   type WeightUnit,
 } from '@gymbuddy/shared';
@@ -43,71 +41,9 @@ export function formatSetWeightLabel(
   unit: WeightUnit,
   locale: Locale,
 ): string {
-  return formatGramsInExerciseUnit(parseKilogramsToGrams(weight), unit, locale);
-}
-
-/**
- * Un peso partido en sus dos lecturas: la de la unidad del ejercicio y, si esa son libras, los
- * kilos aparte. Es para donde la cifra va grande y la línea entera no cabe en un móvil: los kilos
- * se pintan debajo, en pequeño.
- */
-export interface SplitWeightLabel {
-  readonly main: string;
-  readonly kilograms: string | null;
-}
-
-export function splitGramsInExerciseUnit(
-  grams: number,
-  unit: WeightUnit,
-  locale: Locale,
-): SplitWeightLabel {
-  return {
-    main: formatWeightInUnit(grams, unit, locale),
-    kilograms: unit === 'kg' ? null : formatWeightInUnit(grams, 'kg', locale),
-  };
-}
-
-/** `splitGramsInExerciseUnit` para un peso tal como llega del contrato ("82.50"). */
-export function splitSetWeight(
-  weight: WeightKilograms,
-  unit: WeightUnit,
-  locale: Locale,
-): SplitWeightLabel {
-  return splitGramsInExerciseUnit(parseKilogramsToGrams(weight), unit, locale);
-}
-
-/** Lo mismo que `formatSetWeightLabel`, para un peso que ya está en gramos. */
-export function formatGramsInExerciseUnit(grams: number, unit: WeightUnit, locale: Locale): string {
-  return joinSplitWeight(splitGramsInExerciseUnit(grams, unit, locale));
-}
-
-/**
- * El valor de una marca en la unidad de su ejercicio. El volumen se queda en kilos: es peso por
- * repeticiones, se suma igual que el de la sesión y la semana (que mezclan ejercicios) y ninguna
- * máquina lo rotula. Además llega con el ancho del volumen, que no cabe en el de un peso.
- */
-export function splitRecordValue(
-  record: Pick<PersonalRecord, 'kind' | 'value'>,
-  unit: WeightUnit,
-  locale: Locale,
-): SplitWeightLabel {
-  const grams = parseVolumeKilogramsToGrams(record.value);
-  if (record.kind === 'max_volume') {
-    return { main: formatVolumeLabel(grams, locale), kilograms: null };
-  }
-  return splitGramsInExerciseUnit(grams, unit, locale);
-}
-
-export function formatRecordValueLabel(
-  record: Pick<PersonalRecord, 'kind' | 'value'>,
-  unit: WeightUnit,
-  locale: Locale,
-): string {
-  return joinSplitWeight(splitRecordValue(record, unit, locale));
-}
-
-function joinSplitWeight(label: SplitWeightLabel): string {
-  return label.kilograms === null ? label.main : `${label.main} · ${label.kilograms}`;
+  const grams = parseKilogramsToGrams(weight);
+  if (unit === 'kg') return formatWeightInUnit(grams, 'kg', locale);
+  return `${formatWeightInUnit(grams, 'lb', locale)} · ${formatWeightInUnit(grams, 'kg', locale)}`;
 }
 
 /**

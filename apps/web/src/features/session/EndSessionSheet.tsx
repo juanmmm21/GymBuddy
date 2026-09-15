@@ -3,10 +3,9 @@ import { useState, type FormEvent } from 'react';
 import { useEndSession } from '../../api/mutations';
 import { Button, Notice, Sheet, TextArea } from '../../components/index';
 import { describeError } from '../../lib/errors';
-import { formatRecordValueLabel, formatVolumeLabel, pluralize } from '../../lib/format';
+import { formatVolumeLabel, formatWeightLabel, pluralize } from '../../lib/format';
 import { MAX_SESSION_NOTES_LENGTH, normalizeNotes } from '../../lib/notes';
 import { RECORD_LABELS } from '../exercises/labels';
-import { weightUnitFor, type WeightUnitsByExercise } from '../exercises/weight-unit-store';
 import { summarizeSession } from './summary';
 import styles from './EndSessionSheet.module.css';
 
@@ -14,8 +13,6 @@ export interface EndSessionSheetProps {
   readonly session: WorkoutSessionDetail;
   /** Las marcas rotas durante esta sesión, tal como las devolvió cada serie. */
   readonly records: readonly PersonalRecord[];
-  /** Las de la pantalla de la sesión, que es quien las cambia: cada marca se lee en la de su ejercicio. */
-  readonly weightUnits: WeightUnitsByExercise;
   readonly locale: Locale;
   readonly open: boolean;
   readonly onClose: () => void;
@@ -26,7 +23,6 @@ export interface EndSessionSheetProps {
 export function EndSessionSheet({
   session,
   records,
-  weightUnits,
   locale,
   open,
   onClose,
@@ -34,13 +30,7 @@ export function EndSessionSheet({
 }: EndSessionSheetProps) {
   return (
     <Sheet open={open} onClose={onClose} title="Terminar sesión">
-      <EndSessionForm
-        session={session}
-        records={records}
-        weightUnits={weightUnits}
-        locale={locale}
-        onEnded={onEnded}
-      />
+      <EndSessionForm session={session} records={records} locale={locale} onEnded={onEnded} />
     </Sheet>
   );
 }
@@ -48,12 +38,11 @@ export function EndSessionSheet({
 interface EndSessionFormProps {
   readonly session: WorkoutSessionDetail;
   readonly records: readonly PersonalRecord[];
-  readonly weightUnits: WeightUnitsByExercise;
   readonly locale: Locale;
   readonly onEnded: () => void;
 }
 
-function EndSessionForm({ session, records, weightUnits, locale, onEnded }: EndSessionFormProps) {
+function EndSessionForm({ session, records, locale, onEnded }: EndSessionFormProps) {
   const [notes, setNotes] = useState(session.notes ?? '');
   const end = useEndSession();
   const totals = summarizeSession(session.sets);
@@ -85,12 +74,7 @@ function EndSessionForm({ session, records, weightUnits, locale, onEnded }: EndS
           <ul className={styles.records}>
             {records.map((record) => (
               <li key={record.id}>
-                {RECORD_LABELS[record.kind]}:{' '}
-                {formatRecordValueLabel(
-                  record,
-                  weightUnitFor(weightUnits, record.trackedExerciseId),
-                  locale,
-                )}
+                {RECORD_LABELS[record.kind]}: {formatWeightLabel(record.value, locale)}
               </li>
             ))}
           </ul>

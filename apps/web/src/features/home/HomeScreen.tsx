@@ -1,8 +1,6 @@
 import {
   NO_DEVICE_SIGNALS,
   type Locale,
-  type PersonalRecord,
-  type WeightUnit,
   type TrainingSignals,
   type WorkoutSessionDetail,
 } from '@gymbuddy/shared';
@@ -18,15 +16,12 @@ import {
   formatStopwatch,
   formatTime,
   formatVolumeLabel,
+  formatWeightLabel,
   pluralize,
-  splitRecordValue,
-  splitSetWeight,
 } from '../../lib/format';
 import { elapsedSecondsSince } from '../../lib/time';
 import { usesOlympicBar } from '../exercises/equipment';
 import { RECORD_LABELS } from '../exercises/labels';
-import { useWeightUnits } from '../exercises/use-weight-units';
-import { weightUnitFor } from '../exercises/weight-unit-store';
 import { LiveMascot } from '../mascot/LiveMascot';
 import { useOpenSession } from '../../offline/use-open-session';
 import { SESSION_PATH } from '../session/paths';
@@ -69,7 +64,6 @@ interface SignalsSummaryProps {
 function SignalsSummary({ signals, locale }: SignalsSummaryProps) {
   // Con la cola offline encima: lo abierto o cerrado sin cobertura cuenta ya aquí.
   const open = useOpenSession();
-  const weightUnits = useWeightUnits();
   const sessionState = homeSessionState(signals, open.data);
   const liveSession = sessionState.kind === 'open' ? (open.data?.session ?? null) : null;
 
@@ -103,11 +97,13 @@ function SignalsSummary({ signals, locale }: SignalsSummaryProps) {
         {signals.latestRecord === null ? (
           <Metric label="Último récord" value="—" />
         ) : (
-          <LatestRecordMetric
-            record={signals.latestRecord}
-            unit={weightUnitFor(weightUnits, signals.latestRecord.trackedExerciseId)}
-            locale={locale}
-          />
+          <div className={styles.metric}>
+            <span className={styles.metricLabel}>Último récord</span>
+            <span className={styles.recordValue}>
+              {formatWeightLabel(signals.latestRecord.value, locale)}
+            </span>
+            <Badge tone="record">{RECORD_LABELS[signals.latestRecord.kind]}</Badge>
+          </div>
         )}
       </section>
 
@@ -121,25 +117,6 @@ function SignalsSummary({ signals, locale }: SignalsSummaryProps) {
           Mismo peso durante varias sesiones sin perder repeticiones: toca subir.
         </Notice>
       )}
-    </div>
-  );
-}
-
-interface LatestRecordMetricProps {
-  readonly record: PersonalRecord;
-  readonly unit: WeightUnit;
-  readonly locale: Locale;
-}
-
-/** En libras, la cifra grande no deja sitio a los kilos en un tercio de pantalla: van debajo. */
-function LatestRecordMetric({ record, unit, locale }: LatestRecordMetricProps) {
-  const value = splitRecordValue(record, unit, locale);
-  return (
-    <div className={styles.metric}>
-      <span className={styles.metricLabel}>Último récord</span>
-      <span className={styles.recordValue}>{value.main}</span>
-      {value.kilograms !== null && <span className={styles.metricAlt}>{value.kilograms}</span>}
-      <Badge tone="record">{RECORD_LABELS[record.kind]}</Badge>
     </div>
   );
 }
@@ -160,15 +137,6 @@ function LiveSessionCard({ startedAt, session, locale }: LiveSessionCardProps) {
   const exercises = useTrackedExercises({ includeArchived: true });
   const summary = session === null ? null : summarizeLiveSession(session, exercises.data ?? []);
   const lastSet = summary?.lastSet ?? null;
-  const weightUnits = useWeightUnits();
-  const lastWeight =
-    lastSet === null
-      ? null
-      : splitSetWeight(
-          lastSet.weight,
-          weightUnitFor(weightUnits, lastSet.trackedExerciseId),
-          locale,
-        );
 
   return (
     <Link to={SESSION_PATH} className={styles.live} aria-label="Seguir la sesión">
@@ -186,21 +154,17 @@ function LiveSessionCard({ startedAt, session, locale }: LiveSessionCardProps) {
           {formatVolumeLabel(summary.volumeGrams, locale)}
         </span>
       )}
-      {lastSet !== null && lastWeight !== null && (
+      {lastSet !== null && (
         <span className={styles.lastSet}>
           {usesOlympicBar(lastSet.equipment) && (
             <PlateStack weight={lastSet.weight} locale={locale} className={styles.lastSetPlates} />
           )}
           <span className={styles.lastSetText}>
             <span className={styles.lastSetName}>{lastSet.exerciseName}</span>
-            <span className={styles.lastSetWhen}>
-              {lastWeight.kilograms === null
-                ? 'Última serie'
-                : `Última serie · ${lastWeight.kilograms}`}
-            </span>
+            <span className={styles.lastSetWhen}>Última serie</span>
           </span>
           <span className={styles.lastSetValue}>
-            {lastWeight.main} × {lastSet.reps}
+            {formatWeightLabel(lastSet.weight, locale)} × {lastSet.reps}
           </span>
         </span>
       )}

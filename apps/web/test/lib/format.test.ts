@@ -7,15 +7,12 @@ import {
   formatSessionDate,
   formatShortDate,
   formatStopwatch,
-  formatRecordValueLabel,
   formatSetWeightLabel,
   formatVolumeLabel,
   formatWeightInUnit,
   formatWeightLabel,
   formatWeightValue,
   pluralize,
-  splitRecordValue,
-  splitSetWeight,
 } from '../../src/lib/format';
 import { ApiContractError, ApiRequestError, ApiTransportError } from '../../src/api/client';
 
@@ -48,41 +45,6 @@ describe('formatSetWeightLabel', () => {
   it('en libras lleva detrás los kilos; en kilos va solo', () => {
     expect(formatSetWeightLabel('45.36', 'lb', 'es')).toBe('100 lb · 45,36 kg');
     expect(formatSetWeightLabel('82.50', 'kg', 'es')).toBe('82,5 kg');
-  });
-});
-
-describe('splitSetWeight', () => {
-  it('en libras separa los kilos para pintarlos aparte; en kilos no hay nada aparte', () => {
-    expect(splitSetWeight('45.36', 'lb', 'es')).toEqual({ main: '100 lb', kilograms: '45,36 kg' });
-    expect(splitSetWeight('82.50', 'kg', 'en')).toEqual({ main: '82.5 kg', kilograms: null });
-  });
-});
-
-describe('formatRecordValueLabel', () => {
-  it('el peso máximo y el 1RM van en la unidad del ejercicio, con los kilos detrás', () => {
-    expect(formatRecordValueLabel({ kind: 'max_weight', value: '45.36' }, 'lb', 'es')).toBe(
-      '100 lb · 45,36 kg',
-    );
-    expect(formatRecordValueLabel({ kind: 'estimated_1rm', value: '104.50' }, 'kg', 'es')).toBe(
-      '104,5 kg',
-    );
-  });
-
-  it('el volumen se queda en kilos aunque el ejercicio vaya en libras', () => {
-    expect(formatRecordValueLabel({ kind: 'max_volume', value: '660.00' }, 'lb', 'es')).toBe(
-      '660 kg',
-    );
-    expect(splitRecordValue({ kind: 'max_volume', value: '660.00' }, 'lb', 'es')).toEqual({
-      main: '660 kg',
-      kilograms: null,
-    });
-  });
-
-  it('lee un volumen que no cabe en el ancho de un peso', () => {
-    // Una prensa de 1100 kg a 10 repeticiones: con el formateador de peso reventaba.
-    expect(formatRecordValueLabel({ kind: 'max_volume', value: '11000.00' }, 'kg', 'es')).toBe(
-      '11000 kg',
-    );
   });
 });
 

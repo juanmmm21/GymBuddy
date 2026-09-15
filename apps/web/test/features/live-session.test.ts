@@ -12,7 +12,6 @@ describe('summarizeLiveSession', () => {
 
     expect(summary).toMatchObject({ exerciseCount: 1, setCount: 1, volumeGrams: 660_000 });
     expect(summary.lastSet).toEqual({
-      trackedExerciseId: benchPress.id,
       exerciseName: benchPress.name,
       equipment: 'barbell',
       weight: '82.50',

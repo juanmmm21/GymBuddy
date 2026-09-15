@@ -3,7 +3,6 @@ import type {
   ResourceId,
   SetEntry,
   TrackedExercise,
-  WeightUnit,
   WorkoutSessionDetail,
 } from '@gymbuddy/shared';
 import { Link, useParams } from 'react-router';
@@ -17,8 +16,8 @@ import {
   formatRpe,
   formatSessionDate,
   formatTime,
-  formatSetWeightLabel,
   formatVolumeLabel,
+  formatWeightLabel,
   pluralize,
 } from '../../lib/format';
 import { parseResourceId } from '../../lib/ids';
@@ -30,8 +29,6 @@ import { DeleteSessionPanel } from './DeleteSessionPanel';
 import { HISTORY_PATH } from './paths';
 import styles from './SessionDetailScreen.module.css';
 import { usesOlympicBar } from '../exercises/equipment';
-import { useWeightUnits } from '../exercises/use-weight-units';
-import { weightUnitFor } from '../exercises/weight-unit-store';
 
 const BACK_TO_HISTORY: BackLink = { to: HISTORY_PATH, label: 'Historial' };
 
@@ -93,7 +90,6 @@ interface SessionBodyProps {
 }
 
 function SessionBody({ session, exercises, locale }: SessionBodyProps) {
-  const weightUnits = useWeightUnits();
   const groups = groupSetsByExercise(session.sets, exercises);
   const totals = summarizeSession(session.sets);
   const endedAt = session.endedAt;
@@ -150,7 +146,6 @@ function SessionBody({ session, exercises, locale }: SessionBodyProps) {
                     set={set}
                     plates={usesOlympicBar(group.equipment)}
                     position={index + 1}
-                    weightUnit={weightUnitFor(weightUnits, group.trackedExerciseId)}
                     locale={locale}
                   />
                 ))}
@@ -181,19 +176,17 @@ interface SetRowProps {
   readonly set: SetEntry;
   readonly plates: boolean;
   readonly position: number;
-  /** La unidad en que se registra ese ejercicio: en libras, la fila lleva también los kilos. */
-  readonly weightUnit: WeightUnit;
   readonly locale: Locale;
 }
 
 /** Una serie ya cerrada: se lee, no se toca. Corregirla solo se puede con la sesión abierta. */
-function SetRow({ set, plates, position, weightUnit, locale }: SetRowProps) {
+function SetRow({ set, plates, position, locale }: SetRowProps) {
   return (
     <li className={styles.set}>
       <span className={styles.setPosition}>{position}</span>
       {plates && <PlateStack weight={set.weight} locale={locale} />}
       <span className={styles.setValue}>
-        {formatSetWeightLabel(set.weight, weightUnit, locale)} × {set.reps}
+        {formatWeightLabel(set.weight, locale)} × {set.reps}
       </span>
       <span className={styles.setMeta}>
         {set.isWarmup && <Badge>Calentamiento</Badge>}

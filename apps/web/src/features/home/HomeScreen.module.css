@@ -251,10 +251,3 @@
   width: var(--gb-space-xl);
   height: var(--gb-space-xl);
 }
-
-/* Los kilos de un récord en libras: debajo de la cifra, que en un tercio de pantalla no deja sitio. */
-.metricAlt {
-  color: var(--gb-color-text-muted);
-  font-size: var(--gb-type-label-size);
-  line-height: var(--gb-type-label-line);
-}

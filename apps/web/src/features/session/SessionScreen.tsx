@@ -23,8 +23,8 @@ import {
   formatRpe,
   formatStopwatch,
   formatTime,
-  formatRecordValueLabel,
   formatSetWeightLabel,
+  formatWeightLabel,
   pluralize,
 } from '../../lib/format';
 import { newResourceId, parseResourceId } from '../../lib/ids';
@@ -375,12 +375,7 @@ function ActiveSession({
             <ul className={styles.recordsList}>
               {records.map((record) => (
                 <li key={record.id}>
-                  {RECORD_LABELS[record.kind]}:{' '}
-                  {formatRecordValueLabel(
-                    record,
-                    weightUnitFor(weightUnits, record.trackedExerciseId),
-                    locale,
-                  )}
+                  {RECORD_LABELS[record.kind]}: {formatWeightLabel(record.value, locale)}
                 </li>
               ))}
             </ul>
@@ -514,7 +509,6 @@ function ActiveSession({
       <EndSessionSheet
         session={session}
         records={records}
-        weightUnits={weightUnits}
         locale={locale}
         open={ending}
         onClose={onCloseEnd}
