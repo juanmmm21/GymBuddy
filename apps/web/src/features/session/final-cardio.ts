@@ -25,10 +25,6 @@ interface Candidate {
  * No se ofrece en una sesión sin series —no hay entreno que rematar, y quien solo viene a correr ya
  * lo apunta con «Registrar serie»— ni cuando la última serie ya es de cardio: ese cardio final ya
  * está hecho, y volver a ofrecerlo tras apuntarlo obligaría a rechazarlo para poder cerrar.
- *
- * Solo se proponen ejercicios de la parte «cardio»: son los únicos que registran cardio
- * (`setKindFor`). Entre ellos, el del cardio más reciente (hoy primero, si no la última vez): quien
- * remata en la cinta suele repetir cinta. Sin cardio registrado nunca, el primero en el orden de la lista.
  */
 export function finalCardioOffer(
   exercises: readonly TrackedExercise[],
@@ -37,6 +33,22 @@ export function finalCardioOffer(
   const last = latestSet(sessionSets);
   if (last === null || last.kind === 'cardio') return { kind: 'none' };
 
+  const exerciseId = suggestedCardioExerciseId(exercises, sessionSets);
+  return exerciseId === null ? { kind: 'no_exercise' } : { kind: 'exercise', exerciseId };
+}
+
+/**
+ * El ejercicio de cardio que se propone, para el cardio final y para apuntar el cardio en marcha, o
+ * `null` si no se sigue ninguno.
+ *
+ * Solo ejercicios de la parte «cardio»: son los únicos que registran cardio (`setKindFor`). Entre
+ * ellos, el del cardio más reciente (hoy primero, si no la última vez): quien remata en la cinta
+ * suele repetir cinta. Sin cardio registrado nunca, el primero en el orden de la lista.
+ */
+export function suggestedCardioExerciseId(
+  exercises: readonly TrackedExercise[],
+  sessionSets: readonly SetEntry[],
+): ResourceId | null {
   const cardioExercises = exercises.filter((exercise) => exercise.bodyPart === 'cardio');
   const selectable = new Set(cardioExercises.map((exercise) => exercise.id));
   let best: Candidate | null = null;
@@ -45,18 +57,15 @@ export function finalCardioOffer(
     if (set.kind !== 'cardio' || !selectable.has(set.trackedExerciseId)) continue;
     best = laterOf(best, set.trackedExerciseId, set.completedAt);
   }
-  if (best !== null) return { kind: 'exercise', exerciseId: best.exerciseId };
+  if (best !== null) return best.exerciseId;
 
   for (const exercise of cardioExercises) {
     if (exercise.lastCardioSet === null) continue;
     best = laterOf(best, exercise.id, exercise.lastCardioSet.completedAt);
   }
-  if (best !== null) return { kind: 'exercise', exerciseId: best.exerciseId };
+  if (best !== null) return best.exerciseId;
 
-  const [firstCardio] = cardioExercises;
-  return firstCardio === undefined
-    ? { kind: 'no_exercise' }
-    : { kind: 'exercise', exerciseId: firstCardio.id };
+  return cardioExercises[0]?.id ?? null;
 }
 
 /** Se queda con la más reciente comparando instantes, nunca texto: las zonas pueden venir distintas. */

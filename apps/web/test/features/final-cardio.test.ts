@@ -1,6 +1,9 @@
 import type { CardioSetEntry, SetEntry, StrengthSetEntry, TrackedExercise } from '@gymbuddy/shared';
 import { describe, expect, it } from 'vitest';
-import { finalCardioOffer } from '../../src/features/session/final-cardio';
+import {
+  finalCardioOffer,
+  suggestedCardioExerciseId,
+} from '../../src/features/session/final-cardio';
 import { benchPress, customCurl, squat } from '../fixtures';
 
 const treadmill: TrackedExercise = {
@@ -125,5 +128,21 @@ describe('finalCardioOffer', () => {
 
   it('sin ningún ejercicio de cardio lo dice, para mandar al catálogo', () => {
     expect(finalCardioOffer([benchPress, squat], [strength()])).toEqual({ kind: 'no_exercise' });
+  });
+});
+
+describe('suggestedCardioExerciseId', () => {
+  it('propone cardio aunque la sesión ya termine en cardio o esté vacía: es para el cardio en marcha', () => {
+    expect(suggestedCardioExerciseId([benchPress, treadmill], [])).toBe(treadmill.id);
+    expect(
+      suggestedCardioExerciseId(
+        [benchPress, treadmill, bike],
+        [cardio({ trackedExerciseId: bike.id })],
+      ),
+    ).toBe(bike.id);
+  });
+
+  it('sin ejercicios de cardio no propone nada', () => {
+    expect(suggestedCardioExerciseId([benchPress, squat], [strength()])).toBeNull();
   });
 });
