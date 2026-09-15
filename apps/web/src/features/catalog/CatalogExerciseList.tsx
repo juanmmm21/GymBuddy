@@ -1,13 +1,17 @@
 import type { CatalogExerciseSummary } from '@gymbuddy/shared';
 import { Link } from 'react-router';
+import type { BackLink } from '../../app/ScreenHeader';
 import { Surface } from '../../components/index';
 import { ExerciseThumb } from './ExerciseThumb';
 import { MUSCLE_LABELS, equipmentLabel } from './labels';
+import { catalogBackState } from './navigation';
 import { catalogExercisePath, catalogExerciseRef } from './paths';
 import styles from './CatalogExerciseList.module.css';
 
 export interface CatalogExerciseListProps {
   readonly items: readonly CatalogExerciseSummary[];
+  /** A dónde vuelve la ficha que se abra desde aquí: la lista con lo que tenía puesto. */
+  readonly backTo: BackLink;
 }
 
 /**
@@ -15,12 +19,18 @@ export interface CatalogExerciseListProps {
  * Cada GIF pesa cientos de KB: por eso solo baja el de las filas que se ven y no entra en la caché
  * offline (ver `ExerciseThumb` y `preview.ts`). Juan lo eligió así sabiendo que gasta datos.
  */
-export function CatalogExerciseList({ items }: CatalogExerciseListProps) {
+export function CatalogExerciseList({ items, backTo }: CatalogExerciseListProps) {
+  const state = catalogBackState(backTo);
+
   return (
     <ul className={styles.list}>
       {items.map((item) => (
         <Surface as="li" key={item.catalogId} padding="none">
-          <Link to={catalogExercisePath(catalogExerciseRef(item))} className={styles.row}>
+          <Link
+            to={catalogExercisePath(catalogExerciseRef(item))}
+            state={state}
+            className={styles.row}
+          >
             <ExerciseThumb key={item.gifUrl} gifUrl={item.gifUrl} />
             <span className={styles.text}>
               <span className={styles.name}>{item.name}</span>

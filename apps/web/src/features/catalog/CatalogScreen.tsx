@@ -1,6 +1,6 @@
 import type { BodyPartSummary, CatalogSearchFilters, Locale } from '@gymbuddy/shared';
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { MIN_SEARCH_LENGTH, useBodyParts, useCatalogSearch } from '../../api/queries';
 import { useSession } from '../../auth/SessionProvider';
 import { ScreenHeader } from '../../app/ScreenHeader';
@@ -12,8 +12,14 @@ import { CreateExerciseSheet } from '../exercises/CreateExerciseSheet';
 import { suggestedExerciseName } from '../exercises/custom-exercise';
 import { CatalogExerciseList } from './CatalogExerciseList';
 import { CatalogFilterBar } from './CatalogFilterBar';
-import { describeCatalogFilters, hasCatalogFilters } from './filters';
+import {
+  applyCatalogFiltersToParams,
+  describeCatalogFilters,
+  hasCatalogFilters,
+  parseCatalogSearchFilters,
+} from './filters';
 import { BODY_PART_LABELS, BODY_PART_ORDER } from './labels';
+import { readSearchQuery, searchBackLink, withSearchQuery } from './navigation';
 import { bodyPartPath } from './paths';
 import styles from './CatalogScreen.module.css';
 
@@ -23,14 +29,29 @@ const SEARCH_DEBOUNCE_MS = 250;
 /**
  * Entrada al catálogo: buscador arriba y, debajo, las siete partes del cuerpo. Los filtros salen
  * solo mientras se busca —la lista de partes no se filtra— y se conservan al cambiar el texto.
+ * Texto y filtros viven en la URL (`/catalog?q=…`): la ficha de un ejercicio vuelve a la búsqueda
+ * tal cual estaba, y la pestaña «Catálogo» la vacía.
  */
 export function CatalogScreen() {
   const { session } = useSession();
   const locale = session?.user.locale;
-  const [query, setQuery] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const query = readSearchQuery(searchParams);
+  const filters = parseCatalogSearchFilters(searchParams);
   const term = useDebouncedValue(query, SEARCH_DEBOUNCE_MS).trim();
   const searching = term.length >= MIN_SEARCH_LENGTH;
-  const [filters, setFilters] = useState<CatalogSearchFilters>({});
+
+  // Se reemplaza la entrada del historial: «atrás» no recorre letra a letra ni filtro a filtro. El
+  // texto va con `flushSync` porque el campo lo pinta la URL, y en una transición se quedaría atrás.
+  const changeQuery = (next: string): void => {
+    setSearchParams((current) => withSearchQuery(current, next), {
+      replace: true,
+      flushSync: true,
+    });
+  };
+  const changeFilters = (next: CatalogSearchFilters): void => {
+    setSearchParams((current) => applyCatalogFiltersToParams(current, next), { replace: true });
+  };
 
   return (
     <>
@@ -38,7 +59,7 @@ export function CatalogScreen() {
       <div className={styles.search}>
         <SearchField
           value={query}
-          onChange={setQuery}
+          onChange={changeQuery}
           label="Buscar ejercicio"
           placeholder="press banca, curl, sentadilla…"
         />
@@ -46,14 +67,14 @@ export function CatalogScreen() {
       {searching ? (
         <>
           <div className={styles.search}>
-            <CatalogFilterBar filters={filters} bodyPart={null} onChange={setFilters} />
+            <CatalogFilterBar filters={filters} bodyPart={null} onChange={changeFilters} />
           </div>
           <SearchResults
             term={term}
             locale={locale}
             filters={filters}
             onClearFilters={() => {
-              setFilters({});
+              changeFilters({});
             }}
           />
         </>
@@ -117,7 +138,7 @@ function SearchResults({ term, locale, filters, onClearFilters }: SearchResultsP
             </Notice>
           ) : (
             <div className={styles.results}>
-              <CatalogExerciseList items={items} />
+              <CatalogExerciseList items={items} backTo={searchBackLink(term, filters)} />
               <div className={styles.createOwn}>
                 <p className={styles.createOwnText}>¿No es ninguno de estos?</p>
                 <Button variant="ghost" onClick={openCreate}>

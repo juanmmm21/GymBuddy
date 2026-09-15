@@ -15,6 +15,7 @@ import {
   parseCatalogFilters,
 } from './filters';
 import { BODY_PART_LABELS } from './labels';
+import { bodyPartBackLink } from './navigation';
 import { CATALOG_PATH, parseBodyPart } from './paths';
 import styles from './BodyPartScreen.module.css';
 
@@ -22,7 +23,7 @@ const BACK_TO_CATALOG: BackLink = { to: CATALOG_PATH, label: 'Catálogo' };
 
 /**
  * Los ejercicios de una parte del cuerpo (`/catalog/:bodyPart`), de cincuenta en cincuenta. Los
- * filtros viven en la URL: al volver de la ficha de un ejercicio siguen puestos.
+ * filtros viven en la URL y la ficha de un ejercicio vuelve a ella con los filtros puestos.
  */
 export function BodyPartScreen() {
   const params = useParams();
@@ -97,7 +98,7 @@ function BodyPartExercises({ bodyPart }: { readonly bodyPart: BodyPart }) {
 
           return (
             <div className={styles.stack}>
-              <CatalogExerciseList items={items} />
+              <CatalogExerciseList items={items} backTo={bodyPartBackLink(bodyPart, filters)} />
               {query.hasNextPage ? (
                 <Button
                   variant="secondary"

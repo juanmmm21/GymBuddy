@@ -1,5 +1,5 @@
 import type { CatalogExercise, Muscle, TrackedExercise } from '@gymbuddy/shared';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { useCreateTrackedExercise } from '../../api/mutations';
 import { useCatalogExercise, useTrackedExercises } from '../../api/queries';
 import { useSession } from '../../auth/SessionProvider';
@@ -11,6 +11,7 @@ import { newResourceId } from '../../lib/ids';
 import { trackedExercisePath } from '../exercises/paths';
 import { ExerciseGif } from './ExerciseGif';
 import { BODY_PART_LABELS, MUSCLE_LABELS, categoryLabel, equipmentLabel } from './labels';
+import { readCatalogBackLink } from './navigation';
 import { CATALOG_PATH, bodyPartPath, parseMuscle } from './paths';
 import styles from './CatalogExerciseScreen.module.css';
 
@@ -47,11 +48,16 @@ function CatalogExerciseDetail({ muscle, slug }: CatalogExerciseDetailProps) {
   const exercise = useCatalogExercise(muscle, slug, session?.user.locale);
   const tracked = useTrackedExercises();
 
+  const fromList = readCatalogBackLink(useLocation().state);
+
+  // Se vuelve a la lista de la que se vino (la búsqueda con su texto, o la parte con sus filtros);
+  // sin ella, a la parte del cuerpo del ejercicio, que es de donde cuelga en el catálogo.
   const bodyPart = exercise.data?.bodyPart;
   const backTo: BackLink =
-    bodyPart === undefined
+    fromList ??
+    (bodyPart === undefined
       ? BACK_TO_CATALOG
-      : { to: bodyPartPath(bodyPart), label: BODY_PART_LABELS[bodyPart] };
+      : { to: bodyPartPath(bodyPart), label: BODY_PART_LABELS[bodyPart] });
 
   return (
     <>
