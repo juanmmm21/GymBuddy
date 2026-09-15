@@ -26,10 +26,9 @@ interface Candidate {
  * lo apunta con «Registrar serie»— ni cuando la última serie ya es de cardio: ese cardio final ya
  * está hecho, y volver a ofrecerlo tras apuntarlo obligaría a rechazarlo para poder cerrar.
  *
- * El ejercicio propuesto es el del cardio más reciente (hoy primero, si no la última vez): quien
- * remata en la cinta suele repetir cinta. Sin cardio registrado nunca, el primero de la parte
- * «cardio» en el orden de la lista. Un ejercicio de otra parte con cardio apuntado también vale:
- * una cinta propia creada sin parte del cuerpo tiene que poder proponerse.
+ * Solo se proponen ejercicios de la parte «cardio»: son los únicos que registran cardio
+ * (`setKindFor`). Entre ellos, el del cardio más reciente (hoy primero, si no la última vez): quien
+ * remata en la cinta suele repetir cinta. Sin cardio registrado nunca, el primero en el orden de la lista.
  */
 export function finalCardioOffer(
   exercises: readonly TrackedExercise[],
@@ -38,7 +37,8 @@ export function finalCardioOffer(
   const last = latestSet(sessionSets);
   if (last === null || last.kind === 'cardio') return { kind: 'none' };
 
-  const selectable = new Set(exercises.map((exercise) => exercise.id));
+  const cardioExercises = exercises.filter((exercise) => exercise.bodyPart === 'cardio');
+  const selectable = new Set(cardioExercises.map((exercise) => exercise.id));
   let best: Candidate | null = null;
 
   for (const set of sessionSets) {
@@ -47,13 +47,13 @@ export function finalCardioOffer(
   }
   if (best !== null) return { kind: 'exercise', exerciseId: best.exerciseId };
 
-  for (const exercise of exercises) {
+  for (const exercise of cardioExercises) {
     if (exercise.lastCardioSet === null) continue;
     best = laterOf(best, exercise.id, exercise.lastCardioSet.completedAt);
   }
   if (best !== null) return { kind: 'exercise', exerciseId: best.exerciseId };
 
-  const firstCardio = exercises.find((exercise) => exercise.bodyPart === 'cardio');
+  const [firstCardio] = cardioExercises;
   return firstCardio === undefined
     ? { kind: 'no_exercise' }
     : { kind: 'exercise', exerciseId: firstCardio.id };

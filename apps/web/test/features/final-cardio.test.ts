@@ -82,17 +82,28 @@ describe('finalCardioOffer', () => {
     expect(finalCardioOffer(exercises, sets)).toEqual({ kind: 'exercise', exerciseId: bike.id });
   });
 
-  it('sin cardio hoy, propone el del cardio más reciente, aunque no sea de la parte cardio', () => {
-    const ownTreadmill: TrackedExercise = { ...treadmill, id: squat.id, bodyPart: null };
+  it('sin cardio hoy, propone el del cardio más reciente de la parte cardio', () => {
     const exercises = [
       benchPress,
       lastCardioAt(bike, '2026-09-10T19:00:00.000Z'),
-      lastCardioAt(ownTreadmill, '2026-09-12T19:00:00.000Z'),
+      lastCardioAt(treadmill, '2026-09-12T19:00:00.000Z'),
     ];
 
     expect(finalCardioOffer(exercises, [strength()])).toEqual({
       kind: 'exercise',
-      exerciseId: ownTreadmill.id,
+      exerciseId: treadmill.id,
+    });
+  });
+
+  it('un ejercicio de otra parte nunca se propone, aunque tenga cardio apuntado', () => {
+    // Una serie de cardio vieja en una ficha de fuerza: desde que el tipo sale del ejercicio, ahí se registra fuerza.
+    const ownTreadmill: TrackedExercise = { ...treadmill, id: squat.id, bodyPart: null };
+    const sets: SetEntry[] = [cardio({ trackedExerciseId: ownTreadmill.id }), strength()];
+    const exercises = [benchPress, lastCardioAt(ownTreadmill, '2026-09-12T19:00:00.000Z'), bike];
+
+    expect(finalCardioOffer(exercises, sets)).toEqual({ kind: 'exercise', exerciseId: bike.id });
+    expect(finalCardioOffer([benchPress, ownTreadmill], [strength()])).toEqual({
+      kind: 'no_exercise',
     });
   });
 
