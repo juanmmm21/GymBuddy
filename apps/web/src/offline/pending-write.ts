@@ -4,6 +4,7 @@ import {
   logCardioSetRequestSchema,
   logStrengthSetRequestSchema,
   resourceIdSchema,
+  startCardioRequestSchema,
   startSessionRequestSchema,
   updateSetRequestSchema,
 } from '@gymbuddy/shared';
@@ -21,6 +22,7 @@ const logSetBodySchema = z.union([
   logStrengthSetRequestSchema.required({ completedAt: true }),
   logCardioSetRequestSchema.required({ completedAt: true }),
 ]);
+const startCardioBodySchema = startCardioRequestSchema.required({ startedAt: true });
 const endSessionBodySchema = endSessionRequestSchema.required({ endedAt: true });
 
 /** Lo que se pide escribir, antes de saber si sale directo o espera en la cola. */
@@ -41,6 +43,15 @@ export const sessionWriteSchema = z.discriminatedUnion('kind', [
     kind: z.literal('remove_set'),
     sessionId: resourceIdSchema,
     setId: resourceIdSchema,
+  }),
+  z.object({
+    kind: z.literal('start_cardio'),
+    sessionId: resourceIdSchema,
+    body: startCardioBodySchema,
+  }),
+  z.object({
+    kind: z.literal('cancel_cardio'),
+    sessionId: resourceIdSchema,
   }),
   z.object({
     kind: z.literal('end_session'),

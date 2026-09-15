@@ -193,6 +193,63 @@ describe('applyPendingWrites', () => {
   });
 });
 
+describe('applyPendingWrites: cardio en marcha', () => {
+  const CARDIO_SET_ID = '5e9f3a1b-4c6d-4e8f-9a0b-2c3d4e5f6071';
+  const startCardio = (startedAt: string): SessionWrite => ({
+    kind: 'start_cardio',
+    sessionId: OPEN_ID,
+    body: { startedAt },
+  });
+  const logCardio = (completedAt: string): SessionWrite => ({
+    kind: 'log_set',
+    sessionId: OPEN_ID,
+    body: {
+      id: CARDIO_SET_ID,
+      kind: 'cardio',
+      trackedExerciseId: benchPress.id,
+      durationSeconds: 1_200,
+      completedAt,
+    },
+  });
+
+  it('empezar el cardio sin red lo pone en marcha, y quitarlo lo apaga', () => {
+    const started = applyPendingWrites(activeSession, [startCardio('2026-09-08T18:40:00.000Z')]);
+    expect(started.session?.cardioStartedAt).toBe('2026-09-08T18:40:00.000Z');
+
+    const cancelled = applyPendingWrites(activeSession, [
+      startCardio('2026-09-08T18:40:00.000Z'),
+      { kind: 'cancel_cardio', sessionId: OPEN_ID },
+    ]);
+    expect(cancelled.session?.cardioStartedAt).toBeNull();
+  });
+
+  it('apuntar el cardio encolado lo termina; uno que acabó antes de empezarlo, no', () => {
+    const logged = applyPendingWrites(activeSession, [
+      startCardio('2026-09-08T18:40:00.000Z'),
+      logCardio('2026-09-08T19:00:00.000Z'),
+    ]);
+    expect(logged.session?.cardioStartedAt).toBeNull();
+
+    const older = applyPendingWrites(activeSession, [
+      startCardio('2026-09-08T18:40:00.000Z'),
+      logCardio('2026-09-08T18:30:00.000Z'),
+    ]);
+    expect(older.session?.cardioStartedAt).toBe('2026-09-08T18:40:00.000Z');
+  });
+
+  it('lo del cardio de otra sesión se ignora', () => {
+    const view = applyPendingWrites(activeSession, [
+      {
+        kind: 'start_cardio',
+        sessionId: NEW_SESSION_ID,
+        body: { startedAt: '2026-09-08T18:40:00.000Z' },
+      },
+    ]);
+
+    expect(view.session).toBe(activeSession);
+  });
+});
+
 describe('hasPendingWritesForSession', () => {
   it('reconoce la sesión por sus series, correcciones, borrados y cierre', () => {
     expect(hasPendingWritesForSession([logSet(QUEUED_SET_ID)], OPEN_ID)).toBe(true);
@@ -272,6 +329,20 @@ describe('withoutIdleSession', () => {
     expect(withoutIdleSession(current, at('2026-09-08T18:10:00.000Z', 30)).session?.id).toBe(
       OPEN_ID,
     );
+  });
+
+  it('con un cardio en marcha, también el encolado, la sesión sigue en curso pasada la hora', () => {
+    const fromWorker = applyPendingWrites(
+      { ...session, cardioStartedAt: '2026-09-08T18:20:00.000Z' },
+      [],
+    );
+    const queued = applyPendingWrites(session, [
+      { kind: 'start_cardio', sessionId: OPEN_ID, body: { startedAt: '2026-09-08T18:20:00.000Z' } },
+    ]);
+    const later = at('2026-09-08T18:20:00.000Z', SESSION_IDLE_LIMIT_MINUTES + 30);
+
+    expect(withoutIdleSession(fromWorker, later).session?.id).toBe(OPEN_ID);
+    expect(withoutIdleSession(queued, later).session?.id).toBe(OPEN_ID);
   });
 
   it('sin sesión abierta no hace nada', () => {

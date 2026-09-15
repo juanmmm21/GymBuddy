@@ -72,6 +72,10 @@ describe('sendSessionWrite', () => {
       jsonResponse({ set: activeSession.sets[0], records: [] }),
     );
     fake.on('DELETE', `${base}/sets/${setId}`, () => new Response(null, { status: 204 }));
+    fake.on('PUT', `${base}/cardio`, () =>
+      jsonResponse({ ...activeSession, cardioStartedAt: '2026-09-08T18:20:00.000Z' }),
+    );
+    fake.on('DELETE', `${base}/cardio`, () => new Response(null, { status: 204 }));
     fake.on('POST', `${base}/end`, () => jsonResponse(closed));
     const client = new ApiClient({ baseUrl: '', getToken: () => 'token', fetchImpl: fake.fetch });
 
@@ -101,6 +105,14 @@ describe('sendSessionWrite', () => {
       sendSessionWrite(client, { kind: 'remove_set', sessionId: activeSession.id, setId }),
     ).resolves.toBeNull();
     await sendSessionWrite(client, {
+      kind: 'start_cardio',
+      sessionId: activeSession.id,
+      body: { startedAt: '2026-09-08T18:20:00.000Z' },
+    });
+    await expect(
+      sendSessionWrite(client, { kind: 'cancel_cardio', sessionId: activeSession.id }),
+    ).resolves.toBeNull();
+    await sendSessionWrite(client, {
       kind: 'end_session',
       sessionId: activeSession.id,
       body: { endedAt: '2026-09-08T19:00:00.000Z' },
@@ -111,9 +123,12 @@ describe('sendSessionWrite', () => {
       `POST ${base}/sets`,
       `PATCH ${base}/sets/${setId}`,
       `DELETE ${base}/sets/${setId}`,
+      `PUT ${base}/cardio`,
+      `DELETE ${base}/cardio`,
       `POST ${base}/end`,
     ]);
     expect(fake.requests[1]?.body).toMatchObject({ completedAt: '2026-09-08T18:10:00.000Z' });
     expect(fake.requests[2]?.body).toEqual({ reps: 7 });
+    expect(fake.requests[4]?.body).toEqual({ startedAt: '2026-09-08T18:20:00.000Z' });
   });
 });

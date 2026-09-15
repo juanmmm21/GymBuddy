@@ -60,6 +60,7 @@ import {
   type RegistrationVerifyRequest,
   type Routine,
   type Session,
+  type StartCardioRequest,
   type StartSessionRequest,
   type UpdateRoutineRequest,
   type UpdateSetRequest,
@@ -336,6 +337,29 @@ export function updateSet(
     path: `/sessions/${encodeURIComponent(sessionId)}/sets/${encodeURIComponent(setId)}`,
     schema: logSetResponseSchema,
     body,
+  });
+}
+
+/** Empieza el cardio en marcha: mientras dura, la sesión no se cierra sola. Responde la sesión con él. */
+export function startCardio(
+  client: ApiClient,
+  sessionId: string,
+  body: StartCardioRequest,
+): Promise<WorkoutSessionDetail> {
+  return client.request({
+    method: 'PUT',
+    path: `/sessions/${encodeURIComponent(sessionId)}/cardio`,
+    schema: workoutSessionDetailSchema,
+    body,
+  });
+}
+
+/** Quita el cardio en marcha sin apuntarlo. 204 también si no había ninguno. */
+export function cancelCardio(client: ApiClient, sessionId: string): Promise<null> {
+  return client.request({
+    method: 'DELETE',
+    path: `/sessions/${encodeURIComponent(sessionId)}/cardio`,
+    schema: noContentSchema,
   });
 }
 

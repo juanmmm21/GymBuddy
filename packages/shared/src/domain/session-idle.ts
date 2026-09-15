@@ -38,7 +38,7 @@ export interface SessionActivity {
   /** Hora de cada serie de la sesión, en cualquier orden. */
   readonly setCompletedAts: readonly string[];
   /** Cuándo empezó el cardio que sigue en marcha; nulo o ausente si no hay ninguno. */
-  readonly cardioStartedAt?: string | null;
+  readonly cardioStartedAt?: string | null | undefined;
 }
 
 /**

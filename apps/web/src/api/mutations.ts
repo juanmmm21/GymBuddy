@@ -9,6 +9,7 @@ import type {
   PersonalRecord,
   ResourceId,
   Routine,
+  StartCardioRequest,
   StartSessionRequest,
   TrackedExercise,
   UpdateRoutineRequest,
@@ -17,6 +18,7 @@ import type {
   UpdateUserRequest,
   User,
   WorkoutSession,
+  WorkoutSessionDetail,
 } from '@gymbuddy/shared';
 import {
   useMutation,
@@ -26,6 +28,7 @@ import {
 } from '@tanstack/react-query';
 import { ApiRequestError, type ApiClient } from './client';
 import {
+  cancelCardio,
   createDeviceLink,
   createInvitation,
   createRoutine,
@@ -36,6 +39,7 @@ import {
   listTrackedExercises,
   logSet,
   removeSet,
+  startCardio,
   startSession,
   updateRoutine,
   updateSet,
@@ -266,6 +270,50 @@ export function useRemoveSet(): UseMutationResult<SubmitOutcome<null>, Error, Re
       queue.submit({ kind: 'remove_set', sessionId, setId }, () =>
         removeSet(client, sessionId, setId),
       ),
+    onSuccess: (outcome) => refreshIfSent(queryClient, outcome),
+  });
+}
+
+export interface StartCardioVariables {
+  readonly sessionId: ResourceId;
+  readonly body?: StartCardioRequest;
+}
+
+/**
+ * Empieza el cardio en marcha. La hora se sella al pulsar, como la de una serie: sin red llega
+ * tarde, y el cardio empezó cuando se pulsó, no cuando volvió la cobertura.
+ */
+export function useStartCardio(): UseMutationResult<
+  SubmitOutcome<WorkoutSessionDetail>,
+  Error,
+  StartCardioVariables
+> {
+  const client = useApiClient();
+  const queue = useWriteQueue();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    networkMode: 'always',
+    mutationFn: ({ sessionId, body: request = {} }: StartCardioVariables) => {
+      const body = { ...request, startedAt: request.startedAt ?? stampNow() };
+      return queue.submit({ kind: 'start_cardio', sessionId, body }, () =>
+        startCardio(client, sessionId, body),
+      );
+    },
+    onSuccess: (outcome) => refreshIfSent(queryClient, outcome),
+  });
+}
+
+/** Quita el cardio en marcha sin apuntarlo. */
+export function useCancelCardio(): UseMutationResult<SubmitOutcome<null>, Error, ResourceId> {
+  const client = useApiClient();
+  const queue = useWriteQueue();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    networkMode: 'always',
+    mutationFn: (sessionId: ResourceId) =>
+      queue.submit({ kind: 'cancel_cardio', sessionId }, () => cancelCardio(client, sessionId)),
     onSuccess: (outcome) => refreshIfSent(queryClient, outcome),
   });
 }

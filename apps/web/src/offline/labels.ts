@@ -13,6 +13,8 @@ const DROPPED_TITLES: Readonly<Record<SessionWriteKind, string>> = {
   log_set: 'No se guardó una serie',
   update_set: 'No se guardó una corrección',
   remove_set: 'No se borró una serie',
+  start_cardio: 'No se pudo empezar el cardio',
+  cancel_cardio: 'No se quitó el cardio en marcha',
   end_session: 'No se pudo cerrar la sesión',
 };
 

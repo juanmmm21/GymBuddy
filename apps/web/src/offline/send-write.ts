@@ -4,13 +4,21 @@ import {
   ApiTransportError,
   type ApiClient,
 } from '../api/client';
-import { endSession, logSet, removeSet, startSession, updateSet } from '../api/endpoints';
+import {
+  cancelCardio,
+  endSession,
+  logSet,
+  removeSet,
+  startCardio,
+  startSession,
+  updateSet,
+} from '../api/endpoints';
 import type { SessionWrite } from './pending-write';
 
 /**
- * Manda una escritura al Worker. Las cinco son repetibles sin duplicar nada —las altas por el
- * id del cliente, corregir porque manda los mismos valores, borrar y cerrar porque el Worker
- * responde igual la segunda vez—, y es lo que permite reenviarlas desde la cola sin miedo.
+ * Manda una escritura al Worker. Todas son repetibles sin duplicar nada —las altas por el
+ * id del cliente, corregir y empezar el cardio porque mandan los mismos valores, borrar, quitar el
+ * cardio y cerrar porque el Worker responde igual la segunda vez—, y es lo que permite reenviarlas desde la cola sin miedo.
  */
 export function sendSessionWrite(client: ApiClient, write: SessionWrite): Promise<unknown> {
   switch (write.kind) {
@@ -22,6 +30,10 @@ export function sendSessionWrite(client: ApiClient, write: SessionWrite): Promis
       return updateSet(client, write.sessionId, write.setId, write.body);
     case 'remove_set':
       return removeSet(client, write.sessionId, write.setId);
+    case 'start_cardio':
+      return startCardio(client, write.sessionId, write.body);
+    case 'cancel_cardio':
+      return cancelCardio(client, write.sessionId);
     case 'end_session':
       return endSession(client, write.sessionId, write.body);
   }

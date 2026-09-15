@@ -1,4 +1,5 @@
 import {
+  endsCardioInProgress,
   idleSessionEndAt,
   type ResourceId,
   type SetEntry,
@@ -15,7 +16,7 @@ export interface SessionWithPendingWrites {
 
 /**
  * La sesión deja de estar en curso si lleva una hora sin actividad (ADR 0008), contando las
- * series que esperan en la cola. Es la misma regla con la que el Worker la cierra, aplicada en el
+ * series que esperan en la cola y sin contar el tiempo de un cardio en marcha. Es la misma regla con la que el Worker la cierra, aplicada en el
  * móvil: sin cobertura el Worker no puede avisar, y quien vuelve tras un rato largo tiene que ver
  * «Empezar» y no una sesión en la que su siguiente serie ya no entraría. Lo encolado de esa sesión
  * sigue en la cola y llega igual: el Worker la reabre si continúa su actividad.
@@ -28,7 +29,11 @@ export function withoutIdleSession(
   if (session === null || session.endedAt !== null) return current;
 
   const endedAt = idleSessionEndAt(
-    { startedAt: session.startedAt, setCompletedAts: session.sets.map((set) => set.completedAt) },
+    {
+      startedAt: session.startedAt,
+      setCompletedAts: session.sets.map((set) => set.completedAt),
+      cardioStartedAt: session.cardioStartedAt,
+    },
     now,
   );
 
@@ -75,6 +80,7 @@ export function applyPendingWrites(
             endedAt: null,
             notes: write.body.notes ?? null,
             sets: [],
+            cardioStartedAt: null,
           };
         }
         break;
@@ -101,6 +107,15 @@ export function applyPendingWrites(
                 }
               : { ...base, kind: 'strength', weight: body.weight, reps: body.reps };
           current = { ...current, sets: [...current.sets, entry] };
+          // Igual que en el Worker: apuntar el cardio termina el que estaba en marcha.
+          if (
+            entry.kind === 'cardio' &&
+            current.cardioStartedAt !== null &&
+            current.cardioStartedAt !== undefined &&
+            endsCardioInProgress(current.cardioStartedAt, entry.completedAt)
+          ) {
+            current = { ...current, cardioStartedAt: null };
+          }
         }
         pendingSetIds.add(body.id);
         break;
@@ -125,6 +140,16 @@ export function applyPendingWrites(
         pendingSetIds.delete(setId);
         break;
       }
+
+      case 'start_cardio':
+        if (current?.id === write.sessionId) {
+          current = { ...current, cardioStartedAt: write.body.startedAt };
+        }
+        break;
+
+      case 'cancel_cardio':
+        if (current?.id === write.sessionId) current = { ...current, cardioStartedAt: null };
+        break;
 
       case 'end_session':
         // Cerrada, deja de ser la sesión en curso aunque el Worker aún no lo sepa.
