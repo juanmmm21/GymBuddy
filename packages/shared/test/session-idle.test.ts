@@ -5,6 +5,7 @@ import {
   cardioKeepsSessionAlive,
   cardioSetStartedAt,
   continuesIdleSession,
+  endsCardioInProgress,
   idleSessionEndAt,
   lastSessionActivityAt,
 } from '../src/domain/session-idle';
@@ -171,5 +172,23 @@ describe('cardioSetStartedAt', () => {
 
     expect(continuesIdleSession(endedAt, loggedAt)).toBe(false);
     expect(continuesIdleSession(endedAt, cardioSetStartedAt(loggedAt, 1_800))).toBe(true);
+  });
+});
+
+describe('endsCardioInProgress', () => {
+  const cardioStartedAt = '2026-09-14T11:00:00.000Z';
+
+  it('un cardio apuntado después de empezar el que corre lo apaga', () => {
+    expect(endsCardioInProgress(cardioStartedAt, '2026-09-14T11:30:00.000Z')).toBe(true);
+    expect(endsCardioInProgress(cardioStartedAt, cardioStartedAt)).toBe(true);
+  });
+
+  it('uno que terminó antes, llegado tarde de la cola, no lo apaga', () => {
+    expect(endsCardioInProgress(cardioStartedAt, '2026-09-14T10:50:00.000Z')).toBe(false);
+    expect(endsCardioInProgress(cardioStartedAt, '2026-09-14T12:50:00.000+02:00')).toBe(false);
+  });
+
+  it('con una hora ilegible lo apaga: mejor que dejar un cardio corriendo sin fin', () => {
+    expect(endsCardioInProgress('no es una fecha', cardioStartedAt)).toBe(true);
   });
 });

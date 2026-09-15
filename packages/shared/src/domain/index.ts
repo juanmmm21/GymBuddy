@@ -79,6 +79,7 @@ export {
   cardioKeepsSessionAlive,
   cardioSetStartedAt,
   continuesIdleSession,
+  endsCardioInProgress,
   idleSessionEndAt,
   lastSessionActivityAt,
 } from './session-idle';

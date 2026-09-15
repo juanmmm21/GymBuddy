@@ -122,3 +122,16 @@ export function cardioSetStartedAt(completedAt: string, durationSeconds: number)
 
   return new Date(completedInstant - durationSeconds * 1000).toISOString();
 }
+
+/**
+ * Si una serie de cardio que terminó a `completedAt` es la del cardio en marcha, y por tanto lo
+ * apaga. Una que terminó antes de que ese cardio empezara es otra —una vieja que llega tarde de la
+ * cola— y no puede dar por acabado el que sigue corriendo.
+ */
+export function endsCardioInProgress(cardioStartedAt: string, completedAt: string): boolean {
+  const startedInstant = Date.parse(cardioStartedAt);
+  const completedInstant = Date.parse(completedAt);
+  if (Number.isNaN(startedInstant) || Number.isNaN(completedInstant)) return true;
+
+  return completedInstant >= startedInstant;
+}
