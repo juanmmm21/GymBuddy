@@ -11,12 +11,13 @@ import {
   type SessionTopSet,
   type TrackedExercise,
   type UpdateTrackedExerciseRequest,
+  type LastCardioSet,
   type LastSet,
   type WorkingWeight,
 } from '@gymbuddy/shared';
 import { and, eq, getTableColumns, inArray, isNull } from 'drizzle-orm';
 import type { Database } from '../db/client';
-import { listLastEffectiveSets, listTopSetsPerSession } from '../db/queries';
+import { listLastCardioSets, listLastEffectiveSets, listTopSetsPerSession } from '../db/queries';
 import { catalogExercise, trackedExercise, type TrackedExerciseRow } from '../db/schema';
 import { ApiException } from '../http/errors';
 
@@ -56,25 +57,17 @@ export async function listTrackedExercises(
     ? eq(trackedExercise.userId, userId)
     : and(eq(trackedExercise.userId, userId), isNull(trackedExercise.archivedAt));
 
-  const [rows, workingWeights, lastSets] = await Promise.all([
+  const [rows, progress] = await Promise.all([
     db
       .select({ exercise: getTableColumns(trackedExercise), catalog: catalogColumns })
       .from(trackedExercise)
       .leftJoin(catalogExercise, eq(trackedExercise.catalogId, catalogExercise.catalogId))
       .where(filter)
       .orderBy(trackedExercise.createdAt),
-    findWorkingWeightsByExercise(db, userId),
-    findLastSetsByExercise(db, userId),
+    findProgressByExercise(db, userId),
   ]);
 
-  return rows.map((row) =>
-    toTrackedExercise(
-      row,
-      options.locale,
-      workingWeights.get(row.exercise.id),
-      lastSets.get(row.exercise.id),
-    ),
-  );
+  return rows.map((row) => toTrackedExercise(row, options.locale, progress));
 }
 
 export async function findTrackedExercise(
@@ -86,12 +79,9 @@ export async function findTrackedExercise(
   const row = await findTrackedExerciseJoin(db, userId, exerciseId);
   if (row === null) return null;
 
-  const [workingWeights, lastSets] = await Promise.all([
-    findWorkingWeightsByExercise(db, userId, exerciseId),
-    findLastSetsByExercise(db, userId, exerciseId),
-  ]);
+  const progress = await findProgressByExercise(db, userId, exerciseId);
 
-  return toTrackedExercise(row, locale, workingWeights.get(exerciseId), lastSets.get(exerciseId));
+  return toTrackedExercise(row, locale, progress);
 }
 
 /**
@@ -153,13 +143,10 @@ export async function createTrackedExercise(
     });
   }
 
-  const [workingWeights, lastSets] = await Promise.all([
-    findWorkingWeightsByExercise(db, userId, row.id),
-    findLastSetsByExercise(db, userId, row.id),
-  ]);
+  const progress = await findProgressByExercise(db, userId, row.id);
 
   return {
-    exercise: toTrackedExercise(existing, locale, workingWeights.get(row.id), lastSets.get(row.id)),
+    exercise: toTrackedExercise(existing, locale, progress),
     created: false,
   };
 }
@@ -301,6 +288,27 @@ export function exerciseNotFound(exerciseId: string): ApiException {
   return new ApiException('not_found', `No existe el ejercicio "${exerciseId}"`);
 }
 
+/** Lo que el historial dice de cada ejercicio: lo que precarga el registro y responde la ficha. */
+interface ExerciseProgress {
+  readonly workingWeights: ReadonlyMap<string, WorkingWeight>;
+  readonly lastSets: ReadonlyMap<string, LastSet>;
+  readonly lastCardioSets: ReadonlyMap<string, LastCardioSet>;
+}
+
+async function findProgressByExercise(
+  db: Database,
+  userId: string,
+  exerciseId?: string,
+): Promise<ExerciseProgress> {
+  const [workingWeights, lastSets, lastCardioSets] = await Promise.all([
+    findWorkingWeightsByExercise(db, userId, exerciseId),
+    findLastSetsByExercise(db, userId, exerciseId),
+    findLastCardioSetsByExercise(db, userId, exerciseId),
+  ]);
+
+  return { workingWeights, lastSets, lastCardioSets };
+}
+
 /**
  * El peso habitual de cada ejercicio del usuario. La consulta trae la serie más pesada de
  * las cinco últimas sesiones de cada ejercicio —cinco filas por ejercicio, no su historial
@@ -360,6 +368,26 @@ async function findLastSetsByExercise(
       {
         weight: formatGramsAsKilograms(row.weightGrams),
         reps: row.reps,
+        completedAt: row.completedAt,
+      },
+    ]),
+  );
+}
+
+/** La última serie de cardio de cada ejercicio: precarga la duración al registrar cardio. */
+async function findLastCardioSetsByExercise(
+  db: Database,
+  userId: string,
+  exerciseId?: string,
+): Promise<Map<string, LastCardioSet>> {
+  const rows = await listLastCardioSets(db, userId, exerciseId);
+
+  return new Map(
+    rows.map((row) => [
+      row.trackedExerciseId,
+      {
+        durationSeconds: row.durationSeconds,
+        distanceMeters: row.distanceMeters,
         completedAt: row.completedAt,
       },
     ]),
@@ -435,8 +463,7 @@ function describesSameExercise(stored: TrackedExerciseRow, incoming: TrackedExer
 function toTrackedExercise(
   row: TrackedExerciseJoin,
   locale: Locale,
-  workingWeight: WorkingWeight | undefined,
-  lastSet: LastSet | undefined,
+  progress: ExerciseProgress,
 ): TrackedExercise {
   const { exercise, catalog } = row;
   const fromCatalog = exercise.catalogId !== null && catalog !== null;
@@ -455,8 +482,9 @@ function toTrackedExercise(
     gifUrl: fromCatalog ? catalog.gifUrl : null,
     equipment: fromCatalog ? catalog.equipment : null,
     notes: exercise.notes,
-    workingWeight: workingWeight ?? null,
-    lastSet: lastSet ?? null,
+    workingWeight: progress.workingWeights.get(exercise.id) ?? null,
+    lastSet: progress.lastSets.get(exercise.id) ?? null,
+    lastCardioSet: progress.lastCardioSets.get(exercise.id) ?? null,
     createdAt: exercise.createdAt,
     archivedAt: exercise.archivedAt,
   };

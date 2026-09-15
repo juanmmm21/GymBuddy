@@ -343,6 +343,60 @@ export async function listLastEffectiveSets(
     .where(sql`${ranked.position} = 1`);
 }
 
+export interface LastCardioSetRow {
+  trackedExerciseId: string;
+  durationSeconds: number;
+  distanceMeters: number | null;
+  completedAt: string;
+}
+
+/**
+ * La última serie de cardio de cada ejercicio, sin calentamiento, con el mismo orden y los mismos
+ * desempates que `listLastEffectiveSets`. Va en otra consulta y no en una ventana por tipo porque
+ * cada una lee columnas distintas y así ninguna tiene que devolver nulos que el tipo no espera.
+ */
+export async function listLastCardioSets(
+  db: Database,
+  userId: string,
+  trackedExerciseId?: string,
+): Promise<LastCardioSetRow[]> {
+  const ranked = db
+    .select({
+      trackedExerciseId: setEntry.trackedExerciseId,
+      // La restricción `set_entry_kind_shape` garantiza la duración en una serie de cardio.
+      durationSeconds: sql<number>`${setEntry.durationSeconds}`.as('duration_seconds'),
+      distanceMeters: setEntry.distanceMeters,
+      completedAt: setEntry.completedAt,
+      position:
+        sql<number>`row_number() over (partition by ${setEntry.trackedExerciseId} order by ${setEntry.completedAt} desc, ${setEntry.orderIndex} desc, ${setEntry.id} desc)`.as(
+          'position',
+        ),
+    })
+    .from(setEntry)
+    .innerJoin(workoutSession, eq(workoutSession.id, setEntry.sessionId))
+    .where(
+      and(
+        eq(workoutSession.userId, userId),
+        eq(setEntry.kind, 'cardio'),
+        eq(setEntry.isWarmup, false),
+        trackedExerciseId === undefined
+          ? undefined
+          : eq(setEntry.trackedExerciseId, trackedExerciseId),
+      ),
+    )
+    .as('ranked_cardio');
+
+  return db
+    .select({
+      trackedExerciseId: ranked.trackedExerciseId,
+      durationSeconds: ranked.durationSeconds,
+      distanceMeters: ranked.distanceMeters,
+      completedAt: ranked.completedAt,
+    })
+    .from(ranked)
+    .where(sql`${ranked.position} = 1`);
+}
+
 /**
  * Las marcas del historial de un ejercicio, saltándose una serie concreta. La exclusión es
  * lo que permite preguntar "¿qué había antes de esta?" cuando la serie ya está insertada,

@@ -52,6 +52,7 @@ export const benchPress: TrackedExercise = {
     sessionCount: 5,
   },
   lastSet: { weight: '80.00', reps: 6, completedAt: '2026-09-06T18:45:00.000Z' },
+  lastCardioSet: null,
   createdAt: '2026-08-01T10:00:00.000Z',
   archivedAt: null,
 };
@@ -68,6 +69,7 @@ export const customCurl: TrackedExercise = {
   notes: null,
   workingWeight: null,
   lastSet: null,
+  lastCardioSet: null,
   createdAt: '2026-08-02T10:00:00.000Z',
   archivedAt: null,
 };
@@ -274,6 +276,7 @@ export const squat: TrackedExercise = {
     sessionCount: 1,
   },
   lastSet: { weight: '100.00', reps: 5, completedAt: '2026-09-04T18:30:00.000Z' },
+  lastCardioSet: null,
   createdAt: '2026-08-03T10:00:00.000Z',
   archivedAt: null,
 };

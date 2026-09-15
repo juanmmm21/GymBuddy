@@ -241,6 +241,48 @@ describe('series de cardio', () => {
     ]);
   });
 
+  it('la ficha lleva la última serie de cardio sin calentamiento, y la de fuerza no la mezcla', async () => {
+    await postSet(cardioBody({ durationSeconds: 1_200, distanceMeters: 3_000 }));
+    await postSet(cardioBody({ durationSeconds: 1_500, distanceMeters: undefined }));
+    await postSet(cardioBody({ durationSeconds: 300, isWarmup: true }));
+    await postSet({ id: uuid(), trackedExerciseId: benchId, weight: '80.00', reps: 8 });
+
+    const listResponse = await call({ method: 'GET', path: '/exercises', token });
+    const list = trackedExerciseSchema.array().parse(await listResponse.json());
+    const treadmill = list.find((exercise) => exercise.id === treadmillId);
+    const bench = list.find((exercise) => exercise.id === benchId);
+    expect(treadmill?.lastCardioSet).toMatchObject({
+      durationSeconds: 1_500,
+      distanceMeters: null,
+    });
+    expect(treadmill?.lastSet).toBeNull();
+    expect(bench?.lastCardioSet).toBeNull();
+
+    const detailResponse = await call({ method: 'GET', path: `/exercises/${treadmillId}`, token });
+    const detail = trackedExerciseSchema.parse(await detailResponse.json());
+    expect(detail.lastCardioSet).toEqual(treadmill?.lastCardioSet);
+  });
+
+  it('la última serie de cardio es de cada cuenta', async () => {
+    await postSet(cardioBody());
+    const otherToken = await bearer(otherUserId);
+    const otherTreadmillId = uuid();
+    await call({
+      method: 'POST',
+      path: '/exercises',
+      token: otherToken,
+      body: { id: otherTreadmillId, origin: 'custom', name: 'Cinta', bodyPart: 'cardio' },
+    });
+
+    const response = await call({
+      method: 'GET',
+      path: `/exercises/${otherTreadmillId}`,
+      token: otherToken,
+    });
+
+    expect(trackedExerciseSchema.parse(await response.json()).lastCardioSet).toBeNull();
+  });
+
   it('un ejercicio de solo cardio no tiene peso habitual ni puntos en la gráfica', async () => {
     await postSet(cardioBody());
 
