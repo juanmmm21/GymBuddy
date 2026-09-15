@@ -7,6 +7,7 @@ import {
   type AdjustedRoutineItem,
   type RoutineLineAdjustment,
 } from './routine-adjustments';
+import { latestSet } from './summary';
 
 /** Una línea de la rutina con las series de la sesión que le han tocado. */
 export interface RoutineLineProgress {
@@ -155,19 +156,4 @@ function currentLine(
   if (touched !== undefined && !touched.complete) return touched;
 
   return lines.find((line) => !line.complete) ?? null;
-}
-
-/** La serie más reciente por hora, comparando instantes: la cola puede dejarlas desordenadas. */
-function latestSet(sets: readonly SetEntry[]): SetEntry | null {
-  let latest: SetEntry | null = null;
-  let latestTime = Number.NEGATIVE_INFINITY;
-
-  for (const set of sets) {
-    const time = Date.parse(set.completedAt);
-    if (Number.isNaN(time) || time < latestTime) continue;
-    latest = set;
-    latestTime = time;
-  }
-
-  return latest;
 }

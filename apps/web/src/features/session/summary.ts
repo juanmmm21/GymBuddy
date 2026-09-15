@@ -77,22 +77,26 @@ export function summarizeSession(sets: readonly SetEntry[]): SessionTotals {
 }
 
 /**
- * Cuándo se registró la última serie, que es desde cuándo se está descansando. Se compara
- * por instante y no por texto: dos móviles de la misma cuenta pueden mandar el suyo con
- * otra zona horaria, y el orden lexicográfico solo coincide con el cronológico en una.
+ * La serie más reciente por hora. Se compara por instante y no por texto: dos móviles de la
+ * misma cuenta pueden mandar el suyo con otra zona horaria, y el orden lexicográfico solo
+ * coincide con el cronológico en una. Con la cola offline encima pueden llegar desordenadas;
+ * a igual hora gana la que va después en la lista.
  */
-export function latestSetCompletedAt(sets: readonly SetEntry[]): string | null {
-  let latest: string | null = null;
+export function latestSet(sets: readonly SetEntry[]): SetEntry | null {
+  let latest: SetEntry | null = null;
   let latestTime = Number.NEGATIVE_INFINITY;
 
   for (const set of sets) {
     const time = Date.parse(set.completedAt);
-    if (Number.isNaN(time)) continue;
-    if (time > latestTime) {
-      latest = set.completedAt;
-      latestTime = time;
-    }
+    if (Number.isNaN(time) || time < latestTime) continue;
+    latest = set;
+    latestTime = time;
   }
 
   return latest;
+}
+
+/** Cuándo se registró la última serie, que es desde cuándo se está descansando. */
+export function latestSetCompletedAt(sets: readonly SetEntry[]): string | null {
+  return latestSet(sets)?.completedAt ?? null;
 }
