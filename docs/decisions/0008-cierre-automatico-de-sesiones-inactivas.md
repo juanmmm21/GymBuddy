@@ -40,3 +40,15 @@ Juan entrenó con la regla y **veinte minutos cortaban entrenamientos de verdad*
 *   **Un cardio en marcha tiene que contar como actividad** y no dejar que la sesión se cierre mientras dura. Hoy no existe: una serie es peso y repeticiones, y el cardio con duración es otra petición de Juan todavía por hacer. Cuando llegue, `SessionActivity` tendrá que incluir el cardio en curso además de las horas de las series, en la misma función pura, para que el Worker y la PWA lo sigan decidiendo igual.
 
 Consecuencia: una sesión olvidada queda abierta hasta una hora antes de cerrarse sola, pero la duración no se estropea, porque la hora de cierre sigue siendo la de la última serie.
+
+## Revisión — 2026-09-15: el cardio en marcha, construido
+
+El cardio se apunta al acabarlo, con su duración, así que mientras dura no llega nada al Worker. Para que no cuente como inactividad, **la sesión guarda cuándo empezó el cardio en marcha**:
+
+*   **`workout_session.cardio_started_at`** (migración 0009) lo fija `PUT /sessions/{id}/cardio` —con la hora del móvil, como una serie— y lo quita `DELETE /sessions/{id}/cardio` (204 aunque no hubiera ninguno). El detalle de la sesión lo expone como `cardioStartedAt`. Pasa por la cola offline igual que las series.
+*   **La regla sigue siendo una sola función pura** (`idleSessionEndAt` en `packages/shared/src/domain/session-idle.ts`): empezar el cardio es actividad, y mientras está en marcha la sesión no se cierra. **Tiene tope: `CARDIO_IN_PROGRESS_LIMIT_MINUTES` (180)**. Un cardio olvidado no puede dejar la sesión abierta para siempre: pasadas tres horas desde que empezó, la sesión se cierra sola a la hora en que empezó ese cardio, su última actividad conocida.
+*   **Apuntar una serie de cardio lo termina** si acabó después de que empezara (`endsCardioInProgress`): una vieja que llega tarde de la cola no apaga el que sigue corriendo. Cerrar la sesión, a mano o sola, también lo quita.
+*   **Una serie de cardio de la cola continúa la sesión desde que empezó** (`cardioSetStartedAt`: su hora menos su duración), no desde que se apuntó. Así, cien minutos de bici hechos sin cobertura reabren la sesión que el Worker había dado por cerrada, si empezaron dentro del margen.
+*   **En la PWA**, «Empezar cardio» (en la sesión y en «Terminar sesión») lo pone en marcha; la tarjeta «Cardio en marcha» ocupa el sitio del descanso con su cronómetro, y «Apuntar cardio» abre el registro con el tiempo que lleva, redondeado al minuto.
+
+Consecuencia: con un cardio en marcha, otro móvil ve la sesión abierta hasta tres horas. Es el precio de no cortar un cardio largo, y el tope es una constante del dominio compartido.
