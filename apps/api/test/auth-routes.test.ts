@@ -91,6 +91,73 @@ describe('rutas que exigen sesión', () => {
   });
 });
 
+describe('cambiar el propio perfil', () => {
+  let db: Database;
+
+  const patchMe = (token: string | null, body: unknown): Promise<Response> =>
+    Promise.resolve(
+      app.request(
+        `${BASE}/auth/me`,
+        {
+          method: 'PATCH',
+          headers: {
+            'content-type': 'application/json',
+            ...(token === null ? {} : { authorization: `Bearer ${token}` }),
+          },
+          body: JSON.stringify(body),
+        },
+        authEnv(),
+      ),
+    );
+
+  beforeEach(async () => {
+    db = createDatabase(env.DB);
+    await db.delete(user);
+    await seedUser(db);
+  });
+
+  it('cambia el nombre, lo recorta y lo devuelve con el resto del perfil', async () => {
+    const { token } = await issueSessionToken(USER_ID, JWT_SECRET, new Date());
+
+    const response = await patchMe(token, { displayName: '  Juanma  ' });
+
+    expect(response.status).toBe(200);
+    const profile = userSchema.parse(await response.json());
+    expect(profile).toMatchObject({ id: USER_ID, displayName: 'Juanma', locale: 'es' });
+
+    const me = await app.request(`${BASE}/auth/me`, bearer(token), authEnv());
+    expect(userSchema.parse(await me.json()).displayName).toBe('Juanma');
+  });
+
+  it('un cuerpo vacío no cambia nada y devuelve el perfil', async () => {
+    const { token } = await issueSessionToken(USER_ID, JWT_SECRET, new Date());
+
+    const response = await patchMe(token, {});
+
+    expect(response.status).toBe(200);
+    expect(userSchema.parse(await response.json()).displayName).toBe('Juan');
+  });
+
+  it('rechaza un nombre vacío sin tocar el guardado', async () => {
+    const { token } = await issueSessionToken(USER_ID, JWT_SECRET, new Date());
+
+    const response = await patchMe(token, { displayName: '   ' });
+
+    expect(response.status).toBe(400);
+    expect(apiErrorSchema.parse(await response.json()).error.code).toBe('validation_failed');
+    const [row] = await db.select().from(user);
+    expect(row?.displayName).toBe('Juan');
+  });
+
+  it('sin sesión no cambia nada', async () => {
+    const response = await patchMe(null, { displayName: 'Otro' });
+
+    expect(response.status).toBe(401);
+    const [row] = await db.select().from(user);
+    expect(row?.displayName).toBe('Juan');
+  });
+});
+
 describe('la sesión se renueva al usarse', () => {
   const daysAgo = (days: number): Date => new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
