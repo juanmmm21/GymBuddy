@@ -235,7 +235,9 @@ describe('búsqueda del catálogo', () => {
   });
 
   it('rechaza en la búsqueda un músculo de otra parte del cuerpo y una parte que no existe', async () => {
-    const mismatch = await getJson('/catalog/search?q=lateral&bodyPart=legs&muscle=levator-scapulae');
+    const mismatch = await getJson(
+      '/catalog/search?q=lateral&bodyPart=legs&muscle=levator-scapulae',
+    );
     const unknown = await getJson('/catalog/search?q=lateral&bodyPart=pectorals');
 
     expect(mismatch.status).toBe(400);
