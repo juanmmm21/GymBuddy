@@ -1,4 +1,4 @@
-import type { CatalogFilters } from '@gymbuddy/shared';
+import type { CatalogSearchFilters } from '@gymbuddy/shared';
 import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
@@ -296,7 +296,7 @@ describe('búsqueda libre', () => {
     expect(await ids('face pull espalda pecho pierna brazos')).toEqual([]);
   });
 
-  const filtered = async (query: string, filters: CatalogFilters) =>
+  const filtered = async (query: string, filters: CatalogSearchFilters) =>
     (await searchCatalogExercises(db, { query, filters, locale: 'es', limit: 20 })).map(
       (item) => item.catalogId,
     );
@@ -324,6 +324,14 @@ describe('búsqueda libre', () => {
     ]);
   });
 
+  it('la parte del cuerpo recorta lo que casa con el texto: «remo» de espalda, sin el de hombros', async () => {
+    expect(await ids('remo')).toHaveLength(2);
+    expect(await filtered('remo', { bodyPart: 'back' })).toEqual(['upper-back/cable-seated-row']);
+    expect(await filtered('remo', { bodyPart: 'shoulders' })).toEqual([
+      'delts/cable-standing-rear-delt-row-with-rope',
+    ]);
+  });
+
   it('los dos filtros se suman, y si no casa nada la lista sale vacía', async () => {
     expect(await filtered('hip thrust', { equipment: 'band', muscle: 'glutes' })).toEqual([
       'glutes/band-hip-thrust',
@@ -331,9 +339,10 @@ describe('búsqueda libre', () => {
     expect(await filtered('hip thrust', { equipment: 'band', muscle: 'quads' })).toEqual([]);
   });
 
-  it('seis palabras con alias, partes del cuerpo y los dos filtros siguen cabiendo en D1', async () => {
+  it('seis palabras con alias, partes del cuerpo y los tres filtros siguen cabiendo en D1', async () => {
     expect(
       await filtered('face pull espalda pecho pierna brazos', {
+        bodyPart: 'shoulders',
         equipment: 'machine',
         muscle: 'delts',
       }),

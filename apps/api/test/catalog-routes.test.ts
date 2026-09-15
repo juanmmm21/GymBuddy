@@ -223,6 +223,31 @@ describe('búsqueda del catálogo', () => {
     ]);
   });
 
+  it('filtra la búsqueda por una parte del cuerpo entera', async () => {
+    const back = await getJson('/catalog/search?q=lateral&bodyPart=back');
+    const chest = await getJson('/catalog/search?q=lateral&bodyPart=chest');
+
+    expect(back.status).toBe(200);
+    expect(summaryListSchema.parse(back.body).map((item) => item.catalogId)).toEqual([
+      'levator-scapulae/neck-side-stretch',
+    ]);
+    expect(summaryListSchema.parse(chest.body)).toEqual([]);
+  });
+
+  it('rechaza en la búsqueda un músculo de otra parte del cuerpo y una parte que no existe', async () => {
+    const mismatch = await getJson('/catalog/search?q=lateral&bodyPart=legs&muscle=levator-scapulae');
+    const unknown = await getJson('/catalog/search?q=lateral&bodyPart=pectorals');
+
+    expect(mismatch.status).toBe(400);
+    const error = apiErrorSchema.parse(mismatch.body).error;
+    expect(error.code).toBe('validation_failed');
+    expect(error.detail).toEqual([
+      { path: 'muscle', message: 'Ese músculo no es de la parte del cuerpo "legs"' },
+    ]);
+    expect(unknown.status).toBe(400);
+    expect(apiErrorSchema.parse(unknown.body).error.code).toBe('validation_failed');
+  });
+
   it('devuelve una lista vacía cuando no hay coincidencias', async () => {
     const { body } = await getJson('/catalog/search?q=zancada%20bulgara');
 
