@@ -148,7 +148,7 @@ describe('sesión en curso', () => {
     await user.click(screen.getAllByRole('button', { name: 'Registrar serie' })[1] as HTMLElement);
 
     expect(await screen.findByText('1 marca nueva')).toBeInTheDocument();
-    expect(screen.getByText('Peso máximo: 90 kg')).toBeInTheDocument();
+    expect(screen.getByText('Press de banca · Peso máximo: 90 kg')).toBeInTheDocument();
 
     // La serie aparece en la lista: registrarla invalida la sesión y se relee.
     await waitFor(() => {
@@ -163,6 +163,70 @@ describe('sesión en curso', () => {
     expect(body.rpe).toBeNull();
     expect(body.isWarmup).toBe(false);
     expect(body.id).toMatch(UUID);
+  });
+
+  it('dos series seguidas que baten la misma marca dejan solo la mejor, también al terminar', async () => {
+    const user = userEvent.setup();
+    let current = activeSession;
+    renderApp({
+      path: '/session',
+      session,
+      setup: (fake) => {
+        fake.on('GET', '/sessions/active', () => jsonResponse({ session: current }));
+        fake.on('GET', '/exercises', () => jsonResponse([benchPress, squat]));
+        fake.on('POST', `/sessions/${activeSession.id}/sets`, (request) => {
+          const body = request.body as LogSetRequest;
+          const entry = {
+            id: body.id,
+            trackedExerciseId: body.trackedExerciseId,
+            orderIndex: current.sets.length,
+            weight: body.weight,
+            reps: body.reps,
+            rpe: body.rpe ?? null,
+            isWarmup: body.isWarmup ?? false,
+            completedAt: new Date().toISOString(),
+          };
+          current = { ...current, sets: [...current.sets, entry] };
+          // Cada serie sube el listón: la primera pone 90 kg y la segunda, 92,5 kg.
+          const value = current.sets.length === 2 ? '90.00' : '92.50';
+          return jsonResponse({
+            set: entry,
+            records: [
+              {
+                ...newMaxWeightRecord,
+                id: body.id,
+                setEntryId: body.id,
+                value,
+                achievedAt: new Date().toISOString(),
+              },
+            ],
+          });
+        });
+      },
+    });
+
+    for (let logged = 0; logged < 2; logged += 1) {
+      await user.click(await screen.findByRole('button', { name: 'Registrar serie' }));
+      await user.click(
+        screen.getAllByRole('button', { name: 'Registrar serie' })[1] as HTMLElement,
+      );
+      await waitFor(() => {
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      });
+    }
+
+    expect(await screen.findByText('Press de banca · Peso máximo: 92,5 kg')).toBeInTheDocument();
+    expect(screen.getByText('1 marca nueva')).toBeInTheDocument();
+    expect(screen.queryByText('Press de banca · Peso máximo: 90 kg')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Terminar sesión' }));
+
+    const summary = await screen.findByRole('dialog', { name: 'Terminar sesión' });
+    expect(within(summary).getByText('1 marca nueva')).toBeInTheDocument();
+    expect(within(summary).getByText('Press de banca · Peso máximo: 92,5 kg')).toBeInTheDocument();
+    expect(
+      within(summary).queryByText('Press de banca · Peso máximo: 90 kg'),
+    ).not.toBeInTheDocument();
   });
 
   it('el descanso es una cuenta atrás que se queda en 0:00 al cumplirse', async () => {
@@ -456,7 +520,7 @@ describe('corregir una serie desde la sesión', () => {
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
 
     expect(await screen.findByText('1 marca nueva')).toBeInTheDocument();
-    expect(screen.getByText('Peso máximo: 90 kg')).toBeInTheDocument();
+    expect(screen.getByText('Press de banca · Peso máximo: 90 kg')).toBeInTheDocument();
   });
 
   it('borra la serie y la sesión se queda sin ella', async () => {
