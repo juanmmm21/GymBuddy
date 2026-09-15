@@ -249,6 +249,9 @@ export const workoutSession = sqliteTable(
       .notNull()
       .default(false),
     notes: text('notes'),
+    // Cuándo empezó el cardio que sigue en marcha (revisión del ADR 0008): mientras dura, la sesión
+    // no se cierra sola. Se borra al apuntar un cardio y al cerrar la sesión.
+    cardioStartedAt: isoTimestamp('cardio_started_at'),
   },
   (table) => [index('workout_session_user_started_idx').on(table.userId, table.startedAt)],
 );
