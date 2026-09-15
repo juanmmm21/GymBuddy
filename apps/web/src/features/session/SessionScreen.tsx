@@ -5,6 +5,7 @@ import type {
   Routine,
   SetEntry,
   TrackedExercise,
+  WeightUnit,
   WorkoutSessionDetail,
 } from '@gymbuddy/shared';
 import { useState } from 'react';
@@ -22,6 +23,7 @@ import {
   formatRpe,
   formatStopwatch,
   formatTime,
+  formatSetWeightLabel,
   formatWeightLabel,
   pluralize,
 } from '../../lib/format';
@@ -32,6 +34,13 @@ import { RECORD_LABELS } from '../exercises/labels';
 import { LiveMascot } from '../mascot/LiveMascot';
 import { openSessionSignals, sessionDeviceSignals } from '../mascot/mascot-signals';
 import { describeRoutineSize } from '../routines/items';
+import {
+  loadWeightUnits,
+  saveWeightUnits,
+  weightUnitFor,
+  withWeightUnit,
+  type WeightUnitsByExercise,
+} from '../exercises/weight-unit-store';
 import { EditSetSheet } from './EditSetSheet';
 import { EndSessionSheet } from './EndSessionSheet';
 import { LogSetSheet } from './LogSetSheet';
@@ -92,6 +101,7 @@ export function SessionScreen() {
   const storage = useStorage();
   // Se lee una vez al montar y se guarda en el mismo toque que lo cambia: sin efectos.
   const [restPreferences, setRestPreferences] = useState(() => loadRestPreferences(storage));
+  const [weightUnits, setWeightUnits] = useState(() => loadWeightUnits(storage));
   const [records, setRecords] = useState<readonly PersonalRecord[]>([]);
 
   const handleLogged = (fresh: readonly PersonalRecord[]): void => {
@@ -137,6 +147,12 @@ export function SessionScreen() {
                     const next = withRestTarget(restPreferences, kind, seconds);
                     setRestPreferences(next);
                     saveRestPreferences(storage, next);
+                  }}
+                  weightUnits={weightUnits}
+                  onWeightUnitChange={(exerciseId, unit) => {
+                    const next = withWeightUnit(weightUnits, exerciseId, unit);
+                    setWeightUnits(next);
+                    saveWeightUnits(storage, next);
                   }}
                   onOpenLog={(exerciseId) => {
                     setLogging({ exerciseId });
@@ -258,6 +274,8 @@ interface ActiveSessionProps {
   readonly ending: boolean;
   readonly restPreferences: RestPreferences;
   readonly onRestTargetChange: (kind: RestKind, seconds: number) => void;
+  readonly weightUnits: WeightUnitsByExercise;
+  readonly onWeightUnitChange: (exerciseId: ResourceId, unit: WeightUnit) => void;
   readonly onOpenLog: (exerciseId: ResourceId | null) => void;
   readonly onCloseLog: () => void;
   readonly onLogged: (records: readonly PersonalRecord[]) => void;
@@ -281,6 +299,8 @@ function ActiveSession({
   ending,
   restPreferences,
   onRestTargetChange,
+  weightUnits,
+  onWeightUnitChange,
   onOpenLog,
   onCloseLog,
   onLogged,
@@ -427,6 +447,7 @@ function ActiveSession({
                     plates={usesOlympicBar(group.equipment)}
                     pending={pendingSetIds.has(set.id)}
                     position={index + 1}
+                    weightUnit={weightUnitFor(weightUnits, group.trackedExerciseId)}
                     locale={locale}
                     onEdit={onOpenEdit}
                   />
@@ -447,6 +468,8 @@ function ActiveSession({
         defaultExerciseId={logging?.exerciseId ?? null}
         routineProgress={progress}
         sessionSets={session.sets}
+        weightUnits={weightUnits}
+        onWeightUnitChange={onWeightUnitChange}
         locale={locale}
         open={logging !== null}
         onClose={onCloseLog}
@@ -473,6 +496,10 @@ function ActiveSession({
         sessionId={session.id}
         set={editing}
         exerciseName={editing === null ? '' : exerciseNameOf(editing, groups)}
+        weightUnit={editing === null ? 'kg' : weightUnitFor(weightUnits, editing.trackedExerciseId)}
+        onWeightUnitChange={(unit) => {
+          if (editing !== null) onWeightUnitChange(editing.trackedExerciseId, unit);
+        }}
         locale={locale}
         onClose={onCloseEdit}
         onUpdated={onCorrected}
@@ -523,12 +550,14 @@ interface SetRowProps {
   readonly plates: boolean;
   readonly pending: boolean;
   readonly position: number;
+  /** La unidad en que se registra ese ejercicio: en libras, la fila lleva también los kilos. */
+  readonly weightUnit: WeightUnit;
   readonly locale: Locale;
   readonly onEdit: (set: SetEntry) => void;
 }
 
 /** La fila entera abre la corrección: en el gimnasio se toca con el pulgar y sin mirar. */
-function SetRow({ set, plates, pending, position, locale, onEdit }: SetRowProps) {
+function SetRow({ set, plates, pending, position, weightUnit, locale, onEdit }: SetRowProps) {
   return (
     <li>
       <button
@@ -541,7 +570,7 @@ function SetRow({ set, plates, pending, position, locale, onEdit }: SetRowProps)
         <span className={styles.setPosition}>{position}</span>
         {plates && <PlateStack weight={set.weight} locale={locale} />}
         <span className={styles.setValue}>
-          {formatWeightLabel(set.weight, locale)} × {set.reps}
+          {formatSetWeightLabel(set.weight, weightUnit, locale)} × {set.reps}
         </span>
         <span className={styles.setMeta}>
           {pending && <Badge tone="warning">Sin sincronizar</Badge>}

@@ -5,6 +5,7 @@ import {
   type ResourceId,
   type SetEntry,
   type TrackedExercise,
+  type WeightUnit,
 } from '@gymbuddy/shared';
 import { useState, type FormEvent } from 'react';
 import { freshRecords, useLogSet } from '../../api/mutations';
@@ -12,6 +13,7 @@ import { Button, Notice, Select, Sheet } from '../../components/index';
 import { describeError } from '../../lib/errors';
 import { newResourceId } from '../../lib/ids';
 import { exerciseSelectOptions } from '../exercises/grouping';
+import { weightUnitFor, type WeightUnitsByExercise } from '../exercises/weight-unit-store';
 import { describeNextSet, lineForNextSet, type RoutineProgress } from './routine-progress';
 import { describeProposal, proposeSet } from './set-proposal';
 import styles from './LogSetSheet.module.css';
@@ -30,6 +32,9 @@ export interface LogSetSheetProps {
   readonly routineProgress: RoutineProgress | null;
   /** Las series de la sesión con la cola encima: la última de cada ejercicio es lo que se propone. */
   readonly sessionSets: readonly SetEntry[];
+  /** La unidad recordada de cada ejercicio: cambiar de ejercicio cambia también en qué se teclea. */
+  readonly weightUnits: WeightUnitsByExercise;
+  readonly onWeightUnitChange: (exerciseId: ResourceId, unit: WeightUnit) => void;
   readonly locale: Locale;
   readonly open: boolean;
   readonly onClose: () => void;
@@ -48,6 +53,8 @@ export function LogSetSheet({
   defaultExerciseId,
   routineProgress,
   sessionSets,
+  weightUnits,
+  onWeightUnitChange,
   locale,
   open,
   onClose,
@@ -68,6 +75,8 @@ export function LogSetSheet({
           initialExercise={initial}
           routineProgress={routineProgress}
           sessionSets={sessionSets}
+          weightUnits={weightUnits}
+          onWeightUnitChange={onWeightUnitChange}
           locale={locale}
           onLogged={onLogged}
         />
@@ -82,6 +91,8 @@ interface LogSetFormProps {
   readonly initialExercise: TrackedExercise;
   readonly routineProgress: RoutineProgress | null;
   readonly sessionSets: readonly SetEntry[];
+  readonly weightUnits: WeightUnitsByExercise;
+  readonly onWeightUnitChange: (exerciseId: ResourceId, unit: WeightUnit) => void;
   readonly locale: Locale;
   readonly onLogged: (records: readonly PersonalRecord[]) => void;
 }
@@ -92,6 +103,8 @@ function LogSetForm({
   initialExercise,
   routineProgress,
   sessionSets,
+  weightUnits,
+  onWeightUnitChange,
   locale,
   onLogged,
 }: LogSetFormProps) {
@@ -157,6 +170,10 @@ function LogSetForm({
         locale={locale}
         weightHint={describeProposal(proposal.source)}
         repsHint={routineLine === null ? undefined : describeNextSet(routineLine)}
+        weightUnit={weightUnitFor(weightUnits, exercise.id)}
+        onWeightUnitChange={(unit) => {
+          onWeightUnitChange(exercise.id, unit);
+        }}
       />
 
       {log.isError && (

@@ -1,4 +1,4 @@
-import type { Locale } from '@gymbuddy/shared';
+import type { Locale, WeightUnit } from '@gymbuddy/shared';
 import { NumberField, Select, WeightField, type SelectOption } from '../../components/index';
 import { cx } from '../../lib/cx';
 import { formatRpe } from '../../lib/format';
@@ -34,6 +34,9 @@ export interface SetFieldsProps {
   readonly weightHint: string;
   /** Lo que se explica bajo las repeticiones: el objetivo de la rutina, si la sesión sigue una. */
   readonly repsHint?: string | undefined;
+  /** En qué se teclea el peso: la unidad recordada para ese ejercicio. */
+  readonly weightUnit: WeightUnit;
+  readonly onWeightUnitChange: (unit: WeightUnit) => void;
 }
 
 /**
@@ -41,7 +44,15 @@ export interface SetFieldsProps {
  * el mismo dato, y tener dos formularios parecidos acabaría con uno de los dos aceptando
  * algo que el otro no.
  */
-export function SetFields({ values, onChange, locale, weightHint, repsHint }: SetFieldsProps) {
+export function SetFields({
+  values,
+  onChange,
+  locale,
+  weightHint,
+  repsHint,
+  weightUnit,
+  onWeightUnitChange,
+}: SetFieldsProps) {
   return (
     <>
       <WeightField
@@ -50,6 +61,9 @@ export function SetFields({ values, onChange, locale, weightHint, repsHint }: Se
         onChange={(weightGrams) => {
           onChange({ ...values, weightGrams });
         }}
+        locale={locale}
+        unit={weightUnit}
+        onUnitChange={onWeightUnitChange}
         hint={weightHint}
       />
 

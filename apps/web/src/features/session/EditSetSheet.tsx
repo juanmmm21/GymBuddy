@@ -5,6 +5,7 @@ import {
   type PersonalRecord,
   type ResourceId,
   type SetEntry,
+  type WeightUnit,
 } from '@gymbuddy/shared';
 import { useState, type FormEvent } from 'react';
 import { freshRecords, useRemoveSet, useUpdateSet } from '../../api/mutations';
@@ -18,6 +19,9 @@ export interface EditSetSheetProps {
   /** La serie que se corrige, o `null` cuando no hay ninguna abierta. */
   readonly set: SetEntry | null;
   readonly exerciseName: string;
+  /** En qué se teclea el peso: la unidad recordada para el ejercicio de la serie. */
+  readonly weightUnit: WeightUnit;
+  readonly onWeightUnitChange: (unit: WeightUnit) => void;
   readonly locale: Locale;
   readonly onClose: () => void;
   readonly onUpdated: (records: readonly PersonalRecord[]) => void;
@@ -33,6 +37,8 @@ export function EditSetSheet({
   sessionId,
   set,
   exerciseName,
+  weightUnit,
+  onWeightUnitChange,
   locale,
   onClose,
   onUpdated,
@@ -44,6 +50,8 @@ export function EditSetSheet({
         <EditSetForm
           sessionId={sessionId}
           set={set}
+          weightUnit={weightUnit}
+          onWeightUnitChange={onWeightUnitChange}
           locale={locale}
           onUpdated={onUpdated}
           onRemoved={onRemoved}
@@ -56,12 +64,22 @@ export function EditSetSheet({
 interface EditSetFormProps {
   readonly sessionId: ResourceId;
   readonly set: SetEntry;
+  readonly weightUnit: WeightUnit;
+  readonly onWeightUnitChange: (unit: WeightUnit) => void;
   readonly locale: Locale;
   readonly onUpdated: (records: readonly PersonalRecord[]) => void;
   readonly onRemoved: () => void;
 }
 
-function EditSetForm({ sessionId, set, locale, onUpdated, onRemoved }: EditSetFormProps) {
+function EditSetForm({
+  sessionId,
+  set,
+  weightUnit,
+  onWeightUnitChange,
+  locale,
+  onUpdated,
+  onRemoved,
+}: EditSetFormProps) {
   const [values, setValues] = useState<SetValues>(() => valuesOf(set));
   const update = useUpdateSet();
   const remove = useRemoveSet();
@@ -102,6 +120,8 @@ function EditSetForm({ sessionId, set, locale, onUpdated, onRemoved }: EditSetFo
         onChange={setValues}
         locale={locale}
         weightHint="Lo que registraste. Cámbialo y se recalculan tus marcas."
+        weightUnit={weightUnit}
+        onWeightUnitChange={onWeightUnitChange}
       />
 
       {update.isError && (
