@@ -6,6 +6,7 @@ import type {
   ResourceId,
   SetEntry,
   TrackedExercise,
+  WeightUnit,
 } from '@gymbuddy/shared';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
@@ -17,11 +18,13 @@ import { AsyncContent } from '../../components/async-content/AsyncContent';
 import { Badge, Button, Notice, Surface } from '../../components/index';
 import { describeError } from '../../lib/errors';
 import {
+  formatRecordValueLabel,
   formatRpe,
   formatSessionDate,
+  formatSetWeightLabel,
   formatTime,
-  formatWeightLabel,
   pluralize,
+  splitSetWeight,
 } from '../../lib/format';
 import { parseResourceId } from '../../lib/ids';
 import { ExerciseGif } from '../catalog/ExerciseGif';
@@ -32,6 +35,8 @@ import { EditExerciseSheet } from './EditExerciseSheet';
 import { ORIGIN_LABELS, RECORD_LABELS, RECORD_ORDER } from './labels';
 import { EXERCISES_PATH } from './paths';
 import { ProgressionChart } from './ProgressionChart';
+import { useWeightUnits } from './use-weight-units';
+import { weightUnitFor } from './weight-unit-store';
 import styles from './TrackedExerciseScreen.module.css';
 
 const BACK_TO_EXERCISES: BackLink = { to: EXERCISES_PATH, label: 'Mis ejercicios' };
@@ -70,6 +75,7 @@ function TrackedExerciseDetail({ exerciseId }: TrackedExerciseDetailProps) {
   const exercises = useTrackedExercises({ includeArchived: true });
   const stats = useExerciseStats(exerciseId);
   const history = useExerciseHistory(exerciseId);
+  const weightUnit = weightUnitFor(useWeightUnits(), exerciseId);
   const [editing, setEditing] = useState(false);
 
   const exercise = exercises.data?.find((item) => item.id === exerciseId) ?? null;
@@ -125,7 +131,7 @@ function TrackedExerciseDetail({ exerciseId }: TrackedExerciseDetailProps) {
                 )}
 
                 <AsyncContent query={stats}>
-                  {(data) => <StatsSection stats={data} locale={locale} />}
+                  {(data) => <StatsSection stats={data} weightUnit={weightUnit} locale={locale} />}
                 </AsyncContent>
 
                 {found.notes !== null && (
@@ -136,7 +142,9 @@ function TrackedExerciseDetail({ exerciseId }: TrackedExerciseDetailProps) {
                 )}
 
                 <AsyncContent query={history}>
-                  {(data) => <HistorySection history={data} locale={locale} />}
+                  {(data) => (
+                    <HistorySection history={data} weightUnit={weightUnit} locale={locale} />
+                  )}
                 </AsyncContent>
               </div>
 
@@ -222,6 +230,8 @@ function ExerciseTags({ exercise }: ExerciseProps) {
 
 interface StatsSectionProps {
   readonly stats: ExerciseStats;
+  /** La unidad en que se registra el ejercicio. La gráfica sigue en kilos: su eje los dice una vez. */
+  readonly weightUnit: WeightUnit;
   readonly locale: Locale;
 }
 
@@ -229,8 +239,9 @@ interface StatsSectionProps {
  * Peso habitual, marcas vigentes y aviso de estancamiento. Sin series todavía no hay
  * nada que decir aquí: el historial, más abajo, es quien explica qué va a aparecer.
  */
-function StatsSection({ stats, locale }: StatsSectionProps) {
+function StatsSection({ stats, weightUnit, locale }: StatsSectionProps) {
   if (stats.workingWeight === null) return null;
+  const working = splitSetWeight(stats.workingWeight.weight, weightUnit, locale);
 
   const records = RECORD_ORDER.flatMap((kind) =>
     stats.records.filter((record) => record.kind === kind),
@@ -241,9 +252,9 @@ function StatsSection({ stats, locale }: StatsSectionProps) {
       <Surface as="section" className={styles.working}>
         <p className={styles.sectionLabel}>Peso habitual</p>
         <p className={styles.workingValue}>
-          {formatWeightLabel(stats.workingWeight.weight, locale)}{' '}
-          <span className={styles.workingReps}>× {stats.workingWeight.reps}</span>
+          {working.main} <span className={styles.workingReps}>× {stats.workingWeight.reps}</span>
         </p>
+        {working.kilograms !== null && <p className={styles.workingAlt}>{working.kilograms}</p>}
         <p className={styles.workingMeta}>
           {stats.workingWeight.sessionCount === 1
             ? 'Una sola sesión: todavía es solo un dato'
@@ -256,11 +267,11 @@ function StatsSection({ stats, locale }: StatsSectionProps) {
       {stats.stalled !== null && (
         <Notice
           tone="warning"
-          title={`Estancado en ${formatWeightLabel(stats.stalled.weight, locale)}`}
+          title={`Estancado en ${formatSetWeightLabel(stats.stalled.weight, weightUnit, locale)}`}
         >
           Llevas {pluralize(stats.stalled.sessions, 'sesión', 'sesiones')} con el mismo peso sin
           perder repeticiones. Prueba con{' '}
-          {formatWeightLabel(stats.stalled.suggestedIncrement, locale)} más.
+          {formatSetWeightLabel(stats.stalled.suggestedIncrement, weightUnit, locale)} más.
         </Notice>
       )}
 
@@ -274,7 +285,7 @@ function StatsSection({ stats, locale }: StatsSectionProps) {
               <li key={record.id} className={styles.record}>
                 <span className={styles.recordLabel}>{RECORD_LABELS[record.kind]}</span>
                 <span className={styles.recordValue}>
-                  {formatWeightLabel(record.value, locale)}
+                  {formatRecordValueLabel(record, weightUnit, locale)}
                 </span>
                 <span className={styles.recordDate}>
                   {formatSessionDate(record.achievedAt, locale)}
@@ -290,10 +301,11 @@ function StatsSection({ stats, locale }: StatsSectionProps) {
 
 interface HistorySectionProps {
   readonly history: ExerciseHistory;
+  readonly weightUnit: WeightUnit;
   readonly locale: Locale;
 }
 
-function HistorySection({ history, locale }: HistorySectionProps) {
+function HistorySection({ history, weightUnit, locale }: HistorySectionProps) {
   if (history.sessions.length === 0) {
     return (
       <Notice title="Todavía no has registrado ninguna serie">
@@ -307,7 +319,12 @@ function HistorySection({ history, locale }: HistorySectionProps) {
       <h2 className={styles.sectionTitle}>Últimas sesiones</h2>
       <ul className={styles.sessions}>
         {history.sessions.map((entry) => (
-          <HistoryEntry key={entry.sessionId} entry={entry} locale={locale} />
+          <HistoryEntry
+            key={entry.sessionId}
+            entry={entry}
+            weightUnit={weightUnit}
+            locale={locale}
+          />
         ))}
       </ul>
     </section>
@@ -316,10 +333,11 @@ function HistorySection({ history, locale }: HistorySectionProps) {
 
 interface HistoryEntryProps {
   readonly entry: ExerciseHistoryEntry;
+  readonly weightUnit: WeightUnit;
   readonly locale: Locale;
 }
 
-function HistoryEntry({ entry, locale }: HistoryEntryProps) {
+function HistoryEntry({ entry, weightUnit, locale }: HistoryEntryProps) {
   return (
     <Surface as="li" className={styles.session}>
       <p className={styles.sessionDate}>
@@ -328,7 +346,7 @@ function HistoryEntry({ entry, locale }: HistoryEntryProps) {
       </p>
       <ul className={styles.sets}>
         {entry.sets.map((set) => (
-          <SetRow key={set.id} set={set} locale={locale} />
+          <SetRow key={set.id} set={set} weightUnit={weightUnit} locale={locale} />
         ))}
       </ul>
     </Surface>
@@ -337,14 +355,15 @@ function HistoryEntry({ entry, locale }: HistoryEntryProps) {
 
 interface SetRowProps {
   readonly set: SetEntry;
+  readonly weightUnit: WeightUnit;
   readonly locale: Locale;
 }
 
-function SetRow({ set, locale }: SetRowProps) {
+function SetRow({ set, weightUnit, locale }: SetRowProps) {
   return (
     <li className={styles.set}>
       <span className={styles.setValue}>
-        {formatWeightLabel(set.weight, locale)} × {set.reps}
+        {formatSetWeightLabel(set.weight, weightUnit, locale)} × {set.reps}
       </span>
       <span className={styles.setMeta}>
         {set.isWarmup && <Badge>Calentamiento</Badge>}

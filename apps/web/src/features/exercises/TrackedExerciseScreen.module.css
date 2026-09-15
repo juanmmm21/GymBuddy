@@ -188,3 +188,10 @@
 .logLink:active {
   background: var(--gb-color-accent-strong);
 }
+
+/* Los kilos del peso habitual de un ejercicio en libras, bajo la cifra grande. */
+.workingAlt {
+  color: var(--gb-color-text-secondary);
+  font-size: var(--gb-type-body-size);
+  line-height: var(--gb-type-body-line);
+}
