@@ -1,5 +1,7 @@
 import {
+  cardioSetStartedAt,
   continuesIdleSession,
+  endsCardioInProgress,
   formatGramsAsKilograms,
   idleSessionEndAt,
   parseKilogramsToGrams,
@@ -9,6 +11,7 @@ import {
   type LogSetRequest,
   type PersonalRecord,
   type SetEntry,
+  type StartCardioRequest,
   type StartSessionRequest,
   type UpdateSetRequest,
   type WorkoutSession,
@@ -55,6 +58,7 @@ export async function startWorkoutSession(
     endedAt: null,
     endedAutomatically: false,
     notes: request.notes ?? null,
+    cardioStartedAt: null,
   };
 
   const inserted = await db
@@ -64,7 +68,7 @@ export async function startWorkoutSession(
     .returning();
 
   if (inserted.length > 0) {
-    return { session: { ...toWorkoutSession(row), sets: [] }, created: true };
+    return { session: toWorkoutSessionDetail(row, []), created: true };
   }
 
   // El identificador ya existía. Si es de este usuario es un reenvío y se responde lo que
@@ -84,7 +88,7 @@ export async function findActiveSession(
 
   const sets = await listSetsForSession(db, userId, active.id);
 
-  return { ...toWorkoutSession(active), sets: sets.map(toSetEntry) };
+  return toWorkoutSessionDetail(active, sets);
 }
 
 export async function findSessionDetail(
@@ -97,7 +101,7 @@ export async function findSessionDetail(
 
   const sets = await listSetsForSession(db, userId, sessionId);
 
-  return { ...toWorkoutSession(row), sets: sets.map(toSetEntry) };
+  return toWorkoutSessionDetail(row, sets);
 }
 
 /**
@@ -117,9 +121,13 @@ export async function logSet(
   now: Date,
 ): Promise<{ set: SetEntry; records: PersonalRecord[]; created: boolean }> {
   const completedAt = request.completedAt ?? now.toISOString();
-  const { reopened } = await requireWritableSession(db, userId, sessionId, {
+  // Un cardio se apunta al acabarlo: lo que continúa la sesión es la hora a la que empezó.
+  const { session, reopened } = await requireWritableSession(db, userId, sessionId, {
     kind: 'log',
-    at: completedAt,
+    at:
+      request.kind === 'cardio'
+        ? cardioSetStartedAt(completedAt, request.durationSeconds)
+        : completedAt,
   });
 
   await assertTrackedExerciseBelongsToUser(db, userId, request.trackedExerciseId);
@@ -152,11 +160,23 @@ export async function logSet(
     .onConflictDoNothing({ target: setEntry.id })
     .returning();
 
+  const [insertedRow] = inserted;
+
+  // Apuntar el cardio es terminarlo. Solo al insertarlo: el reenvío de uno viejo no puede apagar
+  // el que se empezó después.
+  if (
+    insertedRow !== undefined &&
+    insertedRow.kind === 'cardio' &&
+    session.cardioStartedAt !== null &&
+    endsCardioInProgress(session.cardioStartedAt, insertedRow.completedAt)
+  ) {
+    await clearCardioInProgress(db, userId, sessionId, session.cardioStartedAt);
+  }
+
   // Una serie de la cola que reabrió la sesión puede ser ya vieja: si con ella la sesión sigue
   // inactiva, se vuelve a cerrar, ahora a la hora de esta serie.
   if (reopened) await closeIdleSession(db, userId, now);
 
-  const [insertedRow] = inserted;
   if (insertedRow !== undefined) {
     return {
       set: toSetEntry(insertedRow),
@@ -293,6 +313,57 @@ export async function deleteWorkoutSession(
 }
 
 /**
+ * Empieza el cardio que se apuntará al terminarlo: mientras dura, la sesión no se cierra sola
+ * (revisión del ADR 0008). Repetirlo solo mueve la hora, así que la cola lo reenvía sin miedo.
+ *
+ * Llega por la cola como una serie, así que reabre igual una sesión que se cerró sola si empezar
+ * el cardio continúa su actividad: son las series de antes, apuntadas sin cobertura, y el cardio
+ * que vino detrás.
+ */
+export async function startCardio(
+  db: Database,
+  userId: string,
+  sessionId: string,
+  request: StartCardioRequest,
+  now: Date,
+): Promise<WorkoutSessionDetail> {
+  const startedAt = request.startedAt ?? now.toISOString();
+  const { session, reopened } = await requireWritableSession(db, userId, sessionId, {
+    kind: 'log',
+    at: startedAt,
+  });
+  if (Date.parse(startedAt) < Date.parse(session.startedAt)) {
+    throw new ApiException('validation_failed', 'El cardio no puede empezar antes que la sesión', {
+      startedAt: session.startedAt,
+      cardioStartedAt: startedAt,
+    });
+  }
+
+  await db
+    .update(workoutSession)
+    .set({ cardioStartedAt: startedAt })
+    .where(and(eq(workoutSession.id, sessionId), eq(workoutSession.userId, userId)));
+
+  // Igual que una serie vieja de la cola: si con este cardio la sesión ya no sigue viva, se vuelve a cerrar.
+  if (reopened) await closeIdleSession(db, userId, now);
+
+  return requireSessionDetail(db, userId, sessionId);
+}
+
+/**
+ * Deja de contar el cardio en marcha sin apuntarlo: se empezó sin querer o no se llegó a hacer.
+ * Idempotente como borrar una serie, porque también pasa por la cola.
+ */
+export async function cancelCardio(db: Database, userId: string, sessionId: string): Promise<void> {
+  await requireWritableSession(db, userId, sessionId, { kind: 'correct' });
+
+  await db
+    .update(workoutSession)
+    .set({ cardioStartedAt: null })
+    .where(and(eq(workoutSession.id, sessionId), eq(workoutSession.userId, userId)));
+}
+
+/**
  * Cierra la sesión. Cerrar una que ya lo estaba devuelve la misma: la cola offline reenvía.
  *
  * Si se cerró sola y el «Terminar» que llega de la cola cae dentro del margen de inactividad,
@@ -321,6 +392,7 @@ export async function endWorkoutSession(
         endedAt: request.endedAt,
         endedAutomatically: false,
         notes: request.notes ?? session.notes,
+        cardioStartedAt: null,
       })
       .where(and(eq(workoutSession.id, sessionId), eq(workoutSession.userId, userId)));
   }
@@ -336,7 +408,7 @@ export async function endWorkoutSession(
 
     await db
       .update(workoutSession)
-      .set({ endedAt, notes: request.notes ?? session.notes })
+      .set({ endedAt, notes: request.notes ?? session.notes, cardioStartedAt: null })
       .where(and(eq(workoutSession.id, sessionId), eq(workoutSession.userId, userId)));
   }
 
@@ -357,6 +429,17 @@ export function toWorkoutSession(row: WorkoutSessionRow): WorkoutSession {
     startedAt: row.startedAt,
     endedAt: row.endedAt,
     notes: row.notes,
+  };
+}
+
+function toWorkoutSessionDetail(
+  row: WorkoutSessionRow,
+  sets: readonly SetEntryRow[],
+): WorkoutSessionDetail {
+  return {
+    ...toWorkoutSession(row),
+    sets: sets.map(toSetEntry),
+    cardioStartedAt: row.cardioStartedAt,
   };
 }
 
@@ -444,14 +527,19 @@ export async function closeIdleSession(db: Database, userId: string, now: Date):
     .where(eq(setEntry.sessionId, open.id));
 
   const endedAt = idleSessionEndAt(
-    { startedAt: open.startedAt, setCompletedAts: sets.map((set) => set.completedAt) },
+    {
+      startedAt: open.startedAt,
+      setCompletedAts: sets.map((set) => set.completedAt),
+      cardioStartedAt: open.cardioStartedAt,
+    },
     now,
   );
   if (endedAt === null) return;
 
+  // El cardio que pasó su tope se olvida al cerrar: si la sesión se reabre, no puede volver a contar.
   await db
     .update(workoutSession)
-    .set({ endedAt, endedAutomatically: true })
+    .set({ endedAt, endedAutomatically: true, cardioStartedAt: null })
     .where(
       and(
         eq(workoutSession.id, open.id),
@@ -505,6 +593,28 @@ async function requireWritableSession(
     );
 
   return { session: { ...session, endedAt: null, endedAutomatically: false }, reopened: true };
+}
+
+/**
+ * Apaga el cardio en marcha, pero solo si sigue siendo el mismo: otro móvil puede haber empezado
+ * uno nuevo entre la lectura y esta escritura.
+ */
+async function clearCardioInProgress(
+  db: Database,
+  userId: string,
+  sessionId: string,
+  cardioStartedAt: string,
+): Promise<void> {
+  await db
+    .update(workoutSession)
+    .set({ cardioStartedAt: null })
+    .where(
+      and(
+        eq(workoutSession.id, sessionId),
+        eq(workoutSession.userId, userId),
+        eq(workoutSession.cardioStartedAt, cardioStartedAt),
+      ),
+    );
 }
 
 /** Una serie dentro de una sesión ya comprobada: el usuario lo puso el paso anterior. */

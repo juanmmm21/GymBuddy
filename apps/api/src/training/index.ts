@@ -11,6 +11,7 @@ export {
 } from './exercises';
 export type { ListTrackedExercisesOptions, TrackedExerciseFacts } from './exercises';
 export {
+  cancelCardio,
   closeIdleSession,
   deleteWorkoutSession,
   endWorkoutSession,
@@ -19,6 +20,7 @@ export {
   logSet,
   removeSet,
   sessionNotFound,
+  startCardio,
   startWorkoutSession,
   toSetEntry,
   toWorkoutSession,

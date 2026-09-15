@@ -1,6 +1,7 @@
 import {
   endSessionRequestSchema,
   logSetRequestSchema,
+  startCardioRequestSchema,
   startSessionRequestSchema,
   updateSetRequestSchema,
   type ActiveSessionResponse,
@@ -12,6 +13,7 @@ import { closeIdleSessions } from '../../http/close-idle-session';
 import { requireUser, type AuthenticatedEnv } from '../../http/current-user';
 import { parseJsonBody } from '../../http/query';
 import {
+  cancelCardio,
   deleteWorkoutSession,
   endWorkoutSession,
   findActiveSession,
@@ -19,6 +21,7 @@ import {
   logSet,
   removeSet,
   sessionNotFound,
+  startCardio,
   startWorkoutSession,
   updateSet,
 } from '../../training/index';
@@ -110,6 +113,31 @@ export const sessionsRoute = new Hono<AuthenticatedEnv>()
       c.req.param('id'),
       c.req.param('setId'),
     );
+
+    return c.body(null, 204);
+  })
+
+  /**
+   * Empezar el cardio que se apuntará al terminarlo. `PUT` porque es un estado de la sesión que se
+   * fija, no algo que se añade: repetirlo deja lo mismo. Responde la sesión con el cardio puesto.
+   */
+  .put('/sessions/:id/cardio', async (c) => {
+    const request = await parseJsonBody(c, startCardioRequestSchema);
+
+    return c.json(
+      await startCardio(
+        createDatabase(c.env.DB),
+        c.get('user').id,
+        c.req.param('id'),
+        request,
+        new Date(),
+      ),
+    );
+  })
+
+  // 204 también sin cardio en marcha: la cola lo repite (ver `cancelCardio`).
+  .delete('/sessions/:id/cardio', async (c) => {
+    await cancelCardio(createDatabase(c.env.DB), c.get('user').id, c.req.param('id'));
 
     return c.body(null, 204);
   })
