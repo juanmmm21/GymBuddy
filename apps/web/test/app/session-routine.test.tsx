@@ -1,5 +1,5 @@
 import type {
-  LogSetRequest,
+  LogStrengthSetRequest,
   Routine,
   SetEntry,
   StartSessionRequest,
@@ -68,10 +68,11 @@ function serveWorker(fake: FakeFetch, options: WorkerOptions): void {
 
   fake.on('POST', `/sessions/${opened.id}/sets`, (request) => {
     if (current === null) return errorResponse('session_closed', 409, 'Esa sesión está cerrada');
-    const body = request.body as LogSetRequest;
+    const body = request.body as LogStrengthSetRequest;
     const entry: SetEntry = {
       id: body.id,
       trackedExerciseId: body.trackedExerciseId,
+      kind: 'strength',
       orderIndex: current.sets.length,
       weight: body.weight,
       reps: body.reps,
@@ -99,6 +100,7 @@ function workingSets(trackedExerciseId: string, count: number, offset: number): 
   return Array.from({ length: count }, (_, index) => ({
     id: `40000000-0000-4000-8000-${String(offset + index).padStart(12, '0')}`,
     trackedExerciseId,
+    kind: 'strength',
     orderIndex: offset + index,
     weight: '80.00',
     reps: 6,
@@ -277,7 +279,7 @@ describe('sesión guiada por una rutina: seguir el guion', () => {
     expect(current).toHaveAttribute('aria-current', 'step');
 
     const logged = fake.requests.find((request) => request.path.endsWith('/sets'));
-    expect((logged?.body as LogSetRequest).trackedExerciseId).toBe(squat.id);
+    expect((logged?.body as LogStrengthSetRequest).trackedExerciseId).toBe(squat.id);
   });
 
   it('un ejercicio archivado que nombra la rutina se registra desde su línea', async () => {
@@ -377,7 +379,7 @@ describe('sesión guiada por una rutina: cambiarla solo para hoy', () => {
       await screen.findByRole('button', { name: `Registrar ${customCurl.name}, 1 de 3 series` }),
     ).toHaveAttribute('aria-current', 'step');
     const logged = fake.requests.find((request) => request.path.endsWith('/sets'));
-    expect((logged?.body as LogSetRequest).trackedExerciseId).toBe(customCurl.id);
+    expect((logged?.body as LogStrengthSetRequest).trackedExerciseId).toBe(customCurl.id);
     // La rutina guardada no se toca: el cambio vive en el dispositivo, con la sesión.
     expect(fake.requests.some((request) => request.method === 'PATCH')).toBe(false);
     expect(JSON.parse(storage.data.get(SESSION_ROUTINE_STORAGE_KEY) ?? 'null')).toEqual({

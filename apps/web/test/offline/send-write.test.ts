@@ -84,6 +84,7 @@ describe('sendSessionWrite', () => {
       sessionId: activeSession.id,
       body: {
         id: setId,
+        kind: 'strength',
         trackedExerciseId: benchPress.id,
         weight: '82.50',
         reps: 8,

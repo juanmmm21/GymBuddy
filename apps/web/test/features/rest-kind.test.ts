@@ -1,4 +1,4 @@
-import type { RoutineItem, SetEntry } from '@gymbuddy/shared';
+import type { RoutineItem, StrengthSetEntry } from '@gymbuddy/shared';
 import { describe, expect, it } from 'vitest';
 import { restKindAfter, routineProgress } from '../../src/features/session/routine-progress';
 import { benchPress, squat } from '../fixtures';
@@ -13,11 +13,12 @@ const item = (trackedExerciseId: string, orderIndex: number, targetSets: number)
 });
 
 let minute = 0;
-function set(trackedExerciseId: string, isWarmup = false): SetEntry {
+function set(trackedExerciseId: string, isWarmup = false): StrengthSetEntry {
   minute += 1;
   return {
     id: crypto.randomUUID(),
     trackedExerciseId,
+    kind: 'strength',
     orderIndex: minute,
     weight: '80.00',
     reps: 8,

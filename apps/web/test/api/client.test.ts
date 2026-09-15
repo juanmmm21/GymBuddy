@@ -54,6 +54,7 @@ describe('ApiClient', () => {
     await expect(
       logSet(client, 'abc', {
         id: '00000000-0000-4000-8000-000000000001',
+        kind: 'strength',
         trackedExerciseId: '00000000-0000-4000-8000-000000000002',
         weight: '82.50',
         reps: 8,

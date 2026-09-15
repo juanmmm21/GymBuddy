@@ -98,6 +98,7 @@ function queuedSet(sequence: number, sessionId: string = OFFLINE_SESSION_ID): Pe
       sessionId,
       body: {
         id: QUEUED_SET_ID,
+        kind: 'strength',
         trackedExerciseId: squat.id,
         weight: '100.00',
         reps: 5,

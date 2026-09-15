@@ -2,7 +2,7 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { errorResponse, jsonResponse, type FakeFetch } from '../fake-fetch';
-import { buildExportFile } from '@gymbuddy/shared';
+import { EXPORT_VERSION, buildExportFile } from '@gymbuddy/shared';
 import {
   benchPress,
   exportPage,
@@ -191,7 +191,7 @@ describe('recuperar una copia', () => {
 
   it('una copia de otra versión dice que el problema es la app, no el fichero', async () => {
     const user = userEvent.setup();
-    const future = { ...buildExportFile(exportSnapshot, []), version: 2 };
+    const future = { ...buildExportFile(exportSnapshot, []), version: EXPORT_VERSION + 1 };
 
     renderApp({ path: '/backup', session, setup: (fake) => serveImport(fake) });
 

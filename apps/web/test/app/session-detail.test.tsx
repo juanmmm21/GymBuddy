@@ -40,6 +40,39 @@ describe('detalle de una sesión pasada', () => {
     expect(screen.getByText('Calentamiento')).toBeInTheDocument();
   });
 
+  it('una serie de cardio se lee con su duración y su distancia, sin kilos ni volumen', async () => {
+    const withCardio = {
+      ...pastSession,
+      sets: [
+        ...pastSession.sets,
+        {
+          id: '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d',
+          kind: 'cardio' as const,
+          trackedExerciseId: squat.id,
+          orderIndex: 3,
+          durationSeconds: 1_830,
+          distanceMeters: 5_250,
+          rpe: null,
+          isWarmup: false,
+          completedAt: '2026-09-06T19:00:00.000Z',
+        },
+      ],
+    };
+    renderApp({
+      path: `/history/${pastSession.id}`,
+      session,
+      setup: (fake) => {
+        fake.on('GET', `/sessions/${pastSession.id}`, () => jsonResponse(withCardio));
+        fake.on('GET', '/exercises', () => jsonResponse([benchPress, squat]));
+      },
+    });
+
+    expect(await screen.findByText('30 min 30 s · 5,25 km')).toBeInTheDocument();
+    // Cuenta como serie, pero el volumen sigue siendo el de las de fuerza.
+    expect(screen.getByText('3 series')).toBeInTheDocument();
+    expect(screen.getByText('1010 kg')).toBeInTheDocument();
+  });
+
   it('una sesión sin series lo dice en vez de quedarse en blanco', async () => {
     renderApp({
       path: `/history/${pastSession.id}`,

@@ -17,6 +17,7 @@ function logSet(id: string): SessionWrite {
     sessionId: activeSession.id,
     body: {
       id,
+      kind: 'strength',
       trackedExerciseId: benchPress.id,
       weight: '80.00',
       reps: 8,

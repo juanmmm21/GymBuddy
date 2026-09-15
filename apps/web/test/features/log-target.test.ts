@@ -1,14 +1,18 @@
-import type { RoutineItem, SetEntry } from '@gymbuddy/shared';
+import type { RoutineItem, StrengthSetEntry } from '@gymbuddy/shared';
 import { describe, expect, it } from 'vitest';
 import { logExerciseIdFor } from '../../src/features/session/log-target';
 import { routineProgress } from '../../src/features/session/routine-progress';
 import { latestSet } from '../../src/features/session/summary';
 import { benchPress, customCurl, squat } from '../fixtures';
 
-function setOf(trackedExerciseId: string, overrides: Partial<SetEntry> = {}): SetEntry {
+function setOf(
+  trackedExerciseId: string,
+  overrides: Partial<StrengthSetEntry> = {},
+): StrengthSetEntry {
   return {
     id: crypto.randomUUID(),
     trackedExerciseId,
+    kind: 'strength',
     orderIndex: 0,
     weight: '60.00',
     reps: 8,

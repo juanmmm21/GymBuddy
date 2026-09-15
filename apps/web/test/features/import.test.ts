@@ -1,4 +1,5 @@
 import {
+  EXPORT_VERSION,
   MAX_IMPORT_ROWS_PER_BATCH,
   buildExportFile,
   deriveImportedId,
@@ -51,13 +52,31 @@ describe('readImportFile', () => {
     expect(readImportFile('{"format": "otra-app", "version": 1}').status).toBe('not_gymbuddy');
   });
 
-  it('una versión que no es la 1 no se da por rota: se dice que es de otra versión', () => {
-    const file = { ...backup([]), version: 2 };
+  it('una versión futura no se da por rota: se dice que es de otra versión', () => {
+    const file = { ...backup([]), version: EXPORT_VERSION + 1 };
 
     expect(readImportFile(JSON.stringify(file))).toEqual({
       status: 'unsupported_version',
-      version: 2,
+      version: EXPORT_VERSION + 1,
     });
+  });
+
+  it('una copia de la versión 1, de antes del cardio, se lee convertida y con sus series de fuerza', () => {
+    const current = JSON.parse(JSON.stringify(backup(exportedSessions(2)))) as {
+      version: number;
+      sessions: { sets: Record<string, unknown>[] }[];
+    };
+    for (const exported of current.sessions) {
+      for (const set of exported.sets) delete set.kind;
+    }
+    current.version = 1;
+
+    const reading = readImportFile(JSON.stringify(current));
+
+    expect(reading.status).toBe('ready');
+    if (reading.status !== 'ready') return;
+    expect(reading.file.version).toBe(EXPORT_VERSION);
+    expect(reading.file).toEqual(backup(exportedSessions(2)));
   });
 
   it('una copia retocada que no cumple el contrato se rechaza entera', () => {

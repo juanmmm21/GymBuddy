@@ -1,4 +1,4 @@
-import type { LogSetRequest, WorkoutSessionDetail } from '@gymbuddy/shared';
+import type { LogStrengthSetRequest, WorkoutSessionDetail } from '@gymbuddy/shared';
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
@@ -12,10 +12,11 @@ function serveSession(fake: FakeFetch): void {
   fake.on('GET', '/sessions/active', () => jsonResponse({ session: current }));
   fake.on('GET', '/exercises', () => jsonResponse([benchPress, squat]));
   fake.on('POST', `/sessions/${activeSession.id}/sets`, (request) => {
-    const body = request.body as LogSetRequest;
+    const body = request.body as LogStrengthSetRequest;
     const entry = {
       id: body.id,
       trackedExerciseId: body.trackedExerciseId,
+      kind: 'strength' as const,
       orderIndex: current.sets.length,
       weight: body.weight,
       reps: body.reps,
@@ -51,7 +52,7 @@ describe('teclear en libras', () => {
     expect(await screen.findByText('81,65 kg × 8')).toBeInTheDocument();
     expect(screen.queryByText(/ lb/)).not.toBeInTheDocument();
     const logged = fake.requests.find((request) => request.path.endsWith('/sets'));
-    expect((logged?.body as LogSetRequest).weight).toBe('81.65');
+    expect((logged?.body as LogStrengthSetRequest).weight).toBe('81.65');
 
     // Las libras no se recuerdan: la siguiente serie vuelve a abrirse en kilos.
     expect([...storage.data.keys()].some((key) => key.includes('weight-units'))).toBe(false);

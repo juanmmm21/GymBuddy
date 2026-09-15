@@ -14,9 +14,7 @@ describe('summarizeLiveSession', () => {
     expect(summary.lastSet).toEqual({
       exerciseName: benchPress.name,
       equipment: 'barbell',
-      weight: '82.50',
-      reps: 8,
-      completedAt: firstSet.completedAt,
+      set: firstSet,
     });
   });
 
@@ -24,6 +22,7 @@ describe('summarizeLiveSession', () => {
     const later = {
       ...firstSet,
       id: 'b1b2c3d4-0000-4000-8000-000000000001',
+      kind: 'strength' as const,
       trackedExerciseId: squat.id,
       weight: '100.00',
       reps: 5,

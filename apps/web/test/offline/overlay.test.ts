@@ -20,7 +20,9 @@ const OTHER_SET_ID = '4d8e2f0a-3b5c-4d7e-8f9a-1b2c3d4e5f60';
 
 function logSet(
   id: string,
-  overrides: Partial<Extract<SessionWrite, { kind: 'log_set' }>['body']> = {},
+  overrides: Partial<
+    Extract<Extract<SessionWrite, { kind: 'log_set' }>['body'], { kind: 'strength' }>
+  > = {},
   sessionId = OPEN_ID,
 ): SessionWrite {
   return {
@@ -28,6 +30,7 @@ function logSet(
     sessionId,
     body: {
       id,
+      kind: 'strength',
       trackedExerciseId: squat.id,
       weight: '100.00',
       reps: 5,
@@ -59,6 +62,7 @@ describe('applyPendingWrites', () => {
     expect(view.session?.sets[1]).toEqual({
       id: QUEUED_SET_ID,
       trackedExerciseId: squat.id,
+      kind: 'strength',
       orderIndex: 1,
       weight: '100.00',
       reps: 5,

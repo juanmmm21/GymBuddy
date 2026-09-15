@@ -1,4 +1,4 @@
-import type { SetEntry } from '@gymbuddy/shared';
+import type { SetEntry, StrengthSetEntry } from '@gymbuddy/shared';
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_REST_PREFERENCES,
@@ -24,9 +24,10 @@ import {
 import { benchPress, customCurl, pushRoutine, squat } from '../fixtures';
 
 function setOf(
-  overrides: Partial<SetEntry> & Pick<SetEntry, 'id' | 'trackedExerciseId'>,
-): SetEntry {
+  overrides: Partial<StrengthSetEntry> & Pick<SetEntry, 'id' | 'trackedExerciseId'>,
+): StrengthSetEntry {
   return {
+    kind: 'strength',
     orderIndex: 0,
     weight: '80.00',
     reps: 8,
@@ -44,6 +45,7 @@ const firstBench = setOf({
 });
 const squatSet = setOf({
   id: '22222222-2222-4222-8222-222222222222',
+  kind: 'strength',
   trackedExerciseId: squat.id,
   weight: '100.00',
   reps: 5,
@@ -81,6 +83,7 @@ describe('summarizeSession', () => {
   it('cuenta series, ejercicios y volumen, y el calentamiento no suma volumen', () => {
     const warmup = setOf({
       id: '44444444-4444-4444-8444-444444444444',
+      kind: 'strength',
       trackedExerciseId: benchPress.id,
       weight: '60.00',
       reps: 10,

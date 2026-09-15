@@ -1,12 +1,13 @@
-import type { SetEntry } from '@gymbuddy/shared';
+import type { StrengthSetEntry } from '@gymbuddy/shared';
 import { describe, expect, it } from 'vitest';
 import { describeProposal, proposeSet } from '../../src/features/session/set-proposal';
 import { benchPress, customCurl, squat } from '../fixtures';
 
-function set(overrides: Partial<SetEntry>): SetEntry {
+function set(overrides: Partial<StrengthSetEntry>): StrengthSetEntry {
   return {
     id: crypto.randomUUID(),
     trackedExerciseId: benchPress.id,
+    kind: 'strength',
     orderIndex: 0,
     weight: '70.00',
     reps: 10,
@@ -32,6 +33,7 @@ describe('proposeSet', () => {
       set({ weight: '60.00', reps: 12, isWarmup: true, completedAt: '2026-09-14T18:20:00.000Z' }),
       set({ weight: '82.50', reps: 6, completedAt: '2026-09-14T18:05:00.000Z' }),
       set({
+        kind: 'strength',
         trackedExerciseId: squat.id,
         weight: '120.00',
         completedAt: '2026-09-14T18:30:00.000Z',

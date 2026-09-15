@@ -291,6 +291,7 @@ export const pastSession: WorkoutSessionDetail = {
     {
       id: 'c06d5081-7c9d-4ea4-bfe0-5b6c7d8e9fa1',
       trackedExerciseId: benchPress.id,
+      kind: 'strength',
       orderIndex: 0,
       weight: '60.00',
       reps: 10,
@@ -301,6 +302,7 @@ export const pastSession: WorkoutSessionDetail = {
     {
       id: 'ad4b3e6f-5a7b-4c82-9dce-3f4a5b6c7d8e',
       trackedExerciseId: benchPress.id,
+      kind: 'strength',
       orderIndex: 1,
       weight: '85.00',
       reps: 6,
@@ -311,6 +313,7 @@ export const pastSession: WorkoutSessionDetail = {
     {
       id: 'd07f72a3-9ebf-40c6-b102-7d8e9fa1b2c3',
       trackedExerciseId: squat.id,
+      kind: 'strength',
       orderIndex: 2,
       weight: '100.00',
       reps: 5,
@@ -340,6 +343,7 @@ export const activeSession: WorkoutSessionDetail = {
     {
       id: 'f2ab8c4d-5e6f-4a72-8b3c-4d5e6f7a8b9c',
       trackedExerciseId: benchPress.id,
+      kind: 'strength',
       orderIndex: 0,
       weight: '82.50',
       reps: 8,
@@ -451,6 +455,7 @@ export const benchPressHistory: ExerciseHistory = {
         {
           id: 'c06d5081-7c9d-4ea4-bfe0-5b6c7d8e9fa1',
           trackedExerciseId: benchPress.id,
+          kind: 'strength',
           orderIndex: 0,
           weight: '60.00',
           reps: 10,
@@ -461,6 +466,7 @@ export const benchPressHistory: ExerciseHistory = {
         {
           id: 'ad4b3e6f-5a7b-4c82-9dce-3f4a5b6c7d8e',
           trackedExerciseId: benchPress.id,
+          kind: 'strength',
           orderIndex: 1,
           weight: '85.00',
           reps: 6,
@@ -478,6 +484,7 @@ export const benchPressHistory: ExerciseHistory = {
         {
           id: 'd07f72a3-9ebf-40c6-b102-7d8e9fa1b2c3',
           trackedExerciseId: benchPress.id,
+          kind: 'strength',
           orderIndex: 0,
           weight: '82.50',
           reps: 8,
@@ -583,6 +590,7 @@ export function exportedSessions(count: number, offset = 0): ExportedSession[] {
         {
           id: `11111111-0000-4000-8000-${position}`,
           trackedExerciseId: benchPress.id,
+          kind: 'strength',
           orderIndex: 0,
           weight: '82.50',
           reps: 8,

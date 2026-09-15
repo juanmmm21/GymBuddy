@@ -1,6 +1,6 @@
 import type {
   EndSessionRequest,
-  LogSetRequest,
+  LogStrengthSetRequest,
   SetEntry,
   StartSessionRequest,
   UpdateSetRequest,
@@ -29,6 +29,36 @@ function serveActiveSession(fake: FakeFetch, current: WorkoutSessionDetail = act
   fake.on('GET', '/sessions/active', () => jsonResponse({ session: current }));
   fake.on('GET', '/exercises', () => jsonResponse([benchPress, squat]));
 }
+
+describe('sesión: una serie de cardio', () => {
+  it('se lee con su duración y no abre la corrección de kilos', async () => {
+    const [firstSet] = activeSession.sets;
+    if (firstSet === undefined) throw new Error('La sesión de las fixtures trae una serie');
+    const withCardio: WorkoutSessionDetail = {
+      ...activeSession,
+      sets: [
+        firstSet,
+        {
+          id: '7b6a5c4d-3e2f-4a1b-9c8d-7e6f5a4b3c2d',
+          kind: 'cardio',
+          trackedExerciseId: squat.id,
+          orderIndex: 1,
+          durationSeconds: 600,
+          distanceMeters: null,
+          rpe: null,
+          isWarmup: false,
+          completedAt: new Date(Date.parse(firstSet.completedAt) + 60_000).toISOString(),
+        },
+      ],
+    };
+
+    renderApp({ path: '/session', session, setup: (fake) => serveActiveSession(fake, withCardio) });
+
+    const cardioValue = await screen.findByText('10 min');
+    expect(cardioValue.closest('button')).toBeNull();
+    expect(screen.getByText('82,5 kg × 8').closest('button')).not.toBeNull();
+  });
+});
 
 describe('sesión: sin ninguna abierta', () => {
   it('ofrece empezar y abre una con un identificador del cliente', async () => {
@@ -117,10 +147,11 @@ describe('sesión en curso', () => {
         fake.on('GET', '/sessions/active', () => jsonResponse({ session: current }));
         fake.on('GET', '/exercises', () => jsonResponse([benchPress, squat]));
         fake.on('POST', `/sessions/${activeSession.id}/sets`, (request) => {
-          const body = request.body as LogSetRequest;
+          const body = request.body as LogStrengthSetRequest;
           const entry = {
             id: body.id,
             trackedExerciseId: body.trackedExerciseId,
+            kind: 'strength' as const,
             orderIndex: current.sets.length,
             weight: body.weight,
             reps: body.reps,
@@ -156,7 +187,7 @@ describe('sesión en curso', () => {
     });
 
     const logged = fake.requests.find((request) => request.path.endsWith('/sets'));
-    const body = logged?.body as LogSetRequest;
+    const body = logged?.body as LogStrengthSetRequest;
     expect(body.trackedExerciseId).toBe(benchPress.id);
     expect(body.weight).toBe('82.50');
     expect(body.reps).toBe(8);
@@ -175,10 +206,11 @@ describe('sesión en curso', () => {
         fake.on('GET', '/sessions/active', () => jsonResponse({ session: current }));
         fake.on('GET', '/exercises', () => jsonResponse([benchPress, squat]));
         fake.on('POST', `/sessions/${activeSession.id}/sets`, (request) => {
-          const body = request.body as LogSetRequest;
+          const body = request.body as LogStrengthSetRequest;
           const entry = {
             id: body.id,
             trackedExerciseId: body.trackedExerciseId,
+            kind: 'strength' as const,
             orderIndex: current.sets.length,
             weight: body.weight,
             reps: body.reps,
@@ -322,6 +354,7 @@ describe('sesión en curso', () => {
       ...firstSet,
       id: '5d0c4a39-8f7e-4c1b-9a6d-2e3f4a5b6c7d',
       trackedExerciseId: squat.id,
+      kind: 'strength' as const,
       orderIndex: 1,
       weight: '100.00',
       reps: 5,

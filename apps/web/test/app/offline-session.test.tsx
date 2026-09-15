@@ -1,5 +1,5 @@
 import type {
-  LogSetRequest,
+  LogStrengthSetRequest,
   SetEntry,
   StartSessionRequest,
   WorkoutSessionDetail,
@@ -36,12 +36,13 @@ function serveWorker(fake: FakeFetch, worker: FakeWorker): void {
 
   const serveSets = (sessionId: string): void => {
     route('POST', `/sessions/${sessionId}/sets`, (request) => {
-      const body = request.body as LogSetRequest;
+      const body = request.body as LogStrengthSetRequest;
       const current = worker.session;
       if (current?.id !== sessionId) return errorResponse('session_closed', 409, 'Cerrada');
       const entry: SetEntry = {
         id: body.id,
         trackedExerciseId: body.trackedExerciseId,
+        kind: 'strength',
         orderIndex: current.sets.length,
         weight: body.weight,
         reps: body.reps,
@@ -84,6 +85,7 @@ function queuedSet(userId = user.id): PendingWrite {
       sessionId: activeSession.id,
       body: {
         id: QUEUED_SET_ID,
+        kind: 'strength',
         trackedExerciseId: squat.id,
         weight: '100.00',
         reps: 5,
@@ -201,7 +203,7 @@ describe('sesión sin cobertura', () => {
     await waitFor(() => {
       expect(queueStore.entries()).toEqual([]);
     });
-    expect(setRequests(fake).map((request) => (request.body as LogSetRequest).id)).toEqual([
+    expect(setRequests(fake).map((request) => (request.body as LogStrengthSetRequest).id)).toEqual([
       QUEUED_SET_ID,
     ]);
     expect(await screen.findByText('100 kg × 5')).toBeInTheDocument();
@@ -262,7 +264,7 @@ describe('sesión sin cobertura', () => {
         fake.on('POST', `/sessions/${activeSession.id}/sets`, (request) => {
           attempts += 1;
           if (attempts === 1) return errorResponse('validation_failed', 400, 'Revisa el peso');
-          const body = request.body as LogSetRequest;
+          const body = request.body as LogStrengthSetRequest;
           return jsonResponse({
             set: { ...activeSession.sets[0], id: body.id, orderIndex: 1 },
             records: [],
@@ -279,7 +281,9 @@ describe('sesión sin cobertura', () => {
     await waitFor(() => {
       expect(setRequests(fake)).toHaveLength(2);
     });
-    const [first, second] = setRequests(fake).map((request) => request.body as LogSetRequest);
+    const [first, second] = setRequests(fake).map(
+      (request) => request.body as LogStrengthSetRequest,
+    );
     expect(second?.id).toBe(first?.id);
   });
 });

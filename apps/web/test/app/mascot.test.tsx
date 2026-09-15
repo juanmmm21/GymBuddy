@@ -1,4 +1,8 @@
-import type { LogSetRequest, TrainingSignals, WorkoutSessionDetail } from '@gymbuddy/shared';
+import type {
+  LogStrengthSetRequest,
+  TrainingSignals,
+  WorkoutSessionDetail,
+} from '@gymbuddy/shared';
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
@@ -201,11 +205,12 @@ describe('la mascota en la sesión', () => {
         fake.on('GET', '/sessions/active', () => jsonResponse({ session: current }));
         fake.on('GET', '/exercises', () => jsonResponse([benchPress, squat]));
         fake.on('POST', `/sessions/${activeSession.id}/sets`, (request) => {
-          const body = request.body as LogSetRequest;
+          const body = request.body as LogStrengthSetRequest;
           const completedAt = new Date().toISOString();
           const entry = {
             id: body.id,
             trackedExerciseId: body.trackedExerciseId,
+            kind: 'strength' as const,
             orderIndex: current.sets.length,
             weight: body.weight,
             reps: body.reps,

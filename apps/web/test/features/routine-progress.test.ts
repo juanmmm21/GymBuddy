@@ -1,4 +1,4 @@
-import type { RoutineItem, SetEntry } from '@gymbuddy/shared';
+import type { RoutineItem, SetEntry, StrengthSetEntry } from '@gymbuddy/shared';
 import { describe, expect, it } from 'vitest';
 import {
   describeNextSet,
@@ -16,11 +16,15 @@ function itemOf(
 let nextSet = 0;
 
 /** Una serie con su `orderIndex` correlativo: el reparto sigue el orden en que se hicieron. */
-function setOf(trackedExerciseId: string, overrides: Partial<SetEntry> = {}): SetEntry {
+function setOf(
+  trackedExerciseId: string,
+  overrides: Partial<StrengthSetEntry> = {},
+): StrengthSetEntry {
   const orderIndex = nextSet;
   nextSet += 1;
   return {
     id: `30000000-0000-4000-8000-${String(orderIndex).padStart(12, '0')}`,
+    kind: 'strength',
     trackedExerciseId,
     orderIndex,
     weight: '80.00',
