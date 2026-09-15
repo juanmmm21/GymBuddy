@@ -10,6 +10,7 @@ import {
   muscleFilterOptions,
   offersMuscleFilter,
   parseCatalogFilters,
+  parseCatalogSearchFilters,
   withCatalogFilter,
 } from '../../src/features/catalog/filters';
 
@@ -90,6 +91,33 @@ describe('filtros en la URL', () => {
     expect(parseCatalogFilters(params, null)).toEqual({ muscle: 'quads' });
   });
 
+  it('la búsqueda lee también la parte del cuerpo', () => {
+    const params = new URLSearchParams('bodyPart=back&muscle=lats&equipment=cable');
+
+    expect(parseCatalogSearchFilters(params)).toEqual({
+      bodyPart: 'back',
+      muscle: 'lats',
+      equipment: 'cable',
+    });
+    // La página de una parte la lleva en la ruta: en su URL no cuenta.
+    expect(parseCatalogFilters(params, 'back')).toEqual({ muscle: 'lats', equipment: 'cable' });
+  });
+
+  it('la búsqueda suelta el músculo que contradice la parte o que la parte no ofrece', () => {
+    expect(parseCatalogSearchFilters(new URLSearchParams('bodyPart=legs&muscle=lats'))).toEqual({
+      bodyPart: 'legs',
+    });
+    expect(
+      parseCatalogSearchFilters(new URLSearchParams('bodyPart=shoulders&muscle=delts')),
+    ).toEqual({ bodyPart: 'shoulders' });
+  });
+
+  it('la búsqueda ignora una parte del cuerpo que no existe y deja el músculo libre', () => {
+    expect(parseCatalogSearchFilters(new URLSearchParams('bodyPart=pecho&muscle=lats'))).toEqual({
+      muscle: 'lats',
+    });
+  });
+
   it('escribe los filtros sin tocar los demás parámetros y quita los vacíos', () => {
     const current = new URLSearchParams('otro=1&muscle=lats');
 
@@ -97,6 +125,9 @@ describe('filtros en la URL', () => {
 
     expect(next.toString()).toBe('otro=1&equipment=cable');
     expect(current.toString()).toBe('otro=1&muscle=lats');
+    expect(
+      applyCatalogFiltersToParams(new URLSearchParams('q=remo'), { bodyPart: 'back' }).toString(),
+    ).toBe('q=remo&bodyPart=back');
   });
 });
 

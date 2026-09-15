@@ -550,3 +550,115 @@ describe('catálogo: ficha del ejercicio', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('No existe el ejercicio');
   });
 });
+
+describe('catálogo: volver desde la ficha', () => {
+  it('atrás desde un ejercicio buscado vuelve a la búsqueda con su texto y sus filtros', async () => {
+    const user = userEvent.setup();
+    const { fake } = renderApp({
+      path: '/catalog',
+      session,
+      setup: (fake) => {
+        fake.on('GET', '/catalog/bodyparts', () => jsonResponse(bodyParts));
+        fake.on('GET', '/catalog/search', () => jsonResponse([catalogBenchPress]));
+        serveBenchPressDetail(fake);
+        fake.on('GET', '/exercises', () => jsonResponse([]));
+      },
+    });
+    const searches = (): RecordedRequest[] =>
+      fake.requests.filter((r) => r.path.startsWith('/catalog/search'));
+
+    await screen.findByRole('link', { name: /Pecho/ });
+    await user.type(screen.getByRole('searchbox', { name: 'Buscar ejercicio' }), 'press banca');
+    await user.selectOptions(
+      await screen.findByRole('combobox', { name: 'Parte del cuerpo' }),
+      'Pecho',
+    );
+    await waitFor(() => {
+      expect(queryOf(searches().at(-1)!).get('bodyPart')).toBe('chest');
+    });
+
+    await user.click(screen.getByRole('link', { name: /Press de banca con barra/ }));
+    expect(
+      await screen.findByRole('heading', { name: 'Press de banca con barra' }),
+    ).toBeInTheDocument();
+    // La vuelta lleva a la búsqueda, no a la parte del cuerpo del ejercicio.
+    expect(screen.queryByRole('link', { name: /Pecho/ })).not.toBeInTheDocument();
+    const back = screen.getByRole('link', { name: /Búsqueda/ });
+    const backUrl = new URL(back.getAttribute('href')!, 'http://localhost');
+    expect(backUrl.pathname).toBe('/catalog');
+    expect(backUrl.searchParams.get('q')).toBe('press banca');
+    expect(backUrl.searchParams.get('bodyPart')).toBe('chest');
+
+    await user.click(back);
+    expect(
+      await screen.findByRole('link', { name: /Press de banca con barra/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('searchbox', { name: 'Buscar ejercicio' })).toHaveValue('press banca');
+    expect(screen.getByRole('combobox', { name: 'Parte del cuerpo' })).toHaveValue('chest');
+    expect(queryOf(searches().at(-1)!).get('q')).toBe('press banca');
+    expect(queryOf(searches().at(-1)!).get('bodyPart')).toBe('chest');
+  });
+
+  it('una búsqueda en la URL se abre hecha y suelta el músculo que contradice la parte', async () => {
+    const { fake } = renderApp({
+      path: '/catalog?q=press&bodyPart=chest&muscle=lats',
+      session,
+      setup: (fake) => {
+        fake.on('GET', '/catalog/search', () => jsonResponse([catalogBenchPress]));
+      },
+    });
+
+    expect(
+      await screen.findByRole('link', { name: /Press de banca con barra/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('searchbox', { name: 'Buscar ejercicio' })).toHaveValue('press');
+    expect(screen.getByRole('combobox', { name: 'Parte del cuerpo' })).toHaveValue('chest');
+    expect(screen.getByRole('combobox', { name: 'Músculo' })).toHaveValue('');
+    const request = fake.requests.find((r) => r.path.startsWith('/catalog/search'));
+    expect(queryOf(request!).get('bodyPart')).toBe('chest');
+    expect(queryOf(request!).has('muscle')).toBe(false);
+  });
+
+  it('la pestaña «Catálogo» vacía la búsqueda', async () => {
+    const user = userEvent.setup();
+    renderApp({
+      path: '/catalog?q=press',
+      session,
+      setup: (fake) => {
+        fake.on('GET', '/catalog/bodyparts', () => jsonResponse(bodyParts));
+        fake.on('GET', '/catalog/search', () => jsonResponse([catalogBenchPress]));
+      },
+    });
+
+    await screen.findByRole('link', { name: /Press de banca con barra/ });
+    const bar = screen.getByRole('navigation', { name: 'Secciones' });
+    await user.click(within(bar).getByRole('link', { name: /Catálogo/ }));
+
+    expect(await screen.findByRole('link', { name: /Pecho/ })).toBeInTheDocument();
+    expect(screen.getByRole('searchbox', { name: 'Buscar ejercicio' })).toHaveValue('');
+  });
+
+  it('atrás desde la página de una parte vuelve con sus filtros puestos', async () => {
+    const user = userEvent.setup();
+    renderApp({
+      path: '/catalog/chest?equipment=barbell',
+      session,
+      setup: (fake) => {
+        fake.on('GET', '/catalog/bodyparts/chest', () =>
+          jsonResponse(catalogPage([catalogBenchPress], 1)),
+        );
+        serveBenchPressDetail(fake);
+        fake.on('GET', '/exercises', () => jsonResponse([]));
+      },
+    });
+
+    await user.click(await screen.findByRole('link', { name: /Press de banca con barra/ }));
+    await screen.findByRole('heading', { name: 'Press de banca con barra' });
+    const back = screen.getByRole('link', { name: /Pecho/ });
+    expect(back).toHaveAttribute('href', '/catalog/chest?equipment=barbell');
+
+    await user.click(back);
+    expect(await screen.findByText('1 ejercicio')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Equipamiento' })).toHaveValue('barbell');
+  });
+});
