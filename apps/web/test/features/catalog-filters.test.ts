@@ -3,6 +3,7 @@ import {
   EQUIPMENT_FILTER_ORDER,
   NO_FILTER,
   applyCatalogFiltersToParams,
+  bodyPartFilterOptions,
   describeCatalogFilters,
   equipmentFilterOptions,
   hasCatalogFilters,
@@ -50,6 +51,22 @@ describe('opciones de los filtros del catálogo', () => {
     expect(muscles.at(-1)).toEqual({ value: 'cardio', label: 'Cardio', group: 'Cardio' });
   });
 
+  it('la parte del cuerpo ofrece «Todas» y las siete, en el orden del catálogo', () => {
+    const options = bodyPartFilterOptions();
+
+    expect(options[0]).toEqual({ value: NO_FILTER, label: 'Todas' });
+    expect(options.slice(1).map((option) => option.value)).toEqual([
+      'chest',
+      'back',
+      'legs',
+      'shoulders',
+      'arms',
+      'core',
+      'cardio',
+    ]);
+    expect(options.find((option) => option.value === 'back')?.label).toBe('Espalda');
+  });
+
   it('no ofrece el músculo donde solo hay uno', () => {
     expect(offersMuscleFilter('shoulders')).toBe(false);
     expect(offersMuscleFilter('core')).toBe(false);
@@ -91,6 +108,31 @@ describe('cambiar un filtro', () => {
     });
   });
 
+  it('elegir una parte del cuerpo conserva el músculo si es suyo y lo suelta si no', () => {
+    expect(withCatalogFilter({ muscle: 'lats', equipment: 'cable' }, 'bodyPart', 'back')).toEqual({
+      bodyPart: 'back',
+      muscle: 'lats',
+      equipment: 'cable',
+    });
+    expect(withCatalogFilter({ muscle: 'lats', equipment: 'cable' }, 'bodyPart', 'legs')).toEqual({
+      bodyPart: 'legs',
+      equipment: 'cable',
+    });
+  });
+
+  it('una parte con un solo músculo suelta el músculo, que ya no se ofrece', () => {
+    expect(withCatalogFilter({ muscle: 'delts' }, 'bodyPart', 'shoulders')).toEqual({
+      bodyPart: 'shoulders',
+    });
+  });
+
+  it('volver a «Todas» quita la parte y deja el músculo', () => {
+    const next = withCatalogFilter({ bodyPart: 'back', muscle: 'lats' }, 'bodyPart', NO_FILTER);
+
+    expect(next).toEqual({ muscle: 'lats' });
+    expect('bodyPart' in next).toBe(false);
+  });
+
   it('«Todo» quita la clave en vez de dejarla vacía', () => {
     const next = withCatalogFilter({ equipment: 'cable', muscle: 'lats' }, 'muscle', NO_FILTER);
 
@@ -101,6 +143,11 @@ describe('cambiar un filtro', () => {
   it('dice si hay filtros y los nombra para el aviso', () => {
     expect(hasCatalogFilters({})).toBe(false);
     expect(hasCatalogFilters({ muscle: 'lats' })).toBe(true);
+    expect(hasCatalogFilters({ bodyPart: 'back' })).toBe(true);
+    expect(describeCatalogFilters({ bodyPart: 'back', equipment: 'cable' })).toBe(
+      'Polea · Espalda',
+    );
+    expect(describeCatalogFilters({ bodyPart: 'back', muscle: 'lats' })).toBe('Dorsales');
     expect(describeCatalogFilters({ equipment: 'cable', muscle: 'lats' })).toBe('Polea · Dorsales');
     expect(describeCatalogFilters({ equipment: 'hammer' })).toBe('Hammer');
   });

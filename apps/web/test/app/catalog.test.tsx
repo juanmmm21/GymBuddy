@@ -311,6 +311,60 @@ describe('catálogo: filtros', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Músculo' })).toHaveValue('');
   });
+
+  it('la búsqueda se filtra por una parte del cuerpo entera y el músculo se ciñe a ella', async () => {
+    const user = userEvent.setup();
+    const { fake } = renderApp({
+      path: '/catalog',
+      session,
+      setup: (fake) => {
+        fake.on('GET', '/catalog/bodyparts', () => jsonResponse(bodyParts));
+        fake.on('GET', '/catalog/search', (request) =>
+          queryOf(request).get('bodyPart') === 'chest'
+            ? jsonResponse([catalogBenchPress])
+            : jsonResponse([]),
+        );
+      },
+    });
+    const lastSearch = (): URLSearchParams =>
+      queryOf(fake.requests.filter((r) => r.path.startsWith('/catalog/search')).at(-1)!);
+
+    await screen.findByRole('link', { name: /Pecho/ });
+    await user.type(screen.getByRole('searchbox', { name: 'Buscar ejercicio' }), 'press');
+    const part = await screen.findByRole('combobox', { name: 'Parte del cuerpo' });
+    expect(lastSearch().has('bodyPart')).toBe(false);
+
+    await user.selectOptions(part, 'Pecho');
+    expect(
+      await screen.findByRole('link', { name: /Press de banca con barra/ }),
+    ).toBeInTheDocument();
+    expect(lastSearch().get('bodyPart')).toBe('chest');
+    // Con una parte elegida, el músculo ofrece solo los suyos, como en la página de esa parte.
+    const muscle = screen.getByRole('combobox', { name: 'Músculo' });
+    expect(
+      within(muscle)
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual(['Todos', 'Pectorales', 'Serrato anterior']);
+    await user.selectOptions(muscle, 'Pectorales');
+    await waitFor(() => {
+      expect(lastSearch().get('muscle')).toBe('pectorals');
+    });
+
+    // Cambiar a otra parte suelta el músculo: nunca sale una petición que se contradiga.
+    await user.selectOptions(part, 'Espalda');
+    expect(await screen.findByText('Nada que se llame «press» con «Espalda»')).toBeInTheDocument();
+    expect(lastSearch().get('bodyPart')).toBe('back');
+    expect(lastSearch().has('muscle')).toBe(false);
+    expect(screen.getByRole('combobox', { name: 'Músculo' })).toHaveValue('');
+
+    // Hombros tiene un solo músculo: el desplegable desaparece.
+    await user.selectOptions(part, 'Hombros');
+    await waitFor(() => {
+      expect(lastSearch().get('bodyPart')).toBe('shoulders');
+    });
+    expect(screen.queryByRole('combobox', { name: 'Músculo' })).not.toBeInTheDocument();
+  });
 });
 
 describe('catálogo: ficha del ejercicio', () => {
