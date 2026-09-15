@@ -13,14 +13,22 @@ import {
 } from '../../src/features/catalog/filters';
 
 describe('opciones de los filtros del catálogo', () => {
-  it('el equipamiento ofrece «Todo» y los doce valores del tag, traducidos', () => {
+  it('el equipamiento ofrece «Todo» y los valores del tag, traducidos', () => {
     const options = equipmentFilterOptions();
 
     expect(options[0]).toEqual({ value: NO_FILTER, label: 'Todo' });
     expect(options.slice(1).map((option) => option.value)).toEqual(EQUIPMENT_FILTER_ORDER);
-    expect(EQUIPMENT_FILTER_ORDER).toHaveLength(12);
+    expect(EQUIPMENT_FILTER_ORDER).toHaveLength(11);
     expect(options.find((option) => option.value === 'cable')?.label).toBe('Polea');
     expect(options.every((option) => option.label.length > 0)).toBe(true);
+  });
+
+  it('«Máquina» es el grupo y la máquina de palanca no sale aparte', () => {
+    const options = equipmentFilterOptions();
+
+    expect(options.find((option) => option.value === 'machine')?.label).toBe('Máquina');
+    expect(options.some((option) => option.value === 'lever')).toBe(false);
+    expect(options.some((option) => option.value === 'smith')).toBe(true);
   });
 
   it('dentro de una parte del cuerpo solo salen sus músculos', () => {

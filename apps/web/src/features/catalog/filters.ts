@@ -18,17 +18,18 @@ export const FILTER_PARAMS = { equipment: 'equipment', muscle: 'muscle' } as con
 export type CatalogFilterKey = keyof CatalogFilters;
 
 /**
- * Los doce valores de `equipment` del tag `v1.1.0` (comprobados contra el CDN, los mismos que
- * traduce `labels.ts`), en el orden en que se buscan en un gimnasio: primero peso libre y máquinas,
- * lo raro al final. El contrato no los cierra; si una versión nueva trae otro, no sale aquí hasta
- * añadirlo, pero la API lo filtraría igual.
+ * Los valores de `equipment` del tag `v1.1.0` (comprobados contra el CDN, los mismos que traduce
+ * `labels.ts`), en el orden en que se buscan en un gimnasio: primero peso libre y máquinas, lo raro
+ * al final. «Máquina» es el grupo de `EQUIPMENT_FILTER_GROUPS` y ya abarca `lever`, así que
+ * «Máquina de palanca» no se ofrece aparte: al lado de «Máquina» parecía otra cosa. Multipower y
+ * prensa sí, como filtros más estrechos. El contrato no los cierra; si una versión nueva trae otro,
+ * no sale aquí hasta añadirlo, pero la API lo filtraría igual.
  */
 export const EQUIPMENT_FILTER_ORDER: readonly string[] = [
   'barbell',
   'dumbbell',
   'cable',
   'machine',
-  'lever',
   'smith',
   'sled',
   'ez-bar',
