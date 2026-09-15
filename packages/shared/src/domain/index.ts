@@ -114,6 +114,7 @@ export {
   sessionImportRows,
 } from './import';
 export type { AccountExerciseRef, ImportPlan, OversizedImportEntry } from './import';
+export { EQUIPMENT_FILTER_GROUPS, equipmentTagsOfFilter } from './equipment';
 export {
   MUSCLE_BODY_PART,
   bodyPartOfMuscle,
