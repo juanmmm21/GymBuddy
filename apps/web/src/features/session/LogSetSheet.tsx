@@ -24,7 +24,10 @@ export interface LogSetSheetProps {
    * que nombre la rutina que guía la sesión (el Worker acepta series de un archivado).
    */
   readonly exercises: readonly TrackedExercise[];
-  /** El de la ficha de la que se llega o el de la línea de la rutina; si no, el primero. */
+  /**
+   * El que decide `logExerciseIdFor` (la línea de la rutina, la última serie de la sesión o la
+   * ficha de la que se llega); si es nulo o ya no se puede elegir, el primero.
+   */
   readonly defaultExerciseId: ResourceId | null;
   /** El reparto de la rutina que guía la sesión, para decir bajo las repeticiones qué toca. */
   readonly routineProgress: RoutineProgress | null;

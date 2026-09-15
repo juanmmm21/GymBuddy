@@ -36,6 +36,7 @@ import { describeRoutineSize } from '../routines/items';
 import { EditSetSheet } from './EditSetSheet';
 import { EndSessionSheet } from './EndSessionSheet';
 import { LogSetSheet } from './LogSetSheet';
+import { logExerciseIdFor } from './log-target';
 import { SESSION_EXERCISE_PARAM, SESSION_ROUTINE_PARAM } from './paths';
 import { RestTimer } from './RestTimer';
 import { restTargetFor, withRestTarget, type RestKind, type RestPreferences } from './rest';
@@ -382,7 +383,8 @@ function ActiveSession({
         size="lg"
         fullWidth
         onClick={() => {
-          openLog(progress?.current?.item.trackedExerciseId ?? requestedExerciseId);
+          // `session.sets` ya lleva la cola encima: sin red, la última serie es la que se acaba de apuntar.
+          openLog(logExerciseIdFor(progress, session.sets, requestedExerciseId));
         }}
       >
         Registrar serie
