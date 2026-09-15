@@ -5,7 +5,6 @@ import {
   type ResourceId,
   type Routine,
   type SetEntry,
-  type StrengthSetEntry,
   type TrackedExercise,
   type WorkoutSessionDetail,
 } from '@gymbuddy/shared';
@@ -90,7 +89,7 @@ export function SessionScreen() {
   const [logging, setLogging] = useState<LogSheetTarget | null>(
     requestedExerciseId === null ? null : { exerciseId: requestedExerciseId },
   );
-  const [editing, setEditing] = useState<StrengthSetEntry | null>(null);
+  const [editing, setEditing] = useState<SetEntry | null>(null);
   const [ending, setEnding] = useState(false);
   const storage = useStorage();
   // Se lee una vez al montar y se guarda en el mismo toque que lo cambia: sin efectos.
@@ -257,14 +256,14 @@ interface ActiveSessionProps {
   /** La rutina que trae la URL; sin ella manda la que se recordó para esta sesión. */
   readonly requestedRoutineId: ResourceId | null;
   readonly logging: LogSheetTarget | null;
-  readonly editing: StrengthSetEntry | null;
+  readonly editing: SetEntry | null;
   readonly ending: boolean;
   readonly restPreferences: RestPreferences;
   readonly onRestTargetChange: (kind: RestKind, seconds: number) => void;
   readonly onOpenLog: (exerciseId: ResourceId | null) => void;
   readonly onCloseLog: () => void;
   readonly onLogged: (records: readonly PersonalRecord[]) => void;
-  readonly onOpenEdit: (set: StrengthSetEntry) => void;
+  readonly onOpenEdit: (set: SetEntry) => void;
   readonly onCloseEdit: () => void;
   readonly onCorrected: (records: readonly PersonalRecord[]) => void;
   readonly onOpenEnd: () => void;
@@ -527,36 +526,11 @@ interface SetRowProps {
   readonly pending: boolean;
   readonly position: number;
   readonly locale: Locale;
-  readonly onEdit: (set: StrengthSetEntry) => void;
+  readonly onEdit: (set: SetEntry) => void;
 }
 
-/**
- * La fila entera abre la corrección: en el gimnasio se toca con el pulgar y sin mirar. La de una
- * serie de cardio todavía no se corrige desde aquí —la hoja es de kilos y repeticiones—, así que
- * se lee sin invitar a tocarla.
- */
+/** La fila entera abre la corrección, también la de cardio: en el gimnasio se toca con el pulgar y sin mirar. */
 function SetRow({ set, plates, pending, position, locale, onEdit }: SetRowProps) {
-  const content = (
-    <>
-      <span className={styles.setPosition}>{position}</span>
-      {plates && set.kind === 'strength' && <PlateStack weight={set.weight} locale={locale} />}
-      <span className={styles.setValue}>{formatSetValueLabel(set, locale)}</span>
-      <span className={styles.setMeta}>
-        {pending && <Badge tone="warning">Sin sincronizar</Badge>}
-        {set.isWarmup && <Badge>Calentamiento</Badge>}
-        {set.rpe !== null && <span>{formatRpe(set.rpe, locale)}</span>}
-      </span>
-    </>
-  );
-
-  if (set.kind !== 'strength') {
-    return (
-      <li>
-        <div className={styles.set}>{content}</div>
-      </li>
-    );
-  }
-
   return (
     <li>
       <button
@@ -566,7 +540,14 @@ function SetRow({ set, plates, pending, position, locale, onEdit }: SetRowProps)
           onEdit(set);
         }}
       >
-        {content}
+        <span className={styles.setPosition}>{position}</span>
+        {plates && set.kind === 'strength' && <PlateStack weight={set.weight} locale={locale} />}
+        <span className={styles.setValue}>{formatSetValueLabel(set, locale)}</span>
+        <span className={styles.setMeta}>
+          {pending && <Badge tone="warning">Sin sincronizar</Badge>}
+          {set.isWarmup && <Badge>Calentamiento</Badge>}
+          {set.rpe !== null && <span>{formatRpe(set.rpe, locale)}</span>}
+        </span>
       </button>
     </li>
   );

@@ -4,19 +4,27 @@ import {
   type Locale,
   type PersonalRecord,
   type ResourceId,
-  type StrengthSetEntry,
+  type SetEntry,
+  type UpdateSetRequest,
 } from '@gymbuddy/shared';
 import { useState, type FormEvent } from 'react';
 import { freshRecords, useRemoveSet, useUpdateSet } from '../../api/mutations';
 import { Button, Notice, Sheet } from '../../components/index';
 import { describeError } from '../../lib/errors';
 import styles from './EditSetSheet.module.css';
-import { isCompleteSet, SetFields, type SetValues } from './SetFields';
+import {
+  CardioSetFields,
+  isCompleteCardioSet,
+  isCompleteSet,
+  SetFields,
+  type CardioSetValues,
+  type SetValues,
+} from './SetFields';
 
 export interface EditSetSheetProps {
   readonly sessionId: ResourceId;
   /** La serie que se corrige, o `null` cuando no hay ninguna abierta. */
-  readonly set: StrengthSetEntry | null;
+  readonly set: SetEntry | null;
   readonly exerciseName: string;
   readonly locale: Locale;
   readonly onClose: () => void;
@@ -55,32 +63,49 @@ export function EditSetSheet({
 
 interface EditSetFormProps {
   readonly sessionId: ResourceId;
-  readonly set: StrengthSetEntry;
+  readonly set: SetEntry;
   readonly locale: Locale;
   readonly onUpdated: (records: readonly PersonalRecord[]) => void;
   readonly onRemoved: () => void;
 }
 
 function EditSetForm({ sessionId, set, locale, onUpdated, onRemoved }: EditSetFormProps) {
-  const [values, setValues] = useState<SetValues>(() => valuesOf(set));
+  const [values, setValues] = useState<SetValues>(() => strengthValuesOf(set));
+  const [cardioValues, setCardioValues] = useState<CardioSetValues>(() => cardioValuesOf(set));
   const update = useUpdateSet();
   const remove = useRemoveSet();
+  // El tipo no se corrige (ver `updateSetRequestSchema`): cambiarlo es borrar la serie y registrar otra.
+  const complete =
+    set.kind === 'strength' ? isCompleteSet(values) : isCompleteCardioSet(cardioValues);
+
+  const requestBody = (): UpdateSetRequest | null => {
+    if (set.kind === 'strength') {
+      if (!isCompleteSet(values)) return null;
+      return {
+        weight: formatGramsAsKilograms(values.weightGrams),
+        reps: values.reps,
+        rpe: values.rpe,
+        isWarmup: values.isWarmup,
+      };
+    }
+
+    if (!isCompleteCardioSet(cardioValues)) return null;
+    return {
+      durationSeconds: cardioValues.durationSeconds,
+      // Nula y no ausente: vaciar el campo tiene que quitar la distancia anotada por error.
+      distanceMeters: cardioValues.distanceMeters,
+      rpe: cardioValues.rpe,
+      isWarmup: cardioValues.isWarmup,
+    };
+  };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
-    if (!isCompleteSet(values)) return;
+    const body = requestBody();
+    if (body === null) return;
 
     update.mutate(
-      {
-        sessionId,
-        setId: set.id,
-        body: {
-          weight: formatGramsAsKilograms(values.weightGrams),
-          reps: values.reps,
-          rpe: values.rpe,
-          isWarmup: values.isWarmup,
-        },
-      },
+      { sessionId, setId: set.id, body },
       {
         onSuccess: (outcome) => {
           onUpdated(freshRecords(outcome));
@@ -97,12 +122,21 @@ function EditSetForm({ sessionId, set, locale, onUpdated, onRemoved }: EditSetFo
 
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
-      <SetFields
-        values={values}
-        onChange={setValues}
-        locale={locale}
-        weightHint="Lo que registraste. Cámbialo y se recalculan tus marcas."
-      />
+      {set.kind === 'strength' ? (
+        <SetFields
+          values={values}
+          onChange={setValues}
+          locale={locale}
+          weightHint="Lo que registraste. Cámbialo y se recalculan tus marcas."
+        />
+      ) : (
+        <CardioSetFields
+          values={cardioValues}
+          onChange={setCardioValues}
+          locale={locale}
+          durationHint="Lo que registraste. En minutos, o minutos y segundos: 25:30."
+        />
+      )}
 
       {update.isError && (
         <Notice tone="danger" title="No se pudo corregir">
@@ -121,7 +155,7 @@ function EditSetForm({ sessionId, set, locale, onUpdated, onRemoved }: EditSetFo
         size="lg"
         fullWidth
         loading={update.isPending}
-        disabled={!isCompleteSet(values) || busy}
+        disabled={!complete || busy}
       >
         Guardar cambios
       </Button>
@@ -144,11 +178,31 @@ function EditSetForm({ sessionId, set, locale, onUpdated, onRemoved }: EditSetFo
   );
 }
 
-/** La serie guardada, tal y como la edita el formulario: el peso vuelve a gramos enteros. */
-function valuesOf(set: StrengthSetEntry): SetValues {
+/**
+ * La serie guardada, tal y como la edita el formulario: el peso vuelve a gramos enteros. Los dos
+ * estados se crean siempre, vacío el del otro tipo, para no condicionar los `useState`.
+ */
+function strengthValuesOf(set: SetEntry): SetValues {
+  if (set.kind !== 'strength') {
+    return { weightGrams: null, reps: null, rpe: set.rpe, isWarmup: set.isWarmup };
+  }
+
   return {
     weightGrams: parseKilogramsToGrams(set.weight),
     reps: set.reps,
+    rpe: set.rpe,
+    isWarmup: set.isWarmup,
+  };
+}
+
+function cardioValuesOf(set: SetEntry): CardioSetValues {
+  if (set.kind !== 'cardio') {
+    return { durationSeconds: null, distanceMeters: null, rpe: set.rpe, isWarmup: set.isWarmup };
+  }
+
+  return {
+    durationSeconds: set.durationSeconds,
+    distanceMeters: set.distanceMeters,
     rpe: set.rpe,
     isWarmup: set.isWarmup,
   };

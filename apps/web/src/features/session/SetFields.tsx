@@ -1,5 +1,12 @@
-import type { Locale } from '@gymbuddy/shared';
-import { NumberField, Select, WeightField, type SelectOption } from '../../components/index';
+import type { Locale, SetKind } from '@gymbuddy/shared';
+import {
+  DistanceField,
+  DurationField,
+  NumberField,
+  Select,
+  WeightField,
+  type SelectOption,
+} from '../../components/index';
 import { cx } from '../../lib/cx';
 import { formatRpe } from '../../lib/format';
 import styles from './SetFields.module.css';
@@ -17,6 +24,24 @@ export interface SetValues {
   readonly reps: number | null;
   readonly rpe: number | null;
   readonly isWarmup: boolean;
+}
+
+/** Lo que describe una serie de cardio: segundos y metros enteros, como el peso en gramos. */
+export interface CardioSetValues {
+  readonly durationSeconds: number | null;
+  readonly distanceMeters: number | null;
+  readonly rpe: number | null;
+  readonly isWarmup: boolean;
+}
+
+/** Lo que comparten los dos tipos de serie y se conserva al cambiar de uno a otro. */
+type EffortValues = Pick<SetValues, 'rpe' | 'isWarmup'>;
+
+/** Una serie de cardio está lista cuando tiene duración; la distancia es opcional. */
+export function isCompleteCardioSet(
+  values: CardioSetValues,
+): values is CardioSetValues & { durationSeconds: number } {
+  return values.durationSeconds !== null;
 }
 
 /** Una serie está lista para enviarse cuando tiene peso y repeticiones. */
@@ -37,7 +62,7 @@ export interface SetFieldsProps {
 }
 
 /**
- * Los cuatro campos que describen una serie. Los comparten registrarla y corregirla: son
+ * Los cuatro campos que describen una serie de fuerza. Los comparten registrarla y corregirla: son
  * el mismo dato, y tener dos formularios parecidos acabaría con uno de los dos aceptando
  * algo que el otro no.
  */
@@ -65,31 +90,114 @@ export function SetFields({ values, onChange, locale, weightHint, repsHint }: Se
         {...(repsHint === undefined ? {} : { hint: repsHint })}
       />
 
-      <div className={styles.row}>
-        <Select
-          label="RPE"
-          value={values.rpe === null ? NO_RPE : String(values.rpe)}
-          onChange={(value) => {
-            onChange({
-              ...values,
-              rpe: RPE_OPTIONS.find((option) => String(option) === value) ?? null,
-            });
-          }}
-          options={rpeOptions(locale)}
-        />
+      <EffortFields values={values} onChange={onChange} locale={locale} />
+    </>
+  );
+}
 
+export interface CardioSetFieldsProps {
+  readonly values: CardioSetValues;
+  readonly onChange: (values: CardioSetValues) => void;
+  readonly locale: Locale;
+  /** Lo que se explica bajo la duración: de dónde sale la que viene puesta. */
+  readonly durationHint: string;
+}
+
+/** Los campos de una serie de cardio: duración, distancia opcional y el mismo esfuerzo que la fuerza. */
+export function CardioSetFields({ values, onChange, locale, durationHint }: CardioSetFieldsProps) {
+  return (
+    <>
+      <DurationField
+        label="Duración"
+        valueSeconds={values.durationSeconds}
+        onChange={(durationSeconds) => {
+          onChange({ ...values, durationSeconds });
+        }}
+        hint={durationHint}
+      />
+
+      <DistanceField
+        label="Distancia (km)"
+        valueMeters={values.distanceMeters}
+        onChange={(distanceMeters) => {
+          onChange({ ...values, distanceMeters });
+        }}
+        locale={locale}
+        hint="Opcional. Déjala vacía si la máquina no la marca."
+      />
+
+      <EffortFields values={values} onChange={onChange} locale={locale} />
+    </>
+  );
+}
+
+const SET_KIND_LABELS: Readonly<Record<SetKind, string>> = {
+  strength: 'Fuerza',
+  cardio: 'Cardio',
+};
+const SET_KINDS: readonly SetKind[] = ['strength', 'cardio'];
+
+export interface SetKindSwitchProps {
+  readonly value: SetKind;
+  readonly onChange: (kind: SetKind) => void;
+}
+
+/**
+ * Fuerza o cardio. Lo decide la serie y no el ejercicio (ver `setKindSchema`), así que se deja
+ * cambiar siempre: la hoja abre en lo que toca y esto es la salida cuando no acierta.
+ */
+export function SetKindSwitch({ value, onChange }: SetKindSwitchProps) {
+  return (
+    <div className={styles.kinds} role="group" aria-label="Tipo de serie">
+      {SET_KINDS.map((kind) => (
         <button
+          key={kind}
           type="button"
-          className={cx(styles.warmup, values.isWarmup && styles.warmupActive)}
-          aria-pressed={values.isWarmup}
+          className={cx(styles.kind, kind === value && styles.kindActive)}
+          aria-pressed={kind === value}
           onClick={() => {
-            onChange({ ...values, isWarmup: !values.isWarmup });
+            onChange(kind);
           }}
         >
-          Calentamiento
+          {SET_KIND_LABELS[kind]}
         </button>
-      </div>
-    </>
+      ))}
+    </div>
+  );
+}
+
+interface EffortFieldsProps<T extends EffortValues> {
+  readonly values: T;
+  readonly onChange: (values: T) => void;
+  readonly locale: Locale;
+}
+
+function EffortFields<T extends EffortValues>({ values, onChange, locale }: EffortFieldsProps<T>) {
+  return (
+    <div className={styles.row}>
+      <Select
+        label="RPE"
+        value={values.rpe === null ? NO_RPE : String(values.rpe)}
+        onChange={(value) => {
+          onChange({
+            ...values,
+            rpe: RPE_OPTIONS.find((option) => String(option) === value) ?? null,
+          });
+        }}
+        options={rpeOptions(locale)}
+      />
+
+      <button
+        type="button"
+        className={cx(styles.warmup, values.isWarmup && styles.warmupActive)}
+        aria-pressed={values.isWarmup}
+        onClick={() => {
+          onChange({ ...values, isWarmup: !values.isWarmup });
+        }}
+      >
+        Calentamiento
+      </button>
+    </div>
   );
 }
 
