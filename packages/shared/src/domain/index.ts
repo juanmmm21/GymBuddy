@@ -65,7 +65,12 @@ export {
 export type { MascotDeviceSignals, MascotMood, MascotState, MascotTrainingSignals } from './mascot';
 export { OLYMPIC_BAR_GRAMS, PLATE_GRAMS, barbellLoad } from './plates';
 export type { BarbellLoad, PlateGrams } from './plates';
-export { NO_PERSONAL_RECORDS, detectPersonalRecords, replayPersonalRecords } from './records';
+export {
+  NO_PERSONAL_RECORDS,
+  bestPersonalRecords,
+  detectPersonalRecords,
+  replayPersonalRecords,
+} from './records';
 export {
   SESSION_IDLE_LIMIT_MINUTES,
   SESSION_IDLE_LIMIT_MS,
@@ -75,6 +80,7 @@ export {
 } from './session-idle';
 export type { SessionActivity } from './session-idle';
 export type {
+  ComparableRecord,
   DetectedRecord,
   PersonalRecordBests,
   RecordReplayOptions,

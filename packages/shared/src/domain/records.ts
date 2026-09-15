@@ -5,6 +5,7 @@
 
 import type { PersonalRecordKind } from '../schemas/record';
 import { estimateOneRepMaxGrams, setVolumeGrams, type ProgressionSet } from './progression';
+import { parseVolumeKilogramsToGrams } from './units';
 
 /** Las marcas vigentes de un ejercicio, en gramos. `null` es "todavía no hay marca". */
 export interface PersonalRecordBests {
@@ -50,6 +51,56 @@ export function detectPersonalRecords(
   ];
 
   return candidates.filter((candidate) => beatsPrevious(candidate, bests));
+}
+
+/** Lo mínimo de una marca de la API para decidir cuál de varias es la mejor. */
+export interface ComparableRecord {
+  readonly trackedExerciseId: string;
+  readonly kind: PersonalRecordKind;
+  /** En kilogramos con el ancho del volumen, como la expone la API (`"82.50"`). */
+  readonly value: string;
+}
+
+/** El orden en que se leen las tres marcas de un mismo ejercicio. */
+const RECORD_KIND_ORDER: Readonly<Record<PersonalRecordKind, number>> = {
+  max_weight: 0,
+  estimated_1rm: 1,
+  max_volume: 2,
+};
+
+/**
+ * Una marca por ejercicio y tipo: la más alta. En una sesión cada serie que mejora a la anterior
+ * devuelve otra vez las mismas marcas, y enseñarlas todas repite el ejercicio sin decir nada
+ * nuevo: lo que cuenta es dónde quedó el listón.
+ *
+ * A igual valor gana la que llegó después (la última corrección). El resultado va agrupado por
+ * ejercicio, en el orden en que cada uno batió su primera marca, y dentro de él peso, 1RM y
+ * volumen; así la lista no salta de sitio al llegar una marca mejor.
+ */
+export function bestPersonalRecords<TRecord extends ComparableRecord>(
+  records: readonly TRecord[],
+): TRecord[] {
+  const exerciseOrder = new Map<string, number>();
+  const bests = new Map<string, { readonly record: TRecord; readonly grams: number }>();
+
+  for (const record of records) {
+    if (!exerciseOrder.has(record.trackedExerciseId)) {
+      exerciseOrder.set(record.trackedExerciseId, exerciseOrder.size);
+    }
+    const key = `${record.trackedExerciseId}|${record.kind}`;
+    const grams = parseVolumeKilogramsToGrams(record.value);
+    const current = bests.get(key);
+    if (current === undefined || grams >= current.grams) bests.set(key, { record, grams });
+  }
+
+  return [...bests.values()]
+    .map(({ record }) => record)
+    .sort(
+      (left, right) =>
+        (exerciseOrder.get(left.trackedExerciseId) ?? 0) -
+          (exerciseOrder.get(right.trackedExerciseId) ?? 0) ||
+        RECORD_KIND_ORDER[left.kind] - RECORD_KIND_ORDER[right.kind],
+    );
 }
 
 /** Una serie del historial de un ejercicio, tal y como la recorre la reconstrucción de marcas. */
