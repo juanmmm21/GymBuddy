@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { isMuscleInBodyPart } from '../domain/muscles';
 import { bodyPartSchema, muscleSchema } from './catalog';
 import { isoDatetimeSchema, resourceIdSchema, weightKilogramsSchema } from './common';
+import { cardioDistanceMetersSchema, cardioDurationSecondsSchema } from './session';
 
 /**
  * El peso habitual de un ejercicio: la mediana del peso de la serie efectiva más pesada de
@@ -26,6 +27,17 @@ export const workingWeightSchema = z.object({
 export const lastSetSchema = z.object({
   weight: weightKilogramsSchema,
   reps: z.int().positive(),
+  completedAt: isoDatetimeSchema,
+});
+
+/**
+ * La última serie de cardio de un ejercicio (sin calentamiento), tal cual se hizo. Va aparte de
+ * `lastSet` porque no se parecen en nada: precarga la duración y la distancia cuando se registra
+ * cardio, igual que `lastSet` precarga el peso.
+ */
+export const lastCardioSetSchema = z.object({
+  durationSeconds: cardioDurationSecondsSchema,
+  distanceMeters: cardioDistanceMetersSchema.nullable(),
   completedAt: isoDatetimeSchema,
 });
 
@@ -58,6 +70,8 @@ export const trackedExerciseSchema = z.object({
   notes: z.string().nullable(),
   workingWeight: workingWeightSchema.nullable(),
   lastSet: lastSetSchema.nullable(),
+  // Nula por defecto: la instantánea del dispositivo guarda ejercicios leídos antes de que existiera.
+  lastCardioSet: lastCardioSetSchema.nullable().default(null),
   createdAt: isoDatetimeSchema,
   archivedAt: isoDatetimeSchema.nullable(),
 });
@@ -105,6 +119,7 @@ export const updateTrackedExerciseRequestSchema = z
 
 export type WorkingWeight = z.infer<typeof workingWeightSchema>;
 export type LastSet = z.infer<typeof lastSetSchema>;
+export type LastCardioSet = z.infer<typeof lastCardioSetSchema>;
 export type TrackedExercise = z.infer<typeof trackedExerciseSchema>;
 export type CreateTrackedExerciseRequest = z.infer<typeof createTrackedExerciseRequestSchema>;
 export type UpdateTrackedExerciseRequest = z.infer<typeof updateTrackedExerciseRequestSchema>;

@@ -108,6 +108,7 @@ export {
   updateTrackedExerciseRequestSchema,
   workingWeightSchema,
   lastSetSchema,
+  lastCardioSetSchema,
 } from './exercise';
 export type {
   CreateTrackedExerciseRequest,
@@ -115,6 +116,7 @@ export type {
   UpdateTrackedExerciseRequest,
   WorkingWeight,
   LastSet,
+  LastCardioSet,
 } from './exercise';
 export {
   MAX_CARDIO_DISTANCE_METERS,

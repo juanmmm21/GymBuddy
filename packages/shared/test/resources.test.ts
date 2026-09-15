@@ -420,6 +420,40 @@ describe('ejercicio seguido', () => {
     ).toBe(false);
   });
 
+  it('lleva la última serie de cardio aparte y la deja nula en lo leído antes de existir', () => {
+    const base = {
+      id: EXERCISE_ID,
+      name: 'Cinta',
+      origin: 'custom',
+      catalogId: null,
+      muscle: null,
+      bodyPart: 'cardio',
+      gifUrl: null,
+      equipment: null,
+      notes: null,
+      workingWeight: null,
+      lastSet: null,
+      createdAt: '2026-09-07T18:00:00.000Z',
+      archivedAt: null,
+    };
+    const lastCardioSet = {
+      durationSeconds: 1200,
+      distanceMeters: null,
+      completedAt: '2026-09-07T19:00:00.000Z',
+    };
+
+    expect(trackedExerciseSchema.parse({ ...base, lastCardioSet }).lastCardioSet).toEqual(
+      lastCardioSet,
+    );
+    expect(trackedExerciseSchema.parse(base).lastCardioSet).toBeNull();
+    expect(
+      trackedExerciseSchema.safeParse({
+        ...base,
+        lastCardioSet: { ...lastCardioSet, durationSeconds: 0 },
+      }).success,
+    ).toBe(false);
+  });
+
   it('lleva el peso habitual para precargar el formulario', () => {
     const parsed = trackedExerciseSchema.safeParse({
       id: EXERCISE_ID,
