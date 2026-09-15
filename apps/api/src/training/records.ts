@@ -10,7 +10,7 @@ import {
 } from '@gymbuddy/shared';
 import { and, eq, inArray } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
-import { chunk, MAX_PARAMS_PER_LOOKUP } from '../db/batching';
+import { chunk, MAX_PARAMS_PER_LOOKUP, rowsPerInsert } from '../db/batching';
 import type { Database } from '../db/client';
 import {
   findRecordBests,
@@ -68,8 +68,8 @@ export async function applyPersonalRecords(
   return rows.map(toPersonalRecord);
 }
 
-/** Filas de marca por sentencia de inserción: siete columnas bajo los cien parámetros de D1. */
-const RECORD_ROWS_PER_INSERT = 14;
+/** Filas de marca por sentencia de inserción, bajo los cien parámetros de D1. */
+const RECORD_ROWS_PER_INSERT = rowsPerInsert(personalRecord);
 
 /**
  * Las sentencias que dejan bien las marcas de los ejercicios tocados por un borrado de series, para

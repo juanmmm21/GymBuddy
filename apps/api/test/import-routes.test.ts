@@ -285,6 +285,53 @@ describe('importación de una copia de seguridad', () => {
     expect(restored.routines.flatMap((entry) => entry.items)).toHaveLength(2);
   });
 
+  it('un lote con muchas filas de una tabla entra sin pasar los cien parámetros de D1', async () => {
+    const file = await exportFileOf(sourceToken);
+    const exercises: ExportedExercise[] = Array.from({ length: 12 }, (_, index) => ({
+      id: crypto.randomUUID(),
+      origin: 'custom',
+      catalogId: null,
+      name: `Ejercicio ${String(index + 1)}`,
+      muscle: null,
+      bodyPart: null,
+      notes: null,
+      createdAt: '2026-09-01T08:00:00.000Z',
+      archivedAt: null,
+      unilateral: false,
+    }));
+    const session: ExportedSession = {
+      id: crypto.randomUUID(),
+      startedAt: '2026-09-05T18:00:00.000Z',
+      endedAt: '2026-09-05T19:00:00.000Z',
+      notes: null,
+      sets: Array.from({ length: 24 }, (_, index) => ({
+        id: crypto.randomUUID(),
+        trackedExerciseId: exercises[index % exercises.length]?.id ?? '',
+        orderIndex: index,
+        kind: 'strength' as const,
+        weight: '20.00',
+        reps: 10,
+        rpe: null,
+        isWarmup: false,
+        completedAt: `2026-09-05T18:${String(index + 10)}:00.000Z`,
+        records: [],
+      })),
+    };
+
+    await importFile(
+      targetToken,
+      exportFileSchema.parse({
+        ...file,
+        exercises: [...file.exercises, ...exercises],
+        sessions: [...file.sessions, session],
+      }),
+    );
+    const restored = await exportFileOf(targetToken);
+
+    expect(restored.exercises).toHaveLength(file.exercises.length + 12);
+    expect(restored.sessions.flatMap((entry) => entry.sets)).toHaveLength(8 + 24);
+  });
+
   it('la sesión abierta del fichero no deja la cuenta con una sesión abierta', async () => {
     await importFile(targetToken, await exportFileOf(sourceToken));
 

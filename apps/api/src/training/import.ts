@@ -13,7 +13,7 @@ import {
 } from '@gymbuddy/shared';
 import { and, eq, inArray } from 'drizzle-orm';
 import type { SQLiteColumn, SQLiteTable } from 'drizzle-orm/sqlite-core';
-import { chunk, MAX_PARAMS_PER_LOOKUP, runBatch } from '../db/batching';
+import { chunk, MAX_PARAMS_PER_LOOKUP, rowsPerInsert, runBatch } from '../db/batching';
 import type { Database } from '../db/client';
 import {
   catalogExercise,
@@ -42,12 +42,12 @@ import { setMeasureColumns } from './set-measure';
 
 /** Filas por sentencia de inserción según las columnas de cada tabla, bajo los cien parámetros. */
 const ROWS_PER_INSERT = {
-  trackedExercise: 11, // 9 columnas
-  routine: 16, // 6 columnas
-  routineItem: 14, // 7 columnas
-  workoutSession: 14, // 7 columnas
-  setEntry: 11, // 9 columnas
-  personalRecord: 14, // 7 columnas
+  trackedExercise: rowsPerInsert(trackedExercise),
+  routine: rowsPerInsert(routine),
+  routineItem: rowsPerInsert(routineItem),
+  workoutSession: rowsPerInsert(workoutSession),
+  setEntry: rowsPerInsert(setEntry),
+  personalRecord: rowsPerInsert(personalRecord),
 } as const;
 
 /**
