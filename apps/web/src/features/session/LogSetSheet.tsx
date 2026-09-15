@@ -45,6 +45,11 @@ export interface LogSetSheetProps {
    * ficha de la que se llega); si es nulo o ya no se puede elegir, el primero.
    */
   readonly defaultExerciseId: ResourceId | null;
+  /**
+   * Con qué tipo abre; `null` lo decide `defaultSetKind` con el ejercicio. El cardio final lo fija:
+   * se pide cardio aunque el ejercicio propuesto tenga una serie de fuerza más reciente.
+   */
+  readonly defaultKind: SetKind | null;
   /** El reparto de la rutina que guía la sesión, para decir bajo las repeticiones qué toca. */
   readonly routineProgress: RoutineProgress | null;
   /** Las series de la sesión con la cola encima: la última de cada ejercicio es lo que se propone. */
@@ -65,6 +70,7 @@ export function LogSetSheet({
   sessionId,
   exercises,
   defaultExerciseId,
+  defaultKind,
   routineProgress,
   sessionSets,
   locale,
@@ -85,6 +91,7 @@ export function LogSetSheet({
           sessionId={sessionId}
           exercises={exercises}
           initialExercise={initial}
+          initialKind={defaultKind}
           routineProgress={routineProgress}
           sessionSets={sessionSets}
           locale={locale}
@@ -99,6 +106,7 @@ interface LogSetFormProps {
   readonly sessionId: ResourceId;
   readonly exercises: readonly TrackedExercise[];
   readonly initialExercise: TrackedExercise;
+  readonly initialKind: SetKind | null;
   readonly routineProgress: RoutineProgress | null;
   readonly sessionSets: readonly SetEntry[];
   readonly locale: Locale;
@@ -109,13 +117,16 @@ function LogSetForm({
   sessionId,
   exercises,
   initialExercise,
+  initialKind,
   routineProgress,
   sessionSets,
   locale,
   onLogged,
 }: LogSetFormProps) {
   const [exercise, setExercise] = useState(initialExercise);
-  const [kind, setKind] = useState<SetKind>(() => defaultSetKind(initialExercise, sessionSets));
+  const [kind, setKind] = useState<SetKind>(
+    () => initialKind ?? defaultSetKind(initialExercise, sessionSets),
+  );
   const [proposal, setProposal] = useState(() => proposeSet(initialExercise, sessionSets));
   const [values, setValues] = useState<SetValues>(proposal.values);
   const [cardioProposal, setCardioProposal] = useState(() =>
