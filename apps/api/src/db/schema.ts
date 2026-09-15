@@ -217,6 +217,8 @@ export const trackedExercise = sqliteTable(
     customMuscle: text('custom_muscle'),
     customBodyPart: text('custom_body_part'),
     notes: text('notes'),
+    // A un brazo: el peso de sus series es el de un brazo y su volumen cuenta los dos lados.
+    unilateral: integer('unilateral', { mode: 'boolean' }).notNull().default(false),
     createdAt: isoTimestamp('created_at').notNull(),
     archivedAt: isoTimestamp('archived_at'),
   },

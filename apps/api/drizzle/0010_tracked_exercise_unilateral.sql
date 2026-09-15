@@ -1,0 +1,1 @@
+ALTER TABLE `tracked_exercise` ADD `unilateral` integer DEFAULT false NOT NULL;
