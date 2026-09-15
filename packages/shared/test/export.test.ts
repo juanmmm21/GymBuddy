@@ -37,6 +37,7 @@ function snapshot(): ExportSnapshot {
         notes: 'Agarre medio',
         createdAt: '2026-09-01T08:00:00.000Z',
         archivedAt: null,
+        unilateral: false,
       },
       {
         id: PLANK_ID,
@@ -48,6 +49,7 @@ function snapshot(): ExportSnapshot {
         notes: null,
         createdAt: '2026-09-02T08:00:00.000Z',
         archivedAt: '2026-09-10T08:00:00.000Z',
+        unilateral: false,
       },
     ],
     routines: [
@@ -275,16 +277,60 @@ describe('series de cardio en la copia', () => {
   });
 });
 
-describe('copias de la versión 1', () => {
-  interface LooseFile {
-    version: unknown;
-    sessions: { sets: Record<string, unknown>[] }[];
-  }
+interface LooseFile {
+  version: unknown;
+  exercises: Record<string, unknown>[];
+  sessions: { sets: Record<string, unknown>[] }[];
+}
 
+/** La copia de hoy con la forma de la versión 2: sus ejercicios no saben de `unilateral`. */
+function versionTwo(): LooseFile {
+  const current = JSON.parse(JSON.stringify(buildExportFile(snapshot(), [session()]))) as LooseFile;
+  for (const exercise of current.exercises) delete exercise.unilateral;
+  current.version = 2;
+  return current;
+}
+
+describe('ejercicios a un brazo en la copia', () => {
+  it('la versión actual exige saber si cada ejercicio es a un brazo', () => {
+    const file = buildExportFile(snapshot(), [session()]) as unknown as LooseFile;
+    const withoutFlag = {
+      ...file,
+      exercises: file.exercises.map(({ unilateral: _unilateral, ...rest }) => rest),
+    };
+
+    expect(exportFileSchema.safeParse(withoutFlag).success).toBe(false);
+  });
+
+  it('una copia de la versión 2 se lee convertida, con ningún ejercicio a un brazo', () => {
+    const result = readableExportFileSchema.safeParse(versionTwo());
+
+    expect(result.success).toBe(true);
+    expect(result.data?.version).toBe(EXPORT_VERSION);
+    expect(result.data?.exercises.map((exercise) => exercise.unilateral)).toStrictEqual([
+      false,
+      false,
+    ]);
+    expect(result.data).toEqual(buildExportFile(snapshot(), [session()]));
+  });
+
+  it('un ejercicio a un brazo viaja marcado y vuelve marcado', () => {
+    const base = snapshot();
+    const marked = {
+      ...base,
+      exercises: base.exercises.map((exercise) => ({ ...exercise, unilateral: true })),
+    };
+    const file = JSON.parse(JSON.stringify(buildExportFile(marked, [session()]))) as unknown;
+
+    expect(
+      readableExportFileSchema.parse(file).exercises.every((exercise) => exercise.unilateral),
+    ).toBe(true);
+  });
+});
+
+describe('copias de la versión 1', () => {
   function versionOne(): LooseFile {
-    const current = JSON.parse(
-      JSON.stringify(buildExportFile(snapshot(), [session()])),
-    ) as LooseFile;
+    const current = versionTwo();
     for (const exported of current.sessions) {
       for (const set of exported.sets) delete set.kind;
     }

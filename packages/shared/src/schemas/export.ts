@@ -25,12 +25,13 @@ export const EXPORT_FORMAT = 'gymbuddy-export';
 
 /**
  * Se sube cuando cambia la forma del fichero, nunca por un cambio de la API. La 2 trajo las
- * series de cardio (`kind`); una copia de la 1 se sigue leyendo, convertida al leerla.
+ * series de cardio (`kind`) y la 3, los ejercicios a un brazo (`unilateral`); las copias de la 1
+ * y de la 2 se siguen leyendo, convertidas al leerlas.
  */
-export const EXPORT_VERSION = 2;
+export const EXPORT_VERSION = 3;
 
 /** Las versiones que esta app sabe leer. Las viejas se convierten a la actual al validarlas. */
-export const READABLE_EXPORT_VERSIONS: readonly number[] = [1, EXPORT_VERSION];
+export const READABLE_EXPORT_VERSIONS: readonly number[] = [1, 2, EXPORT_VERSION];
 
 /** Tope de sesiones por página al exportar: cada una arrastra sus series y sus marcas. */
 export const MAX_EXPORT_SESSION_PAGE_SIZE = 50;
@@ -46,22 +47,40 @@ export const exportedProfileSchema = z.object({
  * además el nombre con el que se veía al exportar: la cuenta de destino puede no tener ese
  * ejercicio sincronizado, y entonces el nombre es lo único legible que queda de él.
  */
-export const exportedExerciseSchema = z
-  .object({
-    id: resourceIdSchema,
-    origin: z.enum(['catalog', 'custom']),
-    catalogId: z.string().min(1).nullable(),
-    name: z.string().min(1),
-    muscle: muscleSchema.nullable(),
-    bodyPart: bodyPartSchema.nullable(),
-    notes: z.string().nullable(),
-    createdAt: isoDatetimeSchema,
-    archivedAt: isoDatetimeSchema.nullable(),
-  })
-  .refine((exercise) => (exercise.origin === 'catalog') === (exercise.catalogId !== null), {
-    message: 'Un ejercicio del catálogo lleva catalogId y uno propio no',
-    path: ['catalogId'],
-  });
+/*
+ * La forma del ejercicio hasta la versión 2, congelada: las copias de la 1 y de la 2 la llevan así,
+ * sin `unilateral`, y no puede cambiar aunque cambie la actual.
+ */
+const exportedExerciseV2ShapeSchema = z.object({
+  id: resourceIdSchema,
+  origin: z.enum(['catalog', 'custom']),
+  catalogId: z.string().min(1).nullable(),
+  name: z.string().min(1),
+  muscle: muscleSchema.nullable(),
+  bodyPart: bodyPartSchema.nullable(),
+  notes: z.string().nullable(),
+  createdAt: isoDatetimeSchema,
+  archivedAt: isoDatetimeSchema.nullable(),
+});
+
+const hasCatalogIdOnlyIfCatalog = (exercise: {
+  readonly origin: 'catalog' | 'custom';
+  readonly catalogId: string | null;
+}): boolean => (exercise.origin === 'catalog') === (exercise.catalogId !== null);
+
+const CATALOG_ID_MISMATCH = {
+  message: 'Un ejercicio del catálogo lleva catalogId y uno propio no',
+  path: ['catalogId'],
+};
+
+const exportedExerciseV2Schema = exportedExerciseV2ShapeSchema.refine(
+  hasCatalogIdOnlyIfCatalog,
+  CATALOG_ID_MISMATCH,
+);
+
+export const exportedExerciseSchema = exportedExerciseV2ShapeSchema
+  .extend({ unilateral: z.boolean() })
+  .refine(hasCatalogIdOnlyIfCatalog, CATALOG_ID_MISMATCH);
 
 /**
  * Una marca personal va dentro de la serie que la puso, y no en una lista aparte que la
@@ -203,7 +222,7 @@ const exportFileV1Schema = z.object({
   version: z.literal(1),
   exportedAt: isoDatetimeSchema,
   profile: exportedProfileSchema,
-  exercises: z.array(exportedExerciseSchema),
+  exercises: z.array(exportedExerciseV2Schema),
   sessions: z.array(
     z.object({
       id: resourceIdSchema,
@@ -216,6 +235,30 @@ const exportFileV1Schema = z.object({
   routines: z.array(exportedRoutineSchema),
 });
 
+/*
+ * La versión 2, congelada igual: la de hoy sin `unilateral` en los ejercicios. Sus series ya son
+ * las actuales, porque la 3 no las cambió.
+ */
+const exportFileV2Schema = z.object({
+  format: z.literal(EXPORT_FORMAT),
+  version: z.literal(2),
+  exportedAt: isoDatetimeSchema,
+  profile: exportedProfileSchema,
+  exercises: z.array(exportedExerciseV2Schema),
+  sessions: z.array(exportedSessionSchema),
+  routines: z.array(exportedRoutineSchema),
+});
+
+/**
+ * Antes de la 3 no se podía marcar un ejercicio a un brazo, así que ninguno lo era: su volumen se
+ * guardó contando un lado, y seguir así es lo que deja las marcas copiadas bien.
+ */
+function withoutUnilateralExercises(
+  exercises: readonly z.infer<typeof exportedExerciseV2Schema>[],
+): ExportFileShape['exercises'] {
+  return exercises.map((exercise) => ({ ...exercise, unilateral: false }));
+}
+
 /**
  * Una copia de cualquier versión legible, ya convertida a la actual. La conversión va antes de
  * las comprobaciones de `exportFileSchema`, así que una copia vieja se valida con las mismas
@@ -223,10 +266,18 @@ const exportFileV1Schema = z.object({
  */
 export const readableExportFileSchema = z.union([
   exportFileSchema,
+  exportFileV2Schema
+    .transform((file): ExportFileShape => ({
+      ...file,
+      version: EXPORT_VERSION,
+      exercises: withoutUnilateralExercises(file.exercises),
+    }))
+    .pipe(exportFileSchema),
   exportFileV1Schema
     .transform((file): ExportFileShape => ({
       ...file,
       version: EXPORT_VERSION,
+      exercises: withoutUnilateralExercises(file.exercises),
       sessions: file.sessions.map((session) => ({
         ...session,
         sets: session.sets.map((set) => ({ ...set, kind: 'strength' as const })),

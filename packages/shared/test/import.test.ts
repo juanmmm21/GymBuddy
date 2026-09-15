@@ -44,6 +44,7 @@ function exercise(overrides: Partial<ExportedExercise> = {}): ExportedExercise {
     notes: null,
     createdAt: '2026-09-01T08:00:00.000Z',
     archivedAt: null,
+    unilateral: false,
     ...overrides,
   };
 }
