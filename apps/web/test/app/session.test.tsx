@@ -250,6 +250,50 @@ describe('sesión en curso', () => {
     expect(screen.getByLabelText('Peso')).toHaveValue('100');
   });
 
+  it('sin rutina, registrar abre con el ejercicio de la última serie y no con el primero', async () => {
+    const user = userEvent.setup();
+    const [firstSet] = activeSession.sets;
+    if (firstSet === undefined) throw new Error('La sesión de las fixtures trae una serie');
+    const squatSet: SetEntry = {
+      ...firstSet,
+      id: '5d0c4a39-8f7e-4c1b-9a6d-2e3f4a5b6c7d',
+      trackedExerciseId: squat.id,
+      orderIndex: 1,
+      weight: '100.00',
+      reps: 5,
+      completedAt: new Date(Date.parse(firstSet.completedAt) + 60_000).toISOString(),
+    };
+
+    renderApp({
+      path: '/session',
+      session,
+      setup: (fake) => {
+        serveActiveSession(fake, { ...activeSession, sets: [firstSet, squatSet] });
+      },
+    });
+
+    await user.click(await screen.findByRole('button', { name: 'Registrar serie' }));
+
+    // El press de banca va primero en la lista, pero lo último que se hizo fue sentadilla.
+    expect(screen.getByRole('combobox', { name: 'Ejercicio' })).toHaveValue(squat.id);
+    expect(screen.getByLabelText('Peso')).toHaveValue('100');
+  });
+
+  it('tras llegar desde una ficha, la siguiente apertura sigue a la última serie', async () => {
+    const user = userEvent.setup();
+    renderApp({ path: `/session?exercise=${squat.id}`, session, setup: serveActiveSession });
+
+    expect(await screen.findByRole('combobox', { name: 'Ejercicio' })).toHaveValue(squat.id);
+    await user.click(screen.getByRole('button', { name: 'Cerrar' }));
+    await waitFor(() => {
+      expect(screen.queryByRole('combobox', { name: 'Ejercicio' })).not.toBeInTheDocument();
+    });
+
+    // La sesión ya tiene una serie de press de banca: eso es lo que se está haciendo.
+    await user.click(screen.getByRole('button', { name: 'Registrar serie' }));
+    expect(screen.getByRole('combobox', { name: 'Ejercicio' })).toHaveValue(benchPress.id);
+  });
+
   it('sin ejercicios seguidos la hoja lo dice en vez de quedarse en blanco', async () => {
     const user = userEvent.setup();
     renderApp({
