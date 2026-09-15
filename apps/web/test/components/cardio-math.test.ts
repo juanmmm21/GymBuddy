@@ -19,9 +19,14 @@ describe('parseDurationInput', () => {
     expect(parseDurationInput('20 min')).toEqual({ kind: 'valid', seconds: 1_200 });
   });
 
+  it('la coma y el punto separan los segundos como los dos puntos, para el teclado del iPhone', () => {
+    expect(parseDurationInput('25,30')).toEqual({ kind: 'valid', seconds: 1_530 });
+    expect(parseDurationInput('25.05')).toEqual({ kind: 'valid', seconds: 1_505 });
+  });
+
   it('distingue el campo vacío de lo que no es una duración', () => {
     expect(parseDurationInput('')).toEqual({ kind: 'empty' });
-    for (const text of ['0', '0:00', '25:5', '25:60', '12,5', 'media hora', '-3']) {
+    for (const text of ['0', '0:00', '25:5', '25:60', '12,5', '12.75', 'media hora', '-3']) {
       expect(parseDurationInput(text)).toEqual({ kind: 'invalid' });
     }
   });

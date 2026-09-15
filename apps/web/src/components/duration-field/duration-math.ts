@@ -13,9 +13,11 @@ export type ParsedDuration =
 /*
  * «30» son treinta minutos y «25:30», veinticinco y medio. En el gimnasio se apunta lo que marca la
  * cinta, que casi siempre es un número redondo de minutos: pedir los segundos en otro campo sería
- * teclear un cero de más en cada serie.
+ * teclear un cero de más en cada serie. La coma y el punto valen como los dos puntos porque el
+ * teclado decimal del iPhone no los tiene; los segundos van siempre con dos cifras para que «12,5»
+ * no se lea como doce minutos y cinco segundos cuando quería decir doce y medio.
  */
-const DURATION_PATTERN = /^(?<minutes>\d{1,4})(?::(?<seconds>[0-5]\d))?(?:\s*min)?$/i;
+const DURATION_PATTERN = /^(?<minutes>\d{1,4})(?:[:.,](?<seconds>[0-5]\d))?(?:\s*min)?$/i;
 
 /** Convierte lo tecleado en segundos enteros, dentro de lo que admite el contrato. */
 export function parseDurationInput(text: string): ParsedDuration {

@@ -94,7 +94,8 @@ export function DurationField({
           id={inputId}
           className={cx(styles.input, invalid && styles.inputInvalid)}
           type="text"
-          inputMode="numeric"
+          // Decimal y no numérico: el teclado numérico del iPhone no trae con qué separar los segundos.
+          inputMode="decimal"
           autoComplete="off"
           value={shownValue}
           onFocus={() => {
