@@ -5,6 +5,7 @@ import {
   weeklyCalendarSchema,
 } from '@gymbuddy/shared';
 import { env } from 'cloudflare:test';
+import { eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { issueSessionToken } from '../src/auth/jwt';
 import type { Database } from '../src/db/client';
@@ -186,6 +187,23 @@ describe('calendario de la semana', () => {
     // 80 × 8 × 2 + 20 × 10 kilos.
     expect(week.days[0]?.volume).toBe('1480.00');
     expect(week.days[0]?.setCount).toBe(3);
+  });
+
+  it('un ejercicio a un brazo suma los dos lados al volumen del día', async () => {
+    const row = await seedExercise(userId, 'Remo con mancuerna', 'back');
+    const legs = await seedExercise(userId, 'Prensa', 'legs');
+    await db.update(trackedExercise).set({ unilateral: true }).where(eq(trackedExercise.id, row));
+
+    await seedSession(userId, dayAt(2, 18), [
+      { exerciseId: row, weightGrams: 20_000, reps: 10 },
+      { exerciseId: legs, weightGrams: 30_000, reps: 10 },
+    ]);
+
+    const week = weeklyCalendarSchema.parse(await (await fetchWeek(token)).json());
+
+    // 20 × 10 × 2 kilos de espalda pesan más que 30 × 10 de pierna.
+    expect(week.days[2]?.bodyPart).toBe('back');
+    expect(week.days[2]?.volume).toBe('700.00');
   });
 
   it('la parte del cuerpo de un ejercicio del catálogo la pone el catálogo', async () => {
