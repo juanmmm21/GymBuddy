@@ -35,6 +35,7 @@ import {
   requireTrackedExerciseFacts,
 } from './exercises';
 import { getCurrentRecords, toPersonalRecord } from './records';
+import { setMeasureOf } from './set-measure';
 import { listRoutineRepRanges } from './routines';
 
 /**
@@ -74,7 +75,7 @@ export async function getExerciseStats(
   const sessions: ProgressionSession[] = history.map((entry) => ({
     sessionId: entry.sessionId,
     startedAt: entry.startedAt,
-    sets: entry.sets.map(toProgressionSet),
+    sets: entry.sets.flatMap(toProgressionSet),
   }));
 
   const topSets = topSetsBySession(sessions);
@@ -197,16 +198,22 @@ export async function getWeeklyCalendar(
 
   const rows = await listSetsInWindow(db, userId, from, to, MAX_WEEK_SETS);
 
-  const entries: WeekSetEntry[] = rows.map((row) => ({
-    sessionStartedAt: row.sessionStartedAt,
-    bodyPart: parseNullableBodyPart(row.bodyPart),
-    set: {
-      weightGrams: row.weightGrams,
-      reps: row.reps,
-      isWarmup: row.isWarmup,
-      completedAt: row.completedAt,
-    },
-  }));
+  const entries: WeekSetEntry[] = rows.map((row) => {
+    const measure = setMeasureOf(row);
+    return {
+      sessionStartedAt: row.sessionStartedAt,
+      bodyPart: parseNullableBodyPart(row.bodyPart),
+      set:
+        measure.kind === 'strength'
+          ? {
+              weightGrams: measure.weightGrams,
+              reps: measure.reps,
+              isWarmup: row.isWarmup,
+              completedAt: row.completedAt,
+            }
+          : { kind: 'cardio', isWarmup: row.isWarmup },
+    };
+  });
 
   return {
     generatedAt: now.toISOString(),
@@ -279,11 +286,20 @@ async function findStalledExercises(db: Database, userId: string): Promise<Stall
     }));
 }
 
-function toProgressionSet(row: SetEntryRow): ProgressionSet {
-  return {
-    weightGrams: row.weightGrams,
-    reps: row.reps,
-    isWarmup: row.isWarmup,
-    completedAt: row.completedAt,
-  };
+/**
+ * La progresión se mide en gramos, así que una serie de cardio no entra: devuelve una lista vacía
+ * para usarse con `flatMap`. Una sesión de solo cardio queda sin series y sin punto en la gráfica.
+ */
+function toProgressionSet(row: SetEntryRow): ProgressionSet[] {
+  const measure = setMeasureOf(row);
+  if (measure.kind !== 'strength') return [];
+
+  return [
+    {
+      weightGrams: measure.weightGrams,
+      reps: measure.reps,
+      isWarmup: row.isWarmup,
+      completedAt: row.completedAt,
+    },
+  ];
 }

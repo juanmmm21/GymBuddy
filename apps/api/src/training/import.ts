@@ -31,6 +31,7 @@ import {
   type NewWorkoutSessionRow,
 } from '../db/schema';
 import { ApiException } from '../http/errors';
+import { setMeasureColumns } from './set-measure';
 
 /*
  * Importar una copia de seguridad, por lotes que la PWA sube uno detrás de otro: ejercicios,
@@ -185,7 +186,9 @@ export async function importSessions(
     ...sessions.map((session) => session.id),
     ...sets.map((set) => set.id),
     ...sets.map((set) => set.trackedExerciseId),
-    ...sets.flatMap((set) => set.records.map((record) => record.id)),
+    ...sets.flatMap((set) =>
+      set.kind === 'strength' ? set.records.map((record) => record.id) : [],
+    ),
   ]);
 
   await assertIdsFree(
@@ -224,13 +227,25 @@ export async function importSessions(
         sessionId,
         trackedExerciseId: exerciseId,
         orderIndex: set.orderIndex,
-        weightGrams: toGrams(parseKilogramsToGrams, set.weight, set.id),
-        reps: set.reps,
+        ...setMeasureColumns(
+          set.kind === 'strength'
+            ? {
+                kind: 'strength',
+                weightGrams: toGrams(parseKilogramsToGrams, set.weight, set.id),
+                reps: set.reps,
+              }
+            : {
+                kind: 'cardio',
+                durationSeconds: set.durationSeconds,
+                distanceMeters: set.distanceMeters,
+              },
+        ),
         rpeTenths: set.rpe === null ? null : rpeToTenths(set.rpe),
         isWarmup: set.isWarmup,
         completedAt: set.completedAt,
       });
 
+      if (set.kind !== 'strength') continue;
       for (const record of set.records) {
         recordRows.push({
           id: importedIdOf(importedIds, record.id),

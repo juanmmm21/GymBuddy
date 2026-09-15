@@ -28,6 +28,7 @@ import {
 import { ApiException } from '../http/errors';
 import { assertTrackedExerciseBelongsToUser } from './exercises';
 import { applyPersonalRecords, personalRecordRewriteStatements } from './records';
+import { setMeasureColumns, setMeasureOf, type SetMeasure } from './set-measure';
 
 /**
  * Abre la sesión. El identificador lo trae el cliente, así que reenviar la apertura
@@ -123,12 +124,20 @@ export async function logSet(
 
   await assertTrackedExerciseBelongsToUser(db, userId, request.trackedExerciseId);
 
+  const measure: SetMeasure =
+    request.kind === 'cardio'
+      ? {
+          kind: 'cardio',
+          durationSeconds: request.durationSeconds,
+          distanceMeters: request.distanceMeters ?? null,
+        }
+      : { kind: 'strength', weightGrams: parseWeight(request.weight), reps: request.reps };
+
   const incoming = {
     id: request.id,
     sessionId,
     trackedExerciseId: request.trackedExerciseId,
-    weightGrams: parseWeight(request.weight),
-    reps: request.reps,
+    ...setMeasureColumns(measure),
     rpeTenths: request.rpe === null || request.rpe === undefined ? null : rpeToTenths(request.rpe),
     isWarmup: request.isWarmup ?? false,
     completedAt,
@@ -178,7 +187,8 @@ export async function logSet(
 
 /**
  * Corrige una serie ya registrada, y solo mientras la sesión sigue abierta: reescribir el
- * entrenamiento de hace meses es otra cosa y no es lo que pasa tecleando entre series.
+ * entrenamiento de hace meses es otra cosa y no es lo que pasa tecleando entre series. Solo se
+ * corrige lo que la serie mide: pedirle kilos a una de cardio es un 400, no un cambio de tipo.
  *
  * Las marcas que puso la serie se borran antes de reevaluarla, porque describían lo que
  * decía **antes** de corregirse: dejarlas convertiría un peso mal tecleado en un récord
@@ -198,9 +208,13 @@ export async function updateSet(
   const stored = await findSetInSession(db, sessionId, setId);
   if (stored === null) throw setNotFound(setId);
 
+  assertCorrectionFitsKind(stored, request);
+
   const changes: Partial<SetEntryRow> = {};
   if (request.weight !== undefined) changes.weightGrams = parseWeight(request.weight);
   if (request.reps !== undefined) changes.reps = request.reps;
+  if (request.durationSeconds !== undefined) changes.durationSeconds = request.durationSeconds;
+  if (request.distanceMeters !== undefined) changes.distanceMeters = request.distanceMeters;
   if (request.rpe !== undefined) {
     changes.rpeTenths = request.rpe === null ? null : rpeToTenths(request.rpe);
   }
@@ -347,16 +361,29 @@ export function toWorkoutSession(row: WorkoutSessionRow): WorkoutSession {
 }
 
 export function toSetEntry(row: SetEntryRow): SetEntry {
-  return {
+  const base = {
     id: row.id,
     trackedExerciseId: row.trackedExerciseId,
     orderIndex: row.orderIndex,
-    weight: formatGramsAsKilograms(row.weightGrams),
-    reps: row.reps,
     rpe: row.rpeTenths === null ? null : tenthsToRpe(row.rpeTenths),
     isWarmup: row.isWarmup,
     completedAt: row.completedAt,
   };
+  const measure = setMeasureOf(row);
+
+  return measure.kind === 'strength'
+    ? {
+        ...base,
+        kind: 'strength',
+        weight: formatGramsAsKilograms(measure.weightGrams),
+        reps: measure.reps,
+      }
+    : {
+        ...base,
+        kind: 'cardio',
+        durationSeconds: measure.durationSeconds,
+        distanceMeters: measure.distanceMeters,
+      };
 }
 
 async function requireSessionDetail(
@@ -520,10 +547,34 @@ function describesSameSet(stored: SetEntryRow, incoming: Omit<SetEntryRow, 'orde
   return (
     stored.sessionId === incoming.sessionId &&
     stored.trackedExerciseId === incoming.trackedExerciseId &&
+    stored.kind === incoming.kind &&
     stored.weightGrams === incoming.weightGrams &&
     stored.reps === incoming.reps &&
+    stored.durationSeconds === incoming.durationSeconds &&
+    stored.distanceMeters === incoming.distanceMeters &&
     stored.rpeTenths === incoming.rpeTenths &&
     stored.isWarmup === incoming.isWarmup
+  );
+}
+
+/**
+ * Una corrección solo toca lo que mide la serie guardada. El esquema no puede comprobarlo porque
+ * no sabe de qué tipo es la serie, y dejarlo pasar escribiría kilos en una fila de cardio, que el
+ * CHECK de la tabla rechazaría como un 500.
+ */
+function assertCorrectionFitsKind(stored: SetEntryRow, request: UpdateSetRequest): void {
+  const touchesStrength = request.weight !== undefined || request.reps !== undefined;
+  const touchesCardio =
+    request.durationSeconds !== undefined || request.distanceMeters !== undefined;
+  const fits = stored.kind === 'strength' ? !touchesCardio : !touchesStrength;
+  if (fits) return;
+
+  throw new ApiException(
+    'validation_failed',
+    stored.kind === 'strength'
+      ? 'Una serie de fuerza no tiene duración ni distancia'
+      : 'Una serie de cardio no tiene peso ni repeticiones',
+    { setId: stored.id, kind: stored.kind },
   );
 }
 

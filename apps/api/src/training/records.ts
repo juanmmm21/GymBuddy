@@ -19,6 +19,7 @@ import {
   listRecordsForExercises,
 } from '../db/queries';
 import { personalRecord, type PersonalRecordRow, type SetEntryRow } from '../db/schema';
+import { setMeasureOf } from './set-measure';
 
 /** Los tres tipos de marca. Estar los tres es lo que hace fiable la tabla como caché. */
 const RECORD_KINDS: readonly PersonalRecordKind[] = ['max_weight', 'estimated_1rm', 'max_volume'];
@@ -30,15 +31,20 @@ const RECORD_KINDS: readonly PersonalRecordKind[] = ['max_weight', 'estimated_1r
  * Se ejecuta también cuando la serie ya existía: si el primer intento insertó la serie y
  * se cayó antes de escribir la marca, el reenvío de la cola offline lo arregla solo. Que
  * no duplique nada lo garantiza la comparación estricta contra las marcas ya guardadas.
+ *
+ * Una serie de cardio no marca nada: las tres marcas se miden en gramos.
  */
 export async function applyPersonalRecords(
   db: Database,
   userId: string,
   row: SetEntryRow,
 ): Promise<PersonalRecord[]> {
+  const measure = setMeasureOf(row);
+  if (measure.kind !== 'strength') return [];
+
   const set: ProgressionSet = {
-    weightGrams: row.weightGrams,
-    reps: row.reps,
+    weightGrams: measure.weightGrams,
+    reps: measure.reps,
     isWarmup: row.isWarmup,
     completedAt: row.completedAt,
   };
@@ -73,7 +79,8 @@ const RECORD_ROWS_PER_INSERT = 14;
  * Se calculan antes de borrar y sin las series que se van: por cada ejercicio, desde la más antigua
  * de ellas se retiran las marcas guardadas y se vuelven a escribir las que salen de recorrer lo que
  * queda (`replayPersonalRecords`). Lo anterior no depende de lo borrado y no se toca. El
- * calentamiento y las series sin peso nunca marcaron, así que borrarlos no reescribe nada.
+ * calentamiento, las series sin peso y las de cardio nunca marcaron, así que borrarlos no
+ * reescribe nada.
  */
 export async function personalRecordRewriteStatements(
   db: Database,
@@ -138,7 +145,8 @@ export async function personalRecordRewriteStatements(
 function earliestRecordRemovals(removedSets: readonly SetEntryRow[]): Map<string, string> {
   const earliest = new Map<string, string>();
   for (const set of removedSets) {
-    if (set.isWarmup || set.weightGrams <= 0) continue;
+    const measure = setMeasureOf(set);
+    if (set.isWarmup || measure.kind !== 'strength' || measure.weightGrams <= 0) continue;
     const current = earliest.get(set.trackedExerciseId);
     if (current === undefined || Date.parse(set.completedAt) < Date.parse(current)) {
       earliest.set(set.trackedExerciseId, set.completedAt);

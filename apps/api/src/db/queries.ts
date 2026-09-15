@@ -22,6 +22,15 @@ export interface ExerciseSessionHistory {
 const setColumns = getTableColumns(setEntry);
 
 /**
+ * Solo las series de fuerza. Todo lo que se mide en gramos —peso habitual, marcas, la última
+ * serie que precarga el registro— filtra por aquí, y es lo que permite leer `weight_grams` y
+ * `reps` como no nulos: el CHECK `set_entry_kind_shape` los exige en este tipo.
+ */
+const isStrengthSet = eq(setEntry.kind, 'strength');
+const strengthWeightGrams = sql<number>`${setEntry.weightGrams}`;
+const strengthReps = sql<number>`${setEntry.reps}`;
+
+/**
  * Las series de una sesión, en el orden en que se registraron. El filtro por usuario va
  * en el join: el identificador de sesión viaja en la URL y no puede ser la única llave.
  */
@@ -104,10 +113,14 @@ export async function listExerciseHistory(
  * contrato, igual que hace la ficha de un ejercicio.
  */
 export interface WindowSetRow {
+  id: string;
   sessionStartedAt: string;
   bodyPart: string | null;
-  weightGrams: number;
-  reps: number;
+  kind: 'strength' | 'cardio';
+  weightGrams: number | null;
+  reps: number | null;
+  durationSeconds: number | null;
+  distanceMeters: number | null;
   isWarmup: boolean;
   completedAt: string;
 }
@@ -131,11 +144,15 @@ export async function listSetsInWindow(
 ): Promise<WindowSetRow[]> {
   const rows = await db
     .select({
+      id: setEntry.id,
       sessionStartedAt: workoutSession.startedAt,
       catalogBodyPart: catalogExercise.bodyPart,
       customBodyPart: trackedExercise.customBodyPart,
+      kind: setEntry.kind,
       weightGrams: setEntry.weightGrams,
       reps: setEntry.reps,
+      durationSeconds: setEntry.durationSeconds,
+      distanceMeters: setEntry.distanceMeters,
       isWarmup: setEntry.isWarmup,
       completedAt: setEntry.completedAt,
     })
@@ -154,11 +171,15 @@ export async function listSetsInWindow(
     .limit(limit);
 
   return rows.map((row) => ({
+    id: row.id,
     sessionStartedAt: row.sessionStartedAt,
     // El catálogo manda sobre la clasificación propia, igual que en la ficha del ejercicio.
     bodyPart: row.catalogBodyPart ?? row.customBodyPart,
+    kind: row.kind,
     weightGrams: row.weightGrams,
     reps: row.reps,
+    durationSeconds: row.durationSeconds,
+    distanceMeters: row.distanceMeters,
     isWarmup: row.isWarmup,
     completedAt: row.completedAt,
   }));
@@ -225,6 +246,7 @@ export async function listTopSetsPerSession(
     .where(
       and(
         eq(workoutSession.userId, userId),
+        isStrengthSet,
         eq(setEntry.isWarmup, false),
         trackedExerciseId === undefined
           ? undefined
@@ -288,8 +310,8 @@ export async function listLastEffectiveSets(
   const ranked = db
     .select({
       trackedExerciseId: setEntry.trackedExerciseId,
-      weightGrams: setEntry.weightGrams,
-      reps: setEntry.reps,
+      weightGrams: strengthWeightGrams.as('weight_grams'),
+      reps: strengthReps.as('reps'),
       completedAt: setEntry.completedAt,
       position:
         sql<number>`row_number() over (partition by ${setEntry.trackedExerciseId} order by ${setEntry.completedAt} desc, ${setEntry.orderIndex} desc, ${setEntry.id} desc)`.as(
@@ -301,6 +323,7 @@ export async function listLastEffectiveSets(
     .where(
       and(
         eq(workoutSession.userId, userId),
+        isStrengthSet,
         eq(setEntry.isWarmup, false),
         trackedExerciseId === undefined
           ? undefined
@@ -345,6 +368,7 @@ export async function findRecordBests(
       and(
         eq(workoutSession.userId, userId),
         eq(setEntry.trackedExerciseId, trackedExerciseId),
+        isStrengthSet,
         eq(setEntry.isWarmup, false),
         // Una serie sin peso no marca récord: las tres magnitudes valdrían cero.
         gt(setEntry.weightGrams, 0),
@@ -367,7 +391,7 @@ export interface RecordReplaySetRow {
 }
 
 /**
- * Las series que pueden marcar récord de unos ejercicios: sin calentamiento y con peso, que son
+ * Las series que pueden marcar récord de unos ejercicios: de fuerza, sin calentamiento y con peso, que son
  * las únicas que `detectPersonalRecords` tiene en cuenta. Solo se pide al borrar, que es raro, y
  * la PWA nunca manda más ejercicios que los de una sesión; aun así se trocea por los cien
  * parámetros de D1.
@@ -385,8 +409,8 @@ export async function listRecordReplaySets(
           id: setEntry.id,
           trackedExerciseId: setEntry.trackedExerciseId,
           orderIndex: setEntry.orderIndex,
-          weightGrams: setEntry.weightGrams,
-          reps: setEntry.reps,
+          weightGrams: strengthWeightGrams,
+          reps: strengthReps,
           isWarmup: setEntry.isWarmup,
           completedAt: setEntry.completedAt,
         })
@@ -396,6 +420,7 @@ export async function listRecordReplaySets(
           and(
             eq(workoutSession.userId, userId),
             inArray(setEntry.trackedExerciseId, ids),
+            isStrengthSet,
             eq(setEntry.isWarmup, false),
             gt(setEntry.weightGrams, 0),
           ),

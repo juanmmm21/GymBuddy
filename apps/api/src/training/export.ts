@@ -25,6 +25,7 @@ import {
 } from '../db/schema';
 import { parseNullableBodyPart } from './exercises';
 import { listRoutines } from './routines';
+import { setMeasureOf } from './set-measure';
 
 export interface ExportSessionPageQuery {
   readonly limit: number;
@@ -174,15 +175,30 @@ export async function listExportSessionPage(
 }
 
 function toExportedSet(row: SetEntryRow, records: readonly PersonalRecordRow[]): ExportedSet {
-  return {
+  const base = {
     id: row.id,
     trackedExerciseId: row.trackedExerciseId,
     orderIndex: row.orderIndex,
-    weight: formatGramsAsKilograms(row.weightGrams),
-    reps: row.reps,
     rpe: row.rpeTenths === null ? null : tenthsToRpe(row.rpeTenths),
     isWarmup: row.isWarmup,
     completedAt: row.completedAt,
+  };
+  const measure = setMeasureOf(row);
+
+  if (measure.kind === 'cardio') {
+    return {
+      ...base,
+      kind: 'cardio',
+      durationSeconds: measure.durationSeconds,
+      distanceMeters: measure.distanceMeters,
+    };
+  }
+
+  return {
+    ...base,
+    kind: 'strength',
+    weight: formatGramsAsKilograms(measure.weightGrams),
+    reps: measure.reps,
     records: records.map((record): ExportedRecord => ({
       id: record.id,
       kind: record.kind,
