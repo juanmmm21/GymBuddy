@@ -33,6 +33,7 @@ import {
   type CatalogExercisePage,
   type CatalogFilters,
   type CatalogExerciseSummary,
+  type CatalogSearchFilters,
   type CreateRoutineRequest,
   type CreateTrackedExerciseRequest,
   type DeviceLink,
@@ -458,7 +459,7 @@ export function listCatalogExercises(
 
 export interface CatalogSearchOptions {
   readonly lang?: Locale | undefined;
-  readonly filters?: CatalogFilters;
+  readonly filters?: CatalogSearchFilters;
   readonly limit?: number;
 }
 
@@ -475,6 +476,7 @@ export function searchCatalog(
       q,
       lang: options.lang,
       limit: options.limit,
+      bodyPart: options.filters?.bodyPart,
       equipment: options.filters?.equipment,
       muscle: options.filters?.muscle,
     },

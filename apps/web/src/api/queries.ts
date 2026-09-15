@@ -1,4 +1,10 @@
-import type { BodyPart, CatalogFilters, Locale, Muscle } from '@gymbuddy/shared';
+import type {
+  BodyPart,
+  CatalogFilters,
+  CatalogSearchFilters,
+  Locale,
+  Muscle,
+} from '@gymbuddy/shared';
 import {
   keepPreviousData,
   useInfiniteQuery,
@@ -82,7 +88,7 @@ export const queryKeys = {
     bodyParts: (lang: Locale | undefined) => ['catalog', 'bodyparts', lang ?? 'default'] as const,
     exercises: (bodyPart: BodyPart, lang: Locale | undefined, filters: CatalogFilters) =>
       ['catalog', 'bodypart', bodyPart, lang ?? 'default', ...filterKey(filters)] as const,
-    search: (q: string, lang: Locale | undefined, filters: CatalogFilters) =>
+    search: (q: string, lang: Locale | undefined, filters: CatalogSearchFilters) =>
       ['catalog', 'search', q, lang ?? 'default', ...filterKey(filters)] as const,
     exercise: (muscle: Muscle, slug: string, lang: Locale | undefined) =>
       ['catalog', 'exercise', muscle, slug, lang ?? 'default'] as const,
@@ -90,11 +96,16 @@ export const queryKeys = {
 };
 
 /**
- * Los filtros entran en la clave como dos valores fijos y no como el objeto: `{}` y
- * `{ equipment: undefined }` son el mismo «sin filtro» y tienen que compartir caché.
+ * Los filtros entran en la clave como tres valores fijos y no como el objeto: `{}` y
+ * `{ equipment: undefined }` son el mismo «sin filtro» y tienen que compartir caché. La página de
+ * una parte nunca lleva `bodyPart` entre sus filtros (va en la ruta) y queda en `any-body-part`.
  */
-function filterKey(filters: CatalogFilters): readonly [string, string] {
-  return [filters.equipment ?? 'any-equipment', filters.muscle ?? 'any-muscle'];
+function filterKey(filters: CatalogSearchFilters): readonly [string, string, string] {
+  return [
+    filters.bodyPart ?? 'any-body-part',
+    filters.equipment ?? 'any-equipment',
+    filters.muscle ?? 'any-muscle',
+  ];
 }
 
 /** Lo que cabe de un tirón en el móvil; coincide con el tamaño por defecto del Worker. */
@@ -297,7 +308,7 @@ export function useCatalogExercises(
 export function useCatalogSearch(
   q: string,
   lang?: Locale,
-  filters: CatalogFilters = {},
+  filters: CatalogSearchFilters = {},
 ): UseQueryResult<CatalogExerciseSummary[]> {
   const client = useApiClient();
   const term = q.trim();
