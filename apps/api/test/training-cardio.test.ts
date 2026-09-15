@@ -357,6 +357,7 @@ describe('series de cardio', () => {
             notes: null,
             createdAt: '2026-09-15T10:00:00.000Z',
             archivedAt: null,
+            unilateral: false,
           },
         ],
       },

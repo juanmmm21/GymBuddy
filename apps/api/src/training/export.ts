@@ -84,6 +84,7 @@ export async function getExportSnapshot(
         muscle: parseNullableMuscle(fromCatalog ? catalog.muscle : exercise.customMuscle),
         bodyPart: parseNullableBodyPart(fromCatalog ? catalog.bodyPart : exercise.customBodyPart),
         notes: exercise.notes,
+        unilateral: exercise.unilateral,
         createdAt: exercise.createdAt,
         archivedAt: exercise.archivedAt,
       };

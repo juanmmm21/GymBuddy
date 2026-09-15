@@ -98,6 +98,7 @@ export async function importExercises(
       customMuscle: linked ? null : exercise.muscle,
       customBodyPart: linked ? null : exercise.bodyPart,
       notes: exercise.notes,
+      unilateral: exercise.unilateral,
       createdAt: exercise.createdAt,
       archivedAt: exercise.archivedAt,
     };
