@@ -11,6 +11,7 @@ import {
   catalogEquipmentSchema,
   catalogExercisePageSchema,
   catalogFiltersSchema,
+  catalogSearchFiltersSchema,
   catalogSyncStepSchema,
   createRoutineRequestSchema,
   createTrackedExerciseRequestSchema,
@@ -44,6 +45,15 @@ describe('catálogo: filtros', () => {
       equipment: 'cable',
       muscle: 'lats',
     });
+  });
+
+  it('la búsqueda admite además la parte del cuerpo; la página de una parte, no', () => {
+    expect(catalogSearchFiltersSchema.parse({ bodyPart: 'back', equipment: 'cable' })).toEqual({
+      bodyPart: 'back',
+      equipment: 'cable',
+    });
+    expect(catalogSearchFiltersSchema.safeParse({ bodyPart: 'pectorals' }).success).toBe(false);
+    expect(catalogFiltersSchema.parse({ bodyPart: 'back' })).toEqual({});
   });
 
   it('el músculo es uno de los diecinueve, no una parte del cuerpo', () => {

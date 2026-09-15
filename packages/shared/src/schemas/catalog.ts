@@ -90,6 +90,15 @@ export const catalogFiltersSchema = z.object({
   muscle: muscleSchema.optional(),
 });
 
+/**
+ * Los filtros de la búsqueda, que abarca el catálogo entero y por eso deja elegir también la parte
+ * del cuerpo («espalda», «pecho»). No van en `catalogFiltersSchema`: en la página de una parte, la
+ * parte ya viene en la ruta y un segundo `bodyPart` en la consulta solo podría contradecirla.
+ */
+export const catalogSearchFiltersSchema = catalogFiltersSchema.extend({
+  bodyPart: bodyPartSchema.optional(),
+});
+
 export const bodyPartSummarySchema = z.object({
   bodyPart: bodyPartSchema,
   exerciseCount: z.int().nonnegative(),
@@ -133,6 +142,7 @@ export type Muscle = z.infer<typeof muscleSchema>;
 export type CatalogExerciseSummary = z.infer<typeof catalogExerciseSummarySchema>;
 export type CatalogExercise = z.infer<typeof catalogExerciseSchema>;
 export type CatalogFilters = z.infer<typeof catalogFiltersSchema>;
+export type CatalogSearchFilters = z.infer<typeof catalogSearchFiltersSchema>;
 export type BodyPartSummary = z.infer<typeof bodyPartSummarySchema>;
 export type CatalogExercisePage = z.infer<typeof catalogExercisePageSchema>;
 export type CatalogSyncStatus = z.infer<typeof catalogSyncStatusSchema>;
