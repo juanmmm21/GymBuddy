@@ -1,6 +1,12 @@
-import type { StrengthSetEntry } from '@gymbuddy/shared';
+import type { CardioSetEntry, SetEntry, StrengthSetEntry, TrackedExercise } from '@gymbuddy/shared';
 import { describe, expect, it } from 'vitest';
-import { describeProposal, proposeSet } from '../../src/features/session/set-proposal';
+import {
+  defaultSetKind,
+  describeCardioProposal,
+  describeProposal,
+  proposeCardioSet,
+  proposeSet,
+} from '../../src/features/session/set-proposal';
 import { benchPress, customCurl, squat } from '../fixtures';
 
 function set(overrides: Partial<StrengthSetEntry>): StrengthSetEntry {
@@ -52,5 +58,104 @@ describe('proposeSet', () => {
     expect(proposal.source).toBe('none');
     expect(proposal.values).toMatchObject({ weightGrams: null, reps: null });
     expect(describeProposal('none')).toMatch(/primera serie/);
+  });
+});
+
+function cardioSet(overrides: Partial<CardioSetEntry>): CardioSetEntry {
+  return {
+    id: crypto.randomUUID(),
+    trackedExerciseId: treadmill.id,
+    kind: 'cardio',
+    orderIndex: 0,
+    durationSeconds: 900,
+    distanceMeters: null,
+    rpe: null,
+    isWarmup: false,
+    completedAt: '2026-09-14T18:00:00.000Z',
+    ...overrides,
+  };
+}
+
+const treadmill: TrackedExercise = {
+  ...customCurl,
+  id: '9c3a2d5a-4f6e-4a71-8bcd-2e3f4a5b6c7d',
+  name: 'Cinta',
+  bodyPart: 'cardio',
+  lastCardioSet: {
+    durationSeconds: 1_200,
+    distanceMeters: 3_000,
+    completedAt: '2026-09-10T19:00:00.000Z',
+  },
+};
+
+describe('proposeCardioSet', () => {
+  it('sin cardio hoy propone la duración y la distancia de la última vez', () => {
+    const proposal = proposeCardioSet(treadmill, []);
+
+    expect(proposal.source).toBe('last_time');
+    expect(proposal.values).toEqual({
+      durationSeconds: 1_200,
+      distanceMeters: 3_000,
+      rpe: null,
+      isWarmup: false,
+    });
+  });
+
+  it('con cardio hoy manda el último de la sesión sin calentamiento, y la fuerza no cuenta', () => {
+    const sets: SetEntry[] = [
+      cardioSet({ durationSeconds: 600, completedAt: '2026-09-14T18:00:00.000Z' }),
+      cardioSet({ durationSeconds: 300, isWarmup: true, completedAt: '2026-09-14T18:30:00.000Z' }),
+      set({ trackedExerciseId: treadmill.id, completedAt: '2026-09-14T18:40:00.000Z' }),
+    ];
+
+    const proposal = proposeCardioSet(treadmill, sets);
+
+    expect(proposal.source).toBe('session');
+    expect(proposal.values).toMatchObject({ durationSeconds: 600, distanceMeters: null });
+  });
+
+  it('un ejercicio sin cardio no propone nada, y la fuerza ignora el cardio', () => {
+    expect(proposeCardioSet(customCurl, []).source).toBe('none');
+    expect(proposeCardioSet(customCurl, []).values.durationSeconds).toBeNull();
+    expect(describeCardioProposal('none')).toMatch(/25:30/);
+
+    const proposal = proposeSet(customCurl, [cardioSet({ trackedExerciseId: customCurl.id })]);
+    expect(proposal.source).toBe('none');
+  });
+});
+
+describe('defaultSetKind', () => {
+  it('un ejercicio de la parte cardio abre en cardio aunque hoy se apuntara fuerza en él', () => {
+    expect(defaultSetKind(treadmill, [set({ trackedExerciseId: treadmill.id })])).toBe('cardio');
+  });
+
+  it('cualquier otro abre en lo último que se apuntó hoy en él, calentamiento incluido', () => {
+    const sets: SetEntry[] = [
+      set({ trackedExerciseId: customCurl.id, completedAt: '2026-09-14T18:00:00.000Z' }),
+      cardioSet({
+        trackedExerciseId: customCurl.id,
+        isWarmup: true,
+        completedAt: '2026-09-14T18:10:00.000Z',
+      }),
+    ];
+
+    expect(defaultSetKind(customCurl, sets)).toBe('cardio');
+    expect(defaultSetKind(customCurl, sets.slice(0, 1))).toBe('strength');
+  });
+
+  it('sin nada hoy, decide la última vez; y sin historial, fuerza', () => {
+    const cardioLastTime: TrackedExercise = {
+      ...customCurl,
+      lastSet: { weight: '10.00', reps: 10, completedAt: '2026-09-01T18:00:00.000Z' },
+      lastCardioSet: {
+        durationSeconds: 600,
+        distanceMeters: null,
+        completedAt: '2026-09-02T18:00:00.000Z',
+      },
+    };
+
+    expect(defaultSetKind(cardioLastTime, [])).toBe('cardio');
+    expect(defaultSetKind(benchPress, [])).toBe('strength');
+    expect(defaultSetKind(customCurl, [])).toBe('strength');
   });
 });

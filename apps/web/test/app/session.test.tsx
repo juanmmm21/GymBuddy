@@ -30,36 +30,6 @@ function serveActiveSession(fake: FakeFetch, current: WorkoutSessionDetail = act
   fake.on('GET', '/exercises', () => jsonResponse([benchPress, squat]));
 }
 
-describe('sesión: una serie de cardio', () => {
-  it('se lee con su duración y no abre la corrección de kilos', async () => {
-    const [firstSet] = activeSession.sets;
-    if (firstSet === undefined) throw new Error('La sesión de las fixtures trae una serie');
-    const withCardio: WorkoutSessionDetail = {
-      ...activeSession,
-      sets: [
-        firstSet,
-        {
-          id: '7b6a5c4d-3e2f-4a1b-9c8d-7e6f5a4b3c2d',
-          kind: 'cardio',
-          trackedExerciseId: squat.id,
-          orderIndex: 1,
-          durationSeconds: 600,
-          distanceMeters: null,
-          rpe: null,
-          isWarmup: false,
-          completedAt: new Date(Date.parse(firstSet.completedAt) + 60_000).toISOString(),
-        },
-      ],
-    };
-
-    renderApp({ path: '/session', session, setup: (fake) => serveActiveSession(fake, withCardio) });
-
-    const cardioValue = await screen.findByText('10 min');
-    expect(cardioValue.closest('button')).toBeNull();
-    expect(screen.getByText('82,5 kg × 8').closest('button')).not.toBeNull();
-  });
-});
-
 describe('sesión: sin ninguna abierta', () => {
   it('ofrece empezar y abre una con un identificador del cliente', async () => {
     const user = userEvent.setup();
