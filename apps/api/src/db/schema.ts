@@ -264,9 +264,16 @@ export const setEntry = sqliteTable(
       .notNull()
       .references(() => trackedExercise.id, { onDelete: 'cascade' }),
     orderIndex: integer('order_index').notNull(),
-    // Gramos enteros. Un 82.5 en coma flotante acaba siendo 82.49999 en pantalla.
-    weightGrams: integer('weight_grams').notNull(),
-    reps: integer('reps').notNull(),
+    // Qué mide la serie. Decide qué columnas van llenas: lo impone el CHECK de la forma.
+    kind: text('kind', { enum: ['strength', 'cardio'] })
+      .notNull()
+      .default('strength'),
+    // Gramos enteros. Un 82.5 en coma flotante acaba siendo 82.49999 en pantalla. Nulo en cardio.
+    weightGrams: integer('weight_grams'),
+    reps: integer('reps'),
+    // Solo en cardio: segundos y metros enteros, por lo mismo que el peso va en gramos.
+    durationSeconds: integer('duration_seconds'),
+    distanceMeters: integer('distance_meters'),
     // RPE en décimas (85 = RPE 8.5): entero exacto, igual que el peso.
     rpeTenths: integer('rpe_tenths'),
     isWarmup: integer('is_warmup', { mode: 'boolean' }).notNull().default(false),
@@ -277,6 +284,14 @@ export const setEntry = sqliteTable(
     index('set_entry_exercise_completed_idx').on(table.trackedExerciseId, table.completedAt),
     check('set_entry_weight_non_negative', sql`${table.weightGrams} >= 0`),
     check('set_entry_reps_positive', sql`${table.reps} > 0`),
+    check('set_entry_duration_positive', sql`${table.durationSeconds} > 0`),
+    check('set_entry_distance_positive', sql`${table.distanceMeters} > 0`),
+    // Una serie de fuerza no tiene tiempo y una de cardio no tiene kilos: una fila con las dos
+    // cosas, o con ninguna, no se podría leer como ninguna de las dos.
+    check(
+      'set_entry_kind_shape',
+      sql`(${table.kind} = 'strength' and ${table.weightGrams} is not null and ${table.reps} is not null and ${table.durationSeconds} is null and ${table.distanceMeters} is null) or (${table.kind} = 'cardio' and ${table.durationSeconds} is not null and ${table.weightGrams} is null and ${table.reps} is null)`,
+    ),
     // El RPE real se usa de 1 a 10 en pasos de media unidad; fuera de ahí es un error de conversión.
     check(
       'set_entry_rpe_range',

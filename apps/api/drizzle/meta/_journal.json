@@ -57,6 +57,13 @@
       "when": 1789381270918,
       "tag": "0007_session_ended_automatically",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1789486561418,
+      "tag": "0008_cardio_sets",
+      "breakpoints": true
     }
   ]
 }
