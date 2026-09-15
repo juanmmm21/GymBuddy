@@ -29,7 +29,16 @@ export const DAYS_PER_WEEK = 7;
 export interface WeekSetEntry {
   readonly sessionStartedAt: string;
   readonly bodyPart: BodyPart | null;
-  readonly set: ProgressionSet;
+  readonly set: ProgressionSet | CardioWeekSet;
+}
+
+/**
+ * Una serie de cardio vista desde el calendario. Solo importa si fue calentamiento: es trabajo
+ * hecho y cuenta como serie, pero no mueve gramos y no suma volumen.
+ */
+export interface CardioWeekSet {
+  readonly kind: 'cardio';
+  readonly isWarmup: boolean;
 }
 
 /**
@@ -73,7 +82,7 @@ export function weeklyBodyPartCalendar(
   const weekStart = weekStartDayIndex(week);
 
   const trainedDays = new Set<number>();
-  const setsByDay = new Map<number, Map<BodyPart | null, ProgressionSet[]>>();
+  const setsByDay = new Map<number, Map<BodyPart | null, WeekSetEntry['set'][]>>();
 
   for (const entry of entries) {
     const timestamp = Date.parse(entry.sessionStartedAt);
@@ -133,7 +142,7 @@ function summarizeDay(
   dayIndex: number,
   absoluteDay: number,
   trained: boolean,
-  setsByBodyPart: Map<BodyPart | null, ProgressionSet[]> | undefined,
+  setsByBodyPart: Map<BodyPart | null, WeekSetEntry['set'][]> | undefined,
 ): WeekDaySummary {
   const date = isoDateOfDay(absoluteDay);
 
@@ -146,8 +155,10 @@ function summarizeDay(
   const totals = new Map<BodyPart, BodyPartTotals>();
 
   for (const [bodyPart, sets] of setsByBodyPart) {
-    const volume = sessionVolumeGrams(sets);
-    const count = effectiveSets(sets).length;
+    const strength = sets.filter((set): set is ProgressionSet => !('kind' in set));
+    const volume = sessionVolumeGrams(strength);
+    const cardioCount = sets.filter((set) => 'kind' in set && !set.isWarmup).length;
+    const count = effectiveSets(strength).length + cardioCount;
 
     volumeGrams += volume;
     setCount += count;
@@ -165,7 +176,7 @@ function summarizeDay(
 
 /**
  * La parte del cuerpo del día. Manda el volumen; si empata —y empata siempre en un día de
- * peso corporal, donde todo vale cero— decide el número de series, y el orden alfabético
+ * peso corporal o de solo cardio, donde todo vale cero— decide el número de series, y el orden alfabético
  * rompe el último empate para que la etiqueta no baile entre dos consultas iguales.
  */
 function dominantBodyPart(totals: ReadonlyMap<BodyPart, BodyPartTotals>): BodyPart | null {
