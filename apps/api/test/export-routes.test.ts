@@ -21,7 +21,7 @@ import {
   trackedExercise,
 } from '../src/db/schema';
 import { app } from '../src/index';
-import { seedTrainingScenario, type TrainingScenario } from './fixtures';
+import { asStrengthSet, seedTrainingScenario, type TrainingScenario } from './fixtures';
 import { envWithSecrets } from './worker-env';
 
 const BASE = 'https://gymbuddy.test/api/v1';
@@ -222,10 +222,10 @@ describe('exportación de los datos del usuario', () => {
 
     const recorded = sets.find((set) => set.id === recordedSetId);
     expect(recorded).toMatchObject({ weight: '82.50', reps: 8, rpe: 8.5 });
-    expect(recorded?.records).toEqual([
+    expect(asStrengthSet(recorded).records).toEqual([
       expect.objectContaining({ kind: 'max_weight', value: '82.50' }),
     ]);
-    expect(sets.filter((set) => set.records.length > 0)).toHaveLength(1);
+    expect(sets.filter((set) => set.kind === 'strength' && set.records.length > 0)).toHaveLength(1);
   });
 
   it('pagina sin saltarse ni repetir ninguna sesión', async () => {
@@ -259,7 +259,9 @@ describe('exportación de los datos del usuario', () => {
     expect(snapshot.exercises.map((exercise) => exercise.id)).toEqual([scenario.otherExerciseId]);
     expect(snapshot.routines).toEqual([]);
     expect(page.total).toBe(1);
-    expect(page.items[0]?.sets.every((set) => set.records.length === 0)).toBe(true);
+    expect(
+      page.items[0]?.sets.every((set) => set.kind !== 'strength' || set.records.length === 0),
+    ).toBe(true);
 
     const mine = await sessionPage(token, '');
     const mineIds = new Set(mine.items.map((session) => session.id));

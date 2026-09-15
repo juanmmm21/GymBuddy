@@ -222,3 +222,16 @@ function set(
     completedAt,
   };
 }
+
+/**
+ * La serie como serie de fuerza, para leer su peso en un test. Si es de otro tipo, el test falla
+ * diciendo cuál era en vez de comparar contra un `undefined`.
+ */
+export function asStrengthSet<TSet extends { readonly kind: string }>(
+  set: TSet | undefined,
+): Extract<TSet, { readonly kind: 'strength' }> {
+  if (set?.kind !== 'strength') {
+    throw new Error(`Se esperaba una serie de fuerza y llegó ${set?.kind ?? 'ninguna'}`);
+  }
+  return set as Extract<TSet, { readonly kind: 'strength' }>;
+}

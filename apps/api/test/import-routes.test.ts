@@ -117,10 +117,12 @@ function contentOf(file: ExportFile): unknown {
     })),
     sessions: file.sessions.map(({ id: _id, sets, ...rest }) => ({
       ...rest,
-      sets: sets.map(({ id: _setId, trackedExerciseId, records, ...set }) => ({
+      sets: sets.map(({ id: _setId, trackedExerciseId, ...set }) => ({
         ...set,
         exercise: exerciseName(trackedExerciseId),
-        records: records.map(({ id: _recordId, ...record }) => record),
+        ...(set.kind === 'strength'
+          ? { records: set.records.map(({ id: _recordId, ...record }) => record) }
+          : {}),
       })),
     })),
   };

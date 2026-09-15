@@ -11,7 +11,7 @@ import { issueSessionToken } from '../src/auth/jwt';
 import type { Database } from '../src/db/client';
 import { personalRecord } from '../src/db/schema';
 import { app } from '../src/index';
-import { seedUsers } from './fixtures';
+import { asStrengthSet, seedUsers } from './fixtures';
 import { envWithSecrets } from './worker-env';
 
 const BASE = 'https://gymbuddy.test/api/v1';
@@ -114,7 +114,7 @@ describe('corregir y borrar una serie', () => {
     });
 
     expect(corrected.status).toBe(200);
-    const { set } = logSetResponseSchema.parse(await corrected.json());
+    const set = asStrengthSet(logSetResponseSchema.parse(await corrected.json()).set);
     expect(set.weight).toBe('80.00');
     // Lo que no se toca se queda: la corrección es parcial, no un reemplazo de la serie.
     expect(set.reps).toBe(8);
@@ -122,7 +122,7 @@ describe('corregir y borrar una serie', () => {
     const detail = await call({ method: 'GET', path: `/sessions/${sessionId}`, token });
     const sets = workoutSessionDetailSchema.parse(await detail.json()).sets;
     expect(sets).toHaveLength(1);
-    expect(sets[0]?.weight).toBe('80.00');
+    expect(asStrengthSet(sets[0]).weight).toBe('80.00');
   });
 
   it('cambia las repeticiones, el rpe y el calentamiento por separado', async () => {
@@ -135,7 +135,7 @@ describe('corregir y borrar una serie', () => {
       body: { reps: 6, rpe: 9, isWarmup: true },
     });
 
-    const { set } = logSetResponseSchema.parse(await corrected.json());
+    const set = asStrengthSet(logSetResponseSchema.parse(await corrected.json()).set);
     expect(set.reps).toBe(6);
     expect(set.rpe).toBe(9);
     expect(set.isWarmup).toBe(true);
@@ -178,7 +178,7 @@ describe('corregir y borrar una serie', () => {
     });
 
     const { set, records } = logSetResponseSchema.parse(await corrected.json());
-    expect(set.weight).toBe('80.00');
+    expect(asStrengthSet(set).weight).toBe('80.00');
     expect(records).toEqual([]);
   });
 
@@ -370,7 +370,9 @@ describe('corregir y borrar una serie', () => {
     expect(removed.status).toBe(404);
 
     const detail = await call({ method: 'GET', path: `/sessions/${sessionId}`, token });
-    expect(workoutSessionDetailSchema.parse(await detail.json()).sets[0]?.weight).toBe('80.00');
+    expect(
+      asStrengthSet(workoutSessionDetailSchema.parse(await detail.json()).sets[0]).weight,
+    ).toBe('80.00');
   });
 
   it('rechaza un peso imposible al corregir, con el contrato de error', async () => {

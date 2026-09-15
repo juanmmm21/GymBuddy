@@ -3,7 +3,7 @@ import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { issueSessionToken } from '../src/auth/jwt';
 import { app } from '../src/index';
-import { seedTrainingScenario, type TrainingScenario } from './fixtures';
+import { asStrengthSet, seedTrainingScenario, type TrainingScenario } from './fixtures';
 import { envWithSecrets } from './worker-env';
 
 const BASE = 'https://gymbuddy.test/api/v1';
@@ -81,7 +81,11 @@ describe('historial de entrenamiento', () => {
       scenario.sessionIds[2],
       scenario.sessionIds[1],
     ]);
-    expect(history.sessions[0]?.sets.map((set) => set.weight)).toEqual(['60.00', '82.50', '82.50']);
+    expect(history.sessions[0]?.sets.map((set) => asStrengthSet(set).weight)).toEqual([
+      '60.00',
+      '82.50',
+      '82.50',
+    ]);
     // El RPE viaja en la unidad del contrato, no en las décimas con las que se guarda.
     expect(history.sessions[0]?.sets[1]?.rpe).toBe(8.5);
   });

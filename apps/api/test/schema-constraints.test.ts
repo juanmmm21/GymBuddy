@@ -81,6 +81,65 @@ describe('restricciones de set_entry', () => {
   });
 });
 
+describe('forma de una serie según su tipo', () => {
+  type CardioOverrides = Partial<
+    Pick<
+      typeof setEntry.$inferInsert,
+      'kind' | 'weightGrams' | 'reps' | 'durationSeconds' | 'distanceMeters'
+    >
+  >;
+
+  function insertShaped(overrides: CardioOverrides) {
+    const { db, benchId, sessionIds } = scenario;
+
+    return db.insert(setEntry).values({
+      id: crypto.randomUUID(),
+      sessionId: sessionIds[2],
+      trackedExerciseId: benchId,
+      orderIndex: 99,
+      kind: 'cardio',
+      weightGrams: null,
+      reps: null,
+      durationSeconds: 1_800,
+      distanceMeters: null,
+      isWarmup: false,
+      completedAt: '2026-08-24T19:00:00.000Z',
+      ...overrides,
+    });
+  }
+
+  it('acepta una serie de cardio con duración, con y sin distancia', async () => {
+    await expect(insertShaped({})).resolves.toBeDefined();
+    await expect(insertShaped({ distanceMeters: 5_000 })).resolves.toBeDefined();
+  });
+
+  it('rechaza una serie de cardio sin duración o con kilos', async () => {
+    await expect(insertShaped({ durationSeconds: null })).rejects.toThrow();
+    await expect(insertShaped({ weightGrams: 10_000, reps: 1 })).rejects.toThrow();
+  });
+
+  it('rechaza una serie de fuerza con duración o sin peso', async () => {
+    await expect(
+      insertShaped({ kind: 'strength', weightGrams: 80_000, reps: 8, durationSeconds: 60 }),
+    ).rejects.toThrow();
+    await expect(
+      insertShaped({ kind: 'strength', reps: 8, durationSeconds: null }),
+    ).rejects.toThrow();
+  });
+
+  it('rechaza una duración o una distancia que no sean positivas', async () => {
+    await expect(insertShaped({ durationSeconds: 0 })).rejects.toThrow();
+    await expect(insertShaped({ distanceMeters: 0 })).rejects.toThrow();
+  });
+
+  it('una serie sin tipo es de fuerza, que es lo que eran todas antes del cardio', async () => {
+    await insertSet({});
+
+    const kinds = await scenario.db.select({ kind: setEntry.kind }).from(setEntry);
+    expect(kinds.every((row) => row.kind === 'strength')).toBe(true);
+  });
+});
+
 describe('restricciones de tracked_exercise', () => {
   it('rechaza un ejercicio sin catálogo ni nombre propio', async () => {
     const { db, userId } = scenario;

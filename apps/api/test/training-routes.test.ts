@@ -12,7 +12,7 @@ import { issueSessionToken } from '../src/auth/jwt';
 import type { Database } from '../src/db/client';
 import { app } from '../src/index';
 import { seedCatalogSnapshot } from './catalog-fixtures';
-import { seedUsers } from './fixtures';
+import { asStrengthSet, seedUsers } from './fixtures';
 import { envWithSecrets } from './worker-env';
 
 const BASE = 'https://gymbuddy.test/api/v1';
@@ -115,7 +115,7 @@ describe('api de entrenamiento', () => {
       const { set } = logSetResponseSchema.parse(await logged.json());
       // El orden lo pone el servidor: la PWA no sabe cuántas series lleva el bot metidas.
       expect(set.orderIndex).toBe(index);
-      expect(set.weight).toBe(weight);
+      expect(asStrengthSet(set).weight).toBe(weight);
     }
 
     const active = await call({ method: 'GET', path: '/sessions/active', token });
