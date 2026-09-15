@@ -17,9 +17,13 @@ export const userSchema = z.object({
   createdAt: isoDatetimeSchema,
 });
 
-/** Las preferencias del perfil que el usuario puede cambiar. */
+/**
+ * Lo que el usuario puede cambiar de su perfil. El nombre solo cambia el saludo de la app: la
+ * llave de acceso ya guardada en el móvil conserva la etiqueta con la que se creó.
+ */
 export const updateUserRequestSchema = z
   .object({
+    displayName: displayNameSchema,
     locale: localeSchema,
     unitSystem: unitSystemSchema,
   })
