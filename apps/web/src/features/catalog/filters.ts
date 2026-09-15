@@ -1,10 +1,12 @@
 import {
+  bodyPartSchema,
   catalogEquipmentSchema,
   isMuscleInBodyPart,
   muscleSchema,
   musclesOfBodyPart,
   type BodyPart,
   type CatalogFilters,
+  type CatalogSearchFilters,
 } from '@gymbuddy/shared';
 import type { SelectOption } from '../../components/index';
 import { BODY_PART_LABELS, BODY_PART_ORDER, MUSCLE_LABELS, equipmentLabel } from './labels';
@@ -15,7 +17,7 @@ export const NO_FILTER = '';
 /** Los nombres de los parámetros en la URL de la página de una parte del cuerpo. */
 export const FILTER_PARAMS = { equipment: 'equipment', muscle: 'muscle' } as const;
 
-export type CatalogFilterKey = keyof CatalogFilters;
+export type CatalogFilterKey = keyof CatalogSearchFilters;
 
 /**
  * Los valores de `equipment` del tag `v1.1.0` (comprobados contra el CDN, los mismos que traduce
@@ -46,6 +48,14 @@ export function equipmentFilterOptions(): SelectOption[] {
       value: equipment,
       label: equipmentLabel(equipment),
     })),
+  ];
+}
+
+/** Las siete partes del cuerpo en el orden del catálogo: solo se ofrecen en la búsqueda. */
+export function bodyPartFilterOptions(): SelectOption[] {
+  return [
+    { value: NO_FILTER, label: 'Todas' },
+    ...BODY_PART_ORDER.map((part) => ({ value: part, label: BODY_PART_LABELS[part] })),
   ];
 }
 
@@ -104,22 +114,32 @@ export function parseCatalogFilters(
 
 /**
  * Cambia un filtro a partir del valor de su desplegable. Elegir «Todo» quita la clave en vez de
- * dejarla vacía: así la clave de caché y la URL de «sin filtro» son siempre las mismas.
+ * dejarla vacía: así la clave de caché y la URL de «sin filtro» son siempre las mismas. Cambiar de
+ * parte del cuerpo suelta el músculo si no es de la nueva, o si la nueva ya no ofrece el desplegable
+ * del músculo: un filtro que no se ve no puede seguir recortando la lista, y el Worker rechaza la
+ * contradicción.
  */
 export function withCatalogFilter(
-  filters: CatalogFilters,
+  filters: CatalogSearchFilters,
   key: CatalogFilterKey,
   value: string,
-): CatalogFilters {
+): CatalogSearchFilters {
   const next = { ...filters };
   if (key === 'equipment') {
     const parsed = catalogEquipmentSchema.safeParse(value);
     if (parsed.success) next.equipment = parsed.data;
     else delete next.equipment;
-  } else {
+  } else if (key === 'muscle') {
     const parsed = muscleSchema.safeParse(value);
     if (parsed.success) next.muscle = parsed.data;
     else delete next.muscle;
+  } else {
+    const parsed = bodyPartSchema.safeParse(value);
+    if (parsed.success) next.bodyPart = parsed.data;
+    else delete next.bodyPart;
+
+    const part = next.bodyPart ?? null;
+    if (!isMuscleInBodyPart(next.muscle, part) || !offersMuscleFilter(part)) delete next.muscle;
   }
 
   return next;
@@ -139,14 +159,23 @@ export function applyCatalogFiltersToParams(
   return next;
 }
 
-export function hasCatalogFilters(filters: CatalogFilters): boolean {
-  return filters.equipment !== undefined || filters.muscle !== undefined;
+export function hasCatalogFilters(filters: CatalogSearchFilters): boolean {
+  return (
+    filters.bodyPart !== undefined ||
+    filters.equipment !== undefined ||
+    filters.muscle !== undefined
+  );
 }
 
-/** «Polea · Dorsales»: lo que se nombra en el aviso cuando los filtros lo dejan todo fuera. */
-export function describeCatalogFilters(filters: CatalogFilters): string {
+/**
+ * «Polea · Dorsales»: lo que se nombra en el aviso cuando los filtros lo dejan todo fuera. La parte
+ * del cuerpo solo se nombra sin músculo: «Polea · Espalda · Dorsales» repetiría lo que ya dice el
+ * músculo.
+ */
+export function describeCatalogFilters(filters: CatalogSearchFilters): string {
   const parts: string[] = [];
   if (filters.equipment !== undefined) parts.push(equipmentLabel(filters.equipment));
   if (filters.muscle !== undefined) parts.push(MUSCLE_LABELS[filters.muscle]);
+  else if (filters.bodyPart !== undefined) parts.push(BODY_PART_LABELS[filters.bodyPart]);
   return parts.join(' · ');
 }

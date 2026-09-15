@@ -1,4 +1,4 @@
-import type { BodyPartSummary, CatalogFilters, Locale } from '@gymbuddy/shared';
+import type { BodyPartSummary, CatalogSearchFilters, Locale } from '@gymbuddy/shared';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { MIN_SEARCH_LENGTH, useBodyParts, useCatalogSearch } from '../../api/queries';
@@ -30,7 +30,7 @@ export function CatalogScreen() {
   const [query, setQuery] = useState('');
   const term = useDebouncedValue(query, SEARCH_DEBOUNCE_MS).trim();
   const searching = term.length >= MIN_SEARCH_LENGTH;
-  const [filters, setFilters] = useState<CatalogFilters>({});
+  const [filters, setFilters] = useState<CatalogSearchFilters>({});
 
   return (
     <>
@@ -67,7 +67,7 @@ export function CatalogScreen() {
 interface SearchResultsProps {
   readonly term: string;
   readonly locale: Locale | undefined;
-  readonly filters: CatalogFilters;
+  readonly filters: CatalogSearchFilters;
   readonly onClearFilters: () => void;
 }
 

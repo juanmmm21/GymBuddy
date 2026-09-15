@@ -1,7 +1,8 @@
-import type { BodyPart, CatalogFilters } from '@gymbuddy/shared';
+import type { BodyPart, CatalogSearchFilters } from '@gymbuddy/shared';
 import { Button, Select } from '../../components/index';
 import {
   NO_FILTER,
+  bodyPartFilterOptions,
   equipmentFilterOptions,
   hasCatalogFilters,
   muscleFilterOptions,
@@ -11,19 +12,48 @@ import {
 import styles from './CatalogFilterBar.module.css';
 
 export interface CatalogFilterBarProps {
-  readonly filters: CatalogFilters;
-  /** La parte del cuerpo de la página; `null` en la búsqueda, que abarca el catálogo entero. */
+  readonly filters: CatalogSearchFilters;
+  /**
+   * La parte del cuerpo de la página; `null` en la búsqueda, que abarca el catálogo entero y por eso
+   * deja elegir la parte como un filtro más.
+   */
   readonly bodyPart: BodyPart | null;
-  readonly onChange: (filters: CatalogFilters) => void;
+  readonly onChange: (filters: CatalogSearchFilters) => void;
 }
 
-/** Equipamiento y músculo en dos desplegables nativos, y un botón para quitarlos si hay alguno. */
+/**
+ * Equipamiento y músculo en desplegables nativos —en la búsqueda, también la parte del cuerpo— y un
+ * botón para quitarlos si hay alguno. Con una parte elegida en la búsqueda, el músculo se comporta
+ * como en la página de esa parte: solo los suyos, y nada si tiene uno solo.
+ */
 export function CatalogFilterBar({ filters, bodyPart, onChange }: CatalogFilterBarProps) {
-  const showMuscle = offersMuscleFilter(bodyPart);
+  const offersBodyPart = bodyPart === null;
+  const muscleScope = bodyPart ?? filters.bodyPart ?? null;
+  const showMuscle = offersMuscleFilter(muscleScope);
 
   return (
     <section className={styles.bar} aria-label="Filtros del catálogo">
       <div className={styles.fields}>
+        {offersBodyPart && (
+          <Select
+            label="Parte del cuerpo"
+            value={filters.bodyPart ?? NO_FILTER}
+            options={bodyPartFilterOptions()}
+            onChange={(value) => {
+              onChange(withCatalogFilter(filters, 'bodyPart', value));
+            }}
+          />
+        )}
+        {showMuscle && (
+          <Select
+            label="Músculo"
+            value={filters.muscle ?? NO_FILTER}
+            options={muscleFilterOptions(muscleScope)}
+            onChange={(value) => {
+              onChange(withCatalogFilter(filters, 'muscle', value));
+            }}
+          />
+        )}
         <Select
           label="Equipamiento"
           value={filters.equipment ?? NO_FILTER}
@@ -32,16 +62,6 @@ export function CatalogFilterBar({ filters, bodyPart, onChange }: CatalogFilterB
             onChange(withCatalogFilter(filters, 'equipment', value));
           }}
         />
-        {showMuscle && (
-          <Select
-            label="Músculo"
-            value={filters.muscle ?? NO_FILTER}
-            options={muscleFilterOptions(bodyPart)}
-            onChange={(value) => {
-              onChange(withCatalogFilter(filters, 'muscle', value));
-            }}
-          />
-        )}
       </div>
       {hasCatalogFilters(filters) && (
         <Button
