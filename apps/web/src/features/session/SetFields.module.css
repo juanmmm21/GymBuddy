@@ -24,31 +24,3 @@
   background: var(--gb-color-accent-soft);
   color: var(--gb-color-accent);
 }
-
-.kinds {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--gb-space-xs);
-  padding: var(--gb-space-xs);
-  border-radius: var(--gb-radius-pill);
-  background: var(--gb-color-surface-sunken);
-}
-
-.kind {
-  min-height: var(--gb-size-control-height);
-  border: var(--gb-size-border-width) solid transparent;
-  border-radius: var(--gb-radius-pill);
-  background: transparent;
-  color: var(--gb-color-text-secondary);
-  font-size: var(--gb-type-body-size);
-  font-weight: var(--gb-type-body-strong-weight);
-  transition:
-    background-color var(--gb-duration-fast) var(--gb-ease-standard),
-    color var(--gb-duration-fast) var(--gb-ease-standard);
-}
-
-.kindActive {
-  border-color: var(--gb-color-accent);
-  background: var(--gb-color-surface);
-  color: var(--gb-color-accent);
-}

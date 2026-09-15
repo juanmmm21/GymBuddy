@@ -1,4 +1,4 @@
-import type { Locale, SetKind } from '@gymbuddy/shared';
+import type { Locale } from '@gymbuddy/shared';
 import {
   DistanceField,
   DurationField,
@@ -128,41 +128,6 @@ export function CardioSetFields({ values, onChange, locale, durationHint }: Card
 
       <EffortFields values={values} onChange={onChange} locale={locale} />
     </>
-  );
-}
-
-const SET_KIND_LABELS: Readonly<Record<SetKind, string>> = {
-  strength: 'Fuerza',
-  cardio: 'Cardio',
-};
-const SET_KINDS: readonly SetKind[] = ['strength', 'cardio'];
-
-export interface SetKindSwitchProps {
-  readonly value: SetKind;
-  readonly onChange: (kind: SetKind) => void;
-}
-
-/**
- * Fuerza o cardio. Lo decide la serie y no el ejercicio (ver `setKindSchema`), así que se deja
- * cambiar siempre: la hoja abre en lo que toca y esto es la salida cuando no acierta.
- */
-export function SetKindSwitch({ value, onChange }: SetKindSwitchProps) {
-  return (
-    <div className={styles.kinds} role="group" aria-label="Tipo de serie">
-      {SET_KINDS.map((kind) => (
-        <button
-          key={kind}
-          type="button"
-          className={cx(styles.kind, kind === value && styles.kindActive)}
-          aria-pressed={kind === value}
-          onClick={() => {
-            onChange(kind);
-          }}
-        >
-          {SET_KIND_LABELS[kind]}
-        </button>
-      ))}
-    </div>
   );
 }
 

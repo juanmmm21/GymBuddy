@@ -5,7 +5,6 @@ import {
   type ResourceId,
   type Routine,
   type SetEntry,
-  type SetKind,
   type TrackedExercise,
   type WorkoutSessionDetail,
 } from '@gymbuddy/shared';
@@ -67,8 +66,6 @@ const BACK_TO_HOME: BackLink = { to: '/', label: 'Hoy' };
 interface LogSheetTarget {
   /** `null` es el primero de la lista. */
   readonly exerciseId: ResourceId | null;
-  /** `null` deja el tipo al ejercicio (`defaultSetKind`). */
-  readonly kind: SetKind | null;
   /** Viene de «Terminar sesión»: apuntado el cardio final, se vuelve a esa hoja. */
   readonly thenEnd: boolean;
 }
@@ -94,9 +91,7 @@ export function SessionScreen() {
   // Llegar desde la ficha de un ejercicio abre la hoja directamente: ese es el motivo de
   // venir. El valor inicial se decide en el primer pintado, sin efecto que lo resincronice.
   const [logging, setLogging] = useState<LogSheetTarget | null>(
-    requestedExerciseId === null
-      ? null
-      : { exerciseId: requestedExerciseId, kind: null, thenEnd: false },
+    requestedExerciseId === null ? null : { exerciseId: requestedExerciseId, thenEnd: false },
   );
   const [editing, setEditing] = useState<SetEntry | null>(null);
   const [ending, setEnding] = useState(false);
@@ -152,11 +147,11 @@ export function SessionScreen() {
                     saveRestPreferences(storage, next);
                   }}
                   onOpenLog={(exerciseId) => {
-                    setLogging({ exerciseId, kind: null, thenEnd: false });
+                    setLogging({ exerciseId, thenEnd: false });
                   }}
                   onOpenFinalCardio={(exerciseId) => {
                     setEnding(false);
-                    setLogging({ exerciseId, kind: 'cardio', thenEnd: true });
+                    setLogging({ exerciseId, thenEnd: true });
                   }}
                   onCloseLog={() => {
                     setLogging(null);
@@ -463,7 +458,6 @@ function ActiveSession({
         sessionId={session.id}
         exercises={selectable}
         defaultExerciseId={logging?.exerciseId ?? null}
-        defaultKind={logging?.kind ?? null}
         routineProgress={progress}
         sessionSets={session.sets}
         locale={locale}

@@ -98,11 +98,10 @@ describe('sesión: registrar cardio', () => {
       },
     });
 
-    expect(await screen.findByRole('button', { name: 'Cardio' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(await screen.findByLabelText('Duración')).toBeInTheDocument();
     expect(screen.queryByLabelText('Peso')).not.toBeInTheDocument();
+    // El tipo sale del ejercicio: no hay nada que elegir.
+    expect(screen.queryByRole('group', { name: 'Tipo de serie' })).not.toBeInTheDocument();
     expect(screen.getByText('En minutos, o minutos y segundos: 25:30.')).toBeInTheDocument();
     // Sin duración no hay serie de cardio que mandar.
     expect(submitButton()).toBeDisabled();
@@ -152,7 +151,7 @@ describe('sesión: registrar cardio', () => {
     expect(submitButton()).toBeEnabled();
   });
 
-  it('en un ejercicio de fuerza se puede cambiar a cardio, sin distancia', async () => {
+  it('el tipo sigue al ejercicio elegido: fuerza pide kilos y cardio, duración', async () => {
     const user = userEvent.setup();
     const { fake } = renderApp({
       path: '/session',
@@ -163,29 +162,23 @@ describe('sesión: registrar cardio', () => {
     });
 
     await openLogSheet(user);
-    expect(screen.getByRole('button', { name: 'Fuerza' })).toHaveAttribute('aria-pressed', 'true');
-    await user.click(screen.getByRole('button', { name: 'Calentamiento' }));
-    await user.click(screen.getByRole('button', { name: 'Cardio' }));
+    expect(screen.getByLabelText('Peso')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Duración')).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Tipo de serie' })).not.toBeInTheDocument();
 
-    // El calentamiento es de la serie, no de sus cifras: sigue marcado al cambiar de tipo.
-    expect(screen.getByRole('button', { name: 'Calentamiento' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Ejercicio' }), treadmill.id);
+    expect(screen.queryByLabelText('Peso')).not.toBeInTheDocument();
     await user.type(screen.getByLabelText('Duración'), '10{Enter}');
     await user.click(submitButton());
 
-    expect(
-      await screen.findByRole('button', { name: /10 min.*Calentamiento/ }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /10 min/ })).toBeInTheDocument();
     const body = fake.requests.find((request) => request.method === 'POST')
       ?.body as LogCardioSetRequest;
     expect(body).toMatchObject({
       kind: 'cardio',
-      trackedExerciseId: benchPress.id,
+      trackedExerciseId: treadmill.id,
       durationSeconds: 600,
       distanceMeters: null,
-      isWarmup: true,
     });
   });
 
@@ -283,10 +276,6 @@ describe('sesión: cardio final al terminar', () => {
 
     const log = await screen.findByRole('dialog', { name: 'Registrar serie' });
     expect(within(log).getByRole('combobox', { name: 'Ejercicio' })).toHaveValue(treadmill.id);
-    expect(within(log).getByRole('button', { name: 'Cardio' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
     await user.type(within(log).getByLabelText('Duración'), '20{Enter}');
     await user.click(within(log).getByRole('button', { name: 'Registrar serie' }));
 
@@ -302,12 +291,10 @@ describe('sesión: cardio final al terminar', () => {
     });
   });
 
-  it('abre en cardio aunque el ejercicio propuesto tenga una serie de fuerza más reciente', async () => {
+  it('precarga la duración de la última vez del cardio propuesto', async () => {
     const user = userEvent.setup();
-    const ownTreadmill: TrackedExercise = {
+    const withHistory: TrackedExercise = {
       ...treadmill,
-      bodyPart: null,
-      lastSet: { weight: '10.00', reps: 10, completedAt: '2026-09-12T19:00:00.000Z' },
       lastCardioSet: {
         durationSeconds: 900,
         distanceMeters: null,
@@ -318,7 +305,7 @@ describe('sesión: cardio final al terminar', () => {
       path: '/session',
       session,
       setup: (fake) => {
-        serveCardioSession(fake, [benchPress, ownTreadmill]);
+        serveCardioSession(fake, [benchPress, withHistory]);
       },
     });
 
@@ -326,10 +313,7 @@ describe('sesión: cardio final al terminar', () => {
     await user.click(within(summary).getByRole('button', { name: 'Apuntar cardio' }));
 
     const log = await screen.findByRole('dialog', { name: 'Registrar serie' });
-    expect(within(log).getByRole('button', { name: 'Cardio' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(within(log).queryByLabelText('Peso')).not.toBeInTheDocument();
     expect(within(log).getByLabelText('Duración')).toHaveValue('15');
   });
 

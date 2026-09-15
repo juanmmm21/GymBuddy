@@ -85,24 +85,12 @@ export function proposeCardioSet(
 }
 
 /**
- * Con qué tipo se abre el formulario para un ejercicio. Un ejercicio de la parte «cardio» se abre
- * en cardio; cualquier otro, en lo último que se apuntó en él (hoy o la última vez), y si nunca se
- * hizo, en fuerza. Así una cinta creada sin parte del cuerpo deja de pedir kilos a la segunda vez.
- * La serie de calentamiento cuenta aquí: dice qué se hace en esa máquina aunque no proponga cifras.
+ * Qué mide la serie de un ejercicio: cardio si el ejercicio es de la parte «cardio» y fuerza en
+ * cualquier otro. Lo pidió Juan tras probarlo: elegir el tipo en cada serie no tenía sentido, el
+ * ejercicio ya lo dice. Un ejercicio propio sin parte del cuerpo se registra como fuerza.
  */
-export function defaultSetKind(
-  exercise: TrackedExercise,
-  sessionSets: readonly SetEntry[],
-): SetKind {
-  if (exercise.bodyPart === 'cardio') return 'cardio';
-
-  const today = latestSetOf(sessionSets, exercise.id, () => true);
-  if (today !== null) return today.kind;
-
-  const lastStrength = instantOf(exercise.lastSet?.completedAt);
-  const lastCardio = instantOf(exercise.lastCardioSet?.completedAt);
-
-  return lastCardio > lastStrength ? 'cardio' : 'strength';
+export function setKindFor(exercise: TrackedExercise): SetKind {
+  return exercise.bodyPart === 'cardio' ? 'cardio' : 'strength';
 }
 
 /** La frase bajo la duración: de dónde sale lo propuesto. */
@@ -175,10 +163,4 @@ function latestSetOf(
   }
 
   return latest;
-}
-
-function instantOf(iso: string | undefined): number {
-  const time = iso === undefined ? Number.NaN : Date.parse(iso);
-
-  return Number.isNaN(time) ? Number.NEGATIVE_INFINITY : time;
 }

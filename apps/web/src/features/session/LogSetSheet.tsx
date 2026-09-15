@@ -5,7 +5,6 @@ import {
   type LogSetRequest,
   type ResourceId,
   type SetEntry,
-  type SetKind,
   type TrackedExercise,
 } from '@gymbuddy/shared';
 import { useState, type FormEvent } from 'react';
@@ -16,11 +15,11 @@ import { newResourceId } from '../../lib/ids';
 import { exerciseSelectOptions } from '../exercises/grouping';
 import { describeNextSet, lineForNextSet, type RoutineProgress } from './routine-progress';
 import {
-  defaultSetKind,
   describeCardioProposal,
   describeProposal,
   proposeCardioSet,
   proposeSet,
+  setKindFor,
 } from './set-proposal';
 import styles from './LogSetSheet.module.css';
 import {
@@ -28,7 +27,6 @@ import {
   isCompleteCardioSet,
   isCompleteSet,
   SetFields,
-  SetKindSwitch,
   type CardioSetValues,
   type SetValues,
 } from './SetFields';
@@ -45,11 +43,6 @@ export interface LogSetSheetProps {
    * ficha de la que se llega); si es nulo o ya no se puede elegir, el primero.
    */
   readonly defaultExerciseId: ResourceId | null;
-  /**
-   * Con qué tipo abre; `null` lo decide `defaultSetKind` con el ejercicio. El cardio final lo fija:
-   * se pide cardio aunque el ejercicio propuesto tenga una serie de fuerza más reciente.
-   */
-  readonly defaultKind: SetKind | null;
   /** El reparto de la rutina que guía la sesión, para decir bajo las repeticiones qué toca. */
   readonly routineProgress: RoutineProgress | null;
   /** Las series de la sesión con la cola encima: la última de cada ejercicio es lo que se propone. */
@@ -62,7 +55,7 @@ export interface LogSetSheetProps {
 }
 
 /**
- * Registrar una serie, de fuerza o de cardio. El formulario vive dentro de la hoja, que solo monta
+ * Registrar una serie, de fuerza o de cardio según el ejercicio (`setKindFor`). El formulario vive dentro de la hoja, que solo monta
  * su contenido mientras está abierta: cada apertura arranca precargada con la última serie del
  * ejercicio elegido, sin restos de la anterior y sin efectos que lo resincronicen.
  */
@@ -70,7 +63,6 @@ export function LogSetSheet({
   sessionId,
   exercises,
   defaultExerciseId,
-  defaultKind,
   routineProgress,
   sessionSets,
   locale,
@@ -91,7 +83,6 @@ export function LogSetSheet({
           sessionId={sessionId}
           exercises={exercises}
           initialExercise={initial}
-          initialKind={defaultKind}
           routineProgress={routineProgress}
           sessionSets={sessionSets}
           locale={locale}
@@ -106,7 +97,6 @@ interface LogSetFormProps {
   readonly sessionId: ResourceId;
   readonly exercises: readonly TrackedExercise[];
   readonly initialExercise: TrackedExercise;
-  readonly initialKind: SetKind | null;
   readonly routineProgress: RoutineProgress | null;
   readonly sessionSets: readonly SetEntry[];
   readonly locale: Locale;
@@ -117,16 +107,12 @@ function LogSetForm({
   sessionId,
   exercises,
   initialExercise,
-  initialKind,
   routineProgress,
   sessionSets,
   locale,
   onLogged,
 }: LogSetFormProps) {
   const [exercise, setExercise] = useState(initialExercise);
-  const [kind, setKind] = useState<SetKind>(
-    () => initialKind ?? defaultSetKind(initialExercise, sessionSets),
-  );
   const [proposal, setProposal] = useState(() => proposeSet(initialExercise, sessionSets));
   const [values, setValues] = useState<SetValues>(proposal.values);
   const [cardioProposal, setCardioProposal] = useState(() =>
@@ -138,11 +124,12 @@ function LogSetForm({
   const [setId] = useState(newResourceId);
   const log = useLogSet();
   // Sale del ejercicio elegido: cambiarlo en el selector cambia también el objetivo que se lee.
+  const kind = setKindFor(exercise);
   const routineLine =
     routineProgress === null ? null : lineForNextSet(routineProgress, exercise.id);
   const complete = kind === 'strength' ? isCompleteSet(values) : isCompleteCardioSet(cardioValues);
 
-  // Cambiar de ejercicio recarga lo que se propone y el tipo: cada uno tiene su última serie, y
+  // Cambiar de ejercicio recarga lo que se propone —y con él el tipo—: cada uno tiene su última serie, y
   // dejar la del anterior es la forma más fácil de registrar una serie equivocada.
   const selectExercise = (value: string): void => {
     const next = exercises.find((candidate) => candidate.id === value);
@@ -151,25 +138,10 @@ function LogSetForm({
     const nextProposal = proposeSet(next, sessionSets);
     const nextCardioProposal = proposeCardioSet(next, sessionSets);
     setExercise(next);
-    setKind(defaultSetKind(next, sessionSets));
     setProposal(nextProposal);
     setValues(nextProposal.values);
     setCardioProposal(nextCardioProposal);
     setCardioValues(nextCardioProposal.values);
-  };
-
-  // Al cambiar de tipo se lleva el esfuerzo anotado: el RPE y el calentamiento son de la serie, no de sus cifras.
-  const selectKind = (next: SetKind): void => {
-    if (next === 'cardio') {
-      setCardioValues((current) => ({ ...current, rpe: values.rpe, isWarmup: values.isWarmup }));
-    } else {
-      setValues((current) => ({
-        ...current,
-        rpe: cardioValues.rpe,
-        isWarmup: cardioValues.isWarmup,
-      }));
-    }
-    setKind(next);
   };
 
   const requestBody = (): LogSetRequest | null => {
@@ -220,8 +192,6 @@ function LogSetForm({
         onChange={selectExercise}
         options={exerciseSelectOptions(exercises)}
       />
-
-      <SetKindSwitch value={kind} onChange={selectKind} />
 
       {kind === 'strength' ? (
         <SetFields

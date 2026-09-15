@@ -1,11 +1,11 @@
 import type { CardioSetEntry, SetEntry, StrengthSetEntry, TrackedExercise } from '@gymbuddy/shared';
 import { describe, expect, it } from 'vitest';
 import {
-  defaultSetKind,
   describeCardioProposal,
   describeProposal,
   proposeCardioSet,
   proposeSet,
+  setKindFor,
 } from '../../src/features/session/set-proposal';
 import { benchPress, customCurl, squat } from '../fixtures';
 
@@ -124,29 +124,14 @@ describe('proposeCardioSet', () => {
   });
 });
 
-describe('defaultSetKind', () => {
-  it('un ejercicio de la parte cardio abre en cardio aunque hoy se apuntara fuerza en él', () => {
-    expect(defaultSetKind(treadmill, [set({ trackedExerciseId: treadmill.id })])).toBe('cardio');
+describe('setKindFor', () => {
+  it('un ejercicio de la parte cardio registra cardio, aunque hoy se apuntara fuerza en él', () => {
+    expect(setKindFor(treadmill)).toBe('cardio');
   });
 
-  it('cualquier otro abre en lo último que se apuntó hoy en él, calentamiento incluido', () => {
-    const sets: SetEntry[] = [
-      set({ trackedExerciseId: customCurl.id, completedAt: '2026-09-14T18:00:00.000Z' }),
-      cardioSet({
-        trackedExerciseId: customCurl.id,
-        isWarmup: true,
-        completedAt: '2026-09-14T18:10:00.000Z',
-      }),
-    ];
-
-    expect(defaultSetKind(customCurl, sets)).toBe('cardio');
-    expect(defaultSetKind(customCurl, sets.slice(0, 1))).toBe('strength');
-  });
-
-  it('sin nada hoy, decide la última vez; y sin historial, fuerza', () => {
+  it('cualquier otro registra fuerza, aunque su última serie fuera de cardio', () => {
     const cardioLastTime: TrackedExercise = {
       ...customCurl,
-      lastSet: { weight: '10.00', reps: 10, completedAt: '2026-09-01T18:00:00.000Z' },
       lastCardioSet: {
         durationSeconds: 600,
         distanceMeters: null,
@@ -154,8 +139,8 @@ describe('defaultSetKind', () => {
       },
     };
 
-    expect(defaultSetKind(cardioLastTime, [])).toBe('cardio');
-    expect(defaultSetKind(benchPress, [])).toBe('strength');
-    expect(defaultSetKind(customCurl, [])).toBe('strength');
+    expect(setKindFor(cardioLastTime)).toBe('strength');
+    expect(setKindFor(benchPress)).toBe('strength');
+    expect(setKindFor({ ...customCurl, bodyPart: null })).toBe('strength');
   });
 });
