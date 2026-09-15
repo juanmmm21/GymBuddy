@@ -17,6 +17,7 @@ function Harness({
       <WeightField
         label="Peso"
         valueGrams={grams}
+        locale="es"
         onChange={(next) => {
           setGrams(next);
           onChange?.(next);
@@ -101,5 +102,63 @@ describe('WeightField', () => {
   it('no permite restar por debajo de cero', () => {
     render(<Harness initial={null} />);
     expect(screen.getByRole('button', { name: /Restar/ })).toBeDisabled();
+  });
+
+  it('en libras teclea libras, suma sus saltos y sigue entregando gramos', async () => {
+    const user = userEvent.setup();
+    render(<Harness initial={null} />);
+
+    await user.click(screen.getByRole('button', { name: 'lb' }));
+    expect(screen.getByRole('button', { name: 'lb' })).toHaveAttribute('aria-pressed', 'true');
+    // Los saltos de las máquinas en libras: 2,5, 5 y 10, con 5 por defecto.
+    expect(screen.getByRole('button', { name: '10' })).toBeInTheDocument();
+
+    const input = screen.getByLabelText('Peso');
+    await user.type(input, '100');
+    await user.tab();
+    // 100 lb son 45.359,237 g: el contrato los guarda con resolución de 10 g.
+    expect(screen.getByTestId('grams')).toHaveTextContent('45360');
+    expect(input).toHaveValue('100');
+    expect(screen.getByText('≈ 45,36 kg')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Sumar 5 lb' }));
+    expect(input).toHaveValue('105');
+    await user.click(screen.getByRole('button', { name: '2.5' }));
+    await user.click(screen.getByRole('button', { name: 'Restar 2.5 lb' }));
+    expect(input).toHaveValue('102.5');
+  });
+
+  it('cambiar de unidad no cambia el peso, solo cómo se lee', async () => {
+    const user = userEvent.setup();
+    render(<Harness initial={20_000} />);
+
+    expect(screen.getByText('≈ 44,1 lb')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'lb' }));
+
+    expect(screen.getByLabelText('Peso')).toHaveValue('44.1');
+    expect(screen.getByText('≈ 20 kg')).toBeInTheDocument();
+    expect(screen.getByTestId('grams')).toHaveTextContent('20000');
+  });
+
+  it('lo tecleado se confirma en la unidad en que se escribió antes de cambiarla', async () => {
+    const user = userEvent.setup();
+    render(<Harness initial={null} />);
+
+    await user.type(screen.getByLabelText('Peso'), '50');
+    await user.click(screen.getByRole('button', { name: 'lb' }));
+
+    expect(screen.getByTestId('grams')).toHaveTextContent('50000');
+    expect(screen.getByLabelText('Peso')).toHaveValue('110.25');
+  });
+
+  it('en libras avisa con un ejemplo en libras', async () => {
+    const user = userEvent.setup();
+    render(<Harness initial={null} />);
+
+    await user.click(screen.getByRole('button', { name: 'lb' }));
+    await user.type(screen.getByLabelText('Peso'), '1.234');
+    await user.tab();
+
+    expect(screen.getByText(/Escribe un peso en libras/)).toBeInTheDocument();
   });
 });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   formatWeightForInput,
+  formatWeightStep,
   MAX_WEIGHT_GRAMS,
   parseWeightInput,
   stepWeight,
@@ -65,5 +66,36 @@ describe('formatWeightForInput', () => {
     expect(formatWeightForInput(81_250)).toBe('81.25');
     expect(formatWeightForInput(0)).toBe('0');
     expect(formatWeightForInput(null)).toBe('');
+  });
+});
+
+describe('en libras', () => {
+  it('parsea libras a gramos con la resolución que sobrevive al contrato', () => {
+    expect(parseWeightInput('100', 'lb')).toEqual({ kind: 'valid', grams: 45_360 });
+    expect(parseWeightInput('112,5 lb', 'lb')).toEqual({ kind: 'valid', grams: 51_030 });
+    expect(parseWeightInput('45 lbs', 'lb')).toEqual({ kind: 'valid', grams: 20_410 });
+    expect(parseWeightInput('', 'lb')).toEqual({ kind: 'empty' });
+    expect(parseWeightInput('1.234', 'lb')).toEqual({ kind: 'invalid' });
+    expect(parseWeightInput('82,5 kg', 'lb')).toEqual({ kind: 'invalid' });
+    expect(parseWeightInput('30000', 'lb')).toEqual({ kind: 'invalid' });
+  });
+
+  it('muestra en libras lo guardado sin arrastrar el redondeo', () => {
+    expect(formatWeightForInput(45_360, 'lb')).toBe('100');
+    expect(formatWeightForInput(51_030, 'lb')).toBe('112.5');
+    expect(formatWeightForInput(20_000, 'lb')).toBe('44.1');
+    expect(formatWeightForInput(null, 'lb')).toBe('');
+  });
+
+  it('suma los saltos sobre lo que se ve en libras', () => {
+    expect(formatWeightForInput(stepWeight(45_360, 500, 'lb'), 'lb')).toBe('105');
+    expect(formatWeightForInput(stepWeight(null, 1000, 'lb'), 'lb')).toBe('10');
+    expect(stepWeight(1000, -500, 'lb')).toBe(0);
+  });
+
+  it('escribe los saltos de cada unidad', () => {
+    expect(formatWeightStep(1250, 'kg')).toBe('1.25');
+    expect(formatWeightStep(250, 'lb')).toBe('2.5');
+    expect(formatWeightStep(1000, 'lb')).toBe('10');
   });
 });

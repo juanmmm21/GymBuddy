@@ -7,7 +7,9 @@ import {
   formatSessionDate,
   formatShortDate,
   formatStopwatch,
+  formatSetWeightLabel,
   formatVolumeLabel,
+  formatWeightInUnit,
   formatWeightLabel,
   formatWeightValue,
   pluralize,
@@ -28,6 +30,21 @@ describe('formatWeightValue', () => {
     expect(formatWeightValue(82_500, 'en')).toBe('82.5');
     expect(formatWeightValue(110_000, 'es')).toBe('110');
     expect(formatWeightValue(0, 'es')).toBe('0');
+  });
+});
+
+describe('formatWeightInUnit', () => {
+  it('lee los gramos en la unidad pedida', () => {
+    expect(formatWeightInUnit(45_360, 'lb', 'es')).toBe('100 lb');
+    expect(formatWeightInUnit(51_030, 'lb', 'en')).toBe('112.5 lb');
+    expect(formatWeightInUnit(45_360, 'kg', 'es')).toBe('45,36 kg');
+  });
+});
+
+describe('formatSetWeightLabel', () => {
+  it('en libras lleva detrás los kilos; en kilos va solo', () => {
+    expect(formatSetWeightLabel('45.36', 'lb', 'es')).toBe('100 lb · 45,36 kg');
+    expect(formatSetWeightLabel('82.50', 'kg', 'es')).toBe('82,5 kg');
   });
 });
 
