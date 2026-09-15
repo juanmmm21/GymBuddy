@@ -1,8 +1,14 @@
-import type { TrackedExercise, WeightKilograms, WorkoutSessionDetail } from '@gymbuddy/shared';
+import type {
+  ResourceId,
+  TrackedExercise,
+  WeightKilograms,
+  WorkoutSessionDetail,
+} from '@gymbuddy/shared';
 import { UNKNOWN_EXERCISE_NAME, summarizeSession } from '../session/summary';
 
 /** La última serie de la sesión, con lo que hace falta para pintarla en Hoy. */
 export interface LiveLastSet {
+  readonly trackedExerciseId: ResourceId;
   readonly exerciseName: string;
   readonly equipment: string | null;
   readonly weight: WeightKilograms;
@@ -49,6 +55,7 @@ export function summarizeLiveSession(
       latest === null
         ? null
         : {
+            trackedExerciseId: latest.trackedExerciseId,
             exerciseName: exercise?.name ?? UNKNOWN_EXERCISE_NAME,
             equipment: exercise?.equipment ?? null,
             weight: latest.weight,
