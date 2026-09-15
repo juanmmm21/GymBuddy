@@ -6,7 +6,7 @@ import type {
   UpdateSetRequest,
   WorkoutSessionDetail,
 } from '@gymbuddy/shared';
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { jsonResponse, type FakeFetch } from '../fake-fetch';
@@ -258,5 +258,131 @@ describe('sesión: corregir cardio', () => {
       rpe: null,
       isWarmup: false,
     });
+  });
+});
+
+describe('sesión: cardio final al terminar', () => {
+  async function openEndSheet(user: ReturnType<typeof userEvent.setup>): Promise<HTMLElement> {
+    await user.click(await screen.findByRole('button', { name: 'Terminar sesión' }));
+    return screen.findByRole('dialog', { name: 'Terminar sesión' });
+  }
+
+  it('ofrece apuntar cardio, abre la hoja en cardio y vuelve a terminar sin volver a ofrecerlo', async () => {
+    const user = userEvent.setup();
+    const { fake } = renderApp({
+      path: '/session',
+      session,
+      setup: (fake) => {
+        serveCardioSession(fake, [benchPress, treadmill]);
+      },
+    });
+
+    const summary = await openEndSheet(user);
+    expect(within(summary).getByText('¿Rematas con cardio?')).toBeInTheDocument();
+    await user.click(within(summary).getByRole('button', { name: 'Apuntar cardio' }));
+
+    const log = await screen.findByRole('dialog', { name: 'Registrar serie' });
+    expect(within(log).getByRole('combobox', { name: 'Ejercicio' })).toHaveValue(treadmill.id);
+    expect(within(log).getByRole('button', { name: 'Cardio' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await user.type(within(log).getByLabelText('Duración'), '20{Enter}');
+    await user.click(within(log).getByRole('button', { name: 'Registrar serie' }));
+
+    const again = await screen.findByRole('dialog', { name: 'Terminar sesión' });
+    expect(within(again).queryByText('¿Rematas con cardio?')).not.toBeInTheDocument();
+    expect(within(again).getByText('Series').parentElement).toHaveTextContent('2');
+    const body = fake.requests.find((request) => request.method === 'POST')
+      ?.body as LogCardioSetRequest;
+    expect(body).toMatchObject({
+      kind: 'cardio',
+      trackedExerciseId: treadmill.id,
+      durationSeconds: 1_200,
+    });
+  });
+
+  it('abre en cardio aunque el ejercicio propuesto tenga una serie de fuerza más reciente', async () => {
+    const user = userEvent.setup();
+    const ownTreadmill: TrackedExercise = {
+      ...treadmill,
+      bodyPart: null,
+      lastSet: { weight: '10.00', reps: 10, completedAt: '2026-09-12T19:00:00.000Z' },
+      lastCardioSet: {
+        durationSeconds: 900,
+        distanceMeters: null,
+        completedAt: '2026-09-10T19:00:00.000Z',
+      },
+    };
+    renderApp({
+      path: '/session',
+      session,
+      setup: (fake) => {
+        serveCardioSession(fake, [benchPress, ownTreadmill]);
+      },
+    });
+
+    const summary = await openEndSheet(user);
+    await user.click(within(summary).getByRole('button', { name: 'Apuntar cardio' }));
+
+    const log = await screen.findByRole('dialog', { name: 'Registrar serie' });
+    expect(within(log).getByRole('button', { name: 'Cardio' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(within(log).getByLabelText('Duración')).toHaveValue('15');
+  });
+
+  it('cerrar la hoja de cardio sin apuntarlo deja la sesión abierta, sin volver a terminar', async () => {
+    const user = userEvent.setup();
+    renderApp({
+      path: '/session',
+      session,
+      setup: (fake) => {
+        serveCardioSession(fake, [benchPress, treadmill]);
+      },
+    });
+
+    const summary = await openEndSheet(user);
+    await user.click(within(summary).getByRole('button', { name: 'Apuntar cardio' }));
+    const log = await screen.findByRole('dialog', { name: 'Registrar serie' });
+    await user.click(within(log).getByRole('button', { name: 'Cerrar' }));
+
+    expect(screen.queryByRole('dialog', { name: 'Terminar sesión' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Registrar serie' })).toBeInTheDocument();
+  });
+
+  it('sin ningún ejercicio de cardio manda al cardio del catálogo', async () => {
+    const user = userEvent.setup();
+    renderApp({
+      path: '/session',
+      session,
+      setup: (fake) => {
+        serveCardioSession(fake, [benchPress]);
+      },
+    });
+
+    const summary = await openEndSheet(user);
+    expect(within(summary).getByText(/No sigues ningún ejercicio de cardio/)).toBeInTheDocument();
+    expect(
+      within(summary).getByRole('link', { name: 'Ver cardio en el catálogo' }),
+    ).toHaveAttribute('href', '/catalog/cardio');
+  });
+
+  it('una sesión que ya termina en cardio no lo ofrece', async () => {
+    const user = userEvent.setup();
+    renderApp({
+      path: '/session',
+      session,
+      setup: (fake) => {
+        serveCardioSession(fake, [benchPress, treadmill], {
+          ...activeSession,
+          sets: [strengthSet, loggedCardio],
+        });
+      },
+    });
+
+    const summary = await openEndSheet(user);
+    expect(within(summary).queryByText('¿Rematas con cardio?')).not.toBeInTheDocument();
   });
 });
