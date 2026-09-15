@@ -1,5 +1,6 @@
 import {
   bodyPartSchema,
+  equipmentTagsOfFilter,
   muscleSchema,
   type BodyPart,
   type BodyPartSummary,
@@ -9,7 +10,7 @@ import {
   type CatalogExerciseSummary,
   type Locale,
 } from '@gymbuddy/shared';
-import { and, asc, count, eq, like, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, count, eq, inArray, like, or, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Database } from '../db/client';
 import { catalogExercise, type CatalogExerciseRow } from '../db/schema';
@@ -147,13 +148,16 @@ export async function searchCatalogExercises(
 }
 
 /**
- * Cada filtro es una igualdad con un parámetro: dos más como mucho, lejos de los cien de D1 aunque
- * la búsqueda ya gaste los suyos. Sin filtros no añade nada y la consulta queda como estaba.
+ * El músculo es una igualdad con un parámetro y el equipamiento un `IN` con las etiquetas de su
+ * grupo (cuatro las de «Máquina»): cinco más como mucho, lejos de los cien de D1 aunque la búsqueda
+ * ya gaste los suyos. Sin filtros no añade nada y la consulta queda como estaba.
  */
 function filterConditions(filters: CatalogFilters): SQL[] {
   const conditions: SQL[] = [];
   if (filters.equipment !== undefined) {
-    conditions.push(eq(catalogExercise.equipment, filters.equipment));
+    conditions.push(
+      inArray(catalogExercise.equipment, [...equipmentTagsOfFilter(filters.equipment)]),
+    );
   }
   if (filters.muscle !== undefined) {
     conditions.push(eq(catalogExercise.muscle, filters.muscle));

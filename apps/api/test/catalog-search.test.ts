@@ -250,6 +250,19 @@ describe('búsqueda libre', () => {
             equipment: 'band',
           },
           catalogEntry('glutes', 'legs', 'barbell-glute-bridge', 'Puente de glúteos con barra'),
+          {
+            ...catalogEntry(
+              'glutes',
+              'legs',
+              'lever-hip-thrust',
+              'Hip thrust en máquina de palanca',
+            ),
+            equipment: 'lever',
+          },
+          {
+            ...catalogEntry('glutes', 'legs', 'smith-hip-thrust', 'Hip thrust en multipower'),
+            equipment: 'smith',
+          },
         ]),
         en: muscleFile('glutes', []),
       },
@@ -274,6 +287,8 @@ describe('búsqueda libre', () => {
     expect((await ids('hip thrust')).sort()).toEqual([
       'glutes/band-hip-thrust',
       'glutes/barbell-glute-bridge',
+      'glutes/lever-hip-thrust',
+      'glutes/smith-hip-thrust',
     ]);
   });
 
@@ -288,6 +303,19 @@ describe('búsqueda libre', () => {
 
   it('el equipamiento recorta lo que casa con el texto: «hip thrust» con banda', async () => {
     expect(await filtered('hip thrust', { equipment: 'band' })).toEqual(['glutes/band-hip-thrust']);
+  });
+
+  it('«Máquina» abarca las máquinas de palanca y la multipower, no solo la etiqueta machine', async () => {
+    expect((await filtered('hip thrust', { equipment: 'machine' })).sort()).toEqual([
+      'glutes/lever-hip-thrust',
+      'glutes/smith-hip-thrust',
+    ]);
+  });
+
+  it('una etiqueta del grupo pedida sola sigue filtrando solo la suya', async () => {
+    expect(await filtered('hip thrust', { equipment: 'smith' })).toEqual([
+      'glutes/smith-hip-thrust',
+    ]);
   });
 
   it('el músculo recorta lo que casa con el texto: «remo» de espalda alta', async () => {
@@ -306,7 +334,7 @@ describe('búsqueda libre', () => {
   it('seis palabras con alias, partes del cuerpo y los dos filtros siguen cabiendo en D1', async () => {
     expect(
       await filtered('face pull espalda pecho pierna brazos', {
-        equipment: 'cable',
+        equipment: 'machine',
         muscle: 'delts',
       }),
     ).toEqual([]);
