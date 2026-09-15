@@ -7,6 +7,7 @@ import { DEVICES_PATH } from '../devices/paths';
 import { useInstallGuide } from '../install/InstallProvider';
 import { INSTALL_PATH } from '../install/paths';
 import { INVITE_PATH } from '../invitations/paths';
+import { ProfileNameForm } from './ProfileNameForm';
 import styles from './SettingsScreen.module.css';
 
 const BACK_TO_HOME: BackLink = { to: '/', label: 'Hoy' };
@@ -59,6 +60,14 @@ export function SettingsScreen() {
         backTo={BACK_TO_HOME}
       />
       <div className={styles.stack}>
+        {session !== null && (
+          <Surface as="section" padding="none" aria-labelledby="settings-profile">
+            <h2 id="settings-profile" className={styles.sectionTitle}>
+              Tu nombre
+            </h2>
+            <ProfileNameForm currentName={session.user.displayName} />
+          </Surface>
+        )}
         <Surface as="section" padding="none" aria-labelledby="settings-account">
           <h2 id="settings-account" className={styles.sectionTitle}>
             Tu cuenta
