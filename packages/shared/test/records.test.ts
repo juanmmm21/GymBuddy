@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   NO_PERSONAL_RECORDS,
+  bestPersonalRecords,
   detectPersonalRecords,
   replayPersonalRecords,
   type PersonalRecordBests,
@@ -226,5 +227,87 @@ describe('replayPersonalRecords', () => {
     expect(() => replayPersonalRecords([], { from: 'ayer', kept: NO_PERSONAL_RECORDS })).toThrow(
       RangeError,
     );
+  });
+});
+
+describe('bestPersonalRecords', () => {
+  const bench = 'bench';
+  const squat = 'squat';
+  const record = (
+    id: string,
+    trackedExerciseId: string,
+    kind: 'max_weight' | 'estimated_1rm' | 'max_volume',
+    value: string,
+  ) => ({ id, trackedExerciseId, kind, value });
+
+  it('sin marcas no hay nada que enseñar', () => {
+    expect(bestPersonalRecords([])).toStrictEqual([]);
+  });
+
+  it('de varias series seguidas del mismo ejercicio se queda con la más alta de cada tipo', () => {
+    const records = [
+      record('a1', bench, 'max_weight', '80.00'),
+      record('a2', bench, 'estimated_1rm', '101.33'),
+      record('a3', bench, 'max_volume', '640.00'),
+      record('b1', bench, 'max_weight', '82.50'),
+      record('b2', bench, 'estimated_1rm', '104.50'),
+      record('c1', bench, 'max_volume', '700.00'),
+    ];
+
+    expect(bestPersonalRecords(records).map((entry) => entry.id)).toStrictEqual(['b1', 'b2', 'c1']);
+  });
+
+  it('compara cifras y no texto: 100 kg supera a 99,5', () => {
+    const records = [
+      record('high-text', bench, 'max_weight', '99.50'),
+      record('high-number', bench, 'max_weight', '100.00'),
+    ];
+
+    expect(bestPersonalRecords(records).map((entry) => entry.id)).toStrictEqual(['high-number']);
+  });
+
+  it('una marca que llega después y es peor no quita la mejor', () => {
+    const records = [
+      record('best', bench, 'max_weight', '90.00'),
+      record('worse', bench, 'max_weight', '85.00'),
+    ];
+
+    expect(bestPersonalRecords(records).map((entry) => entry.id)).toStrictEqual(['best']);
+  });
+
+  it('a igual valor gana la que llegó después', () => {
+    const records = [
+      record('first', bench, 'max_weight', '90.00'),
+      record('corrected', bench, 'max_weight', '90.00'),
+    ];
+
+    expect(bestPersonalRecords(records).map((entry) => entry.id)).toStrictEqual(['corrected']);
+  });
+
+  it('agrupa por ejercicio en el orden de su primera marca, y dentro peso, 1RM y volumen', () => {
+    const records = [
+      record('bench-volume', bench, 'max_volume', '640.00'),
+      record('squat-weight', squat, 'max_weight', '120.00'),
+      record('bench-weight', bench, 'max_weight', '82.50'),
+      record('squat-volume', squat, 'max_volume', '600.00'),
+      record('bench-1rm', bench, 'estimated_1rm', '104.50'),
+    ];
+
+    expect(bestPersonalRecords(records).map((entry) => entry.id)).toStrictEqual([
+      'bench-weight',
+      'bench-1rm',
+      'bench-volume',
+      'squat-weight',
+      'squat-volume',
+    ]);
+  });
+
+  it('lee el ancho del volumen: una marca de más de 9999 kg no revienta', () => {
+    const records = [
+      record('small', bench, 'max_volume', '9999.00'),
+      record('big', bench, 'max_volume', '12000.00'),
+    ];
+
+    expect(bestPersonalRecords(records).map((entry) => entry.id)).toStrictEqual(['big']);
   });
 });
