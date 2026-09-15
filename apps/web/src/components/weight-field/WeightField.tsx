@@ -1,13 +1,15 @@
+import { WEIGHT_UNITS, type Locale, type WeightUnit } from '@gymbuddy/shared';
 import { useId, useState, type ChangeEvent, type KeyboardEvent } from 'react';
 import { cx } from '../../lib/cx';
+import { formatWeightInUnit } from '../../lib/format';
 import styles from './WeightField.module.css';
 import {
-  DEFAULT_WEIGHT_STEP_GRAMS,
+  DEFAULT_WEIGHT_STEPS,
   formatWeightForInput,
+  formatWeightStep,
   parseWeightInput,
   stepWeight,
-  WEIGHT_STEPS_GRAMS,
-  type WeightStepGrams,
+  WEIGHT_STEPS,
 } from './weight-math';
 
 export interface WeightFieldProps {
@@ -15,26 +17,37 @@ export interface WeightFieldProps {
   /** Peso en gramos enteros, o `null` si el campo está vacío. */
   readonly valueGrams: number | null;
   readonly onChange: (grams: number | null) => void;
-  /** Salto de los botones +/−. Si no se controla desde fuera, el campo lo gestiona solo. */
-  readonly step?: WeightStepGrams;
-  readonly onStepChange?: (step: WeightStepGrams) => void;
+  /** Para la coma de la equivalencia que se lee bajo el campo. */
+  readonly locale: Locale;
+  /** En qué se teclea. Si no se controla desde fuera, el campo lo gestiona solo y empieza en kilos. */
+  readonly unit?: WeightUnit;
+  readonly onUnitChange?: (unit: WeightUnit) => void;
   readonly disabled?: boolean;
   readonly hint?: string;
 }
 
-const INVALID_MESSAGE = 'Escribe un peso en kilogramos, por ejemplo 82,5';
+const INVALID_MESSAGES: Readonly<Record<WeightUnit, string>> = {
+  kg: 'Escribe un peso en kilogramos, por ejemplo 82,5',
+  lb: 'Escribe un peso en libras, por ejemplo 100 o 112,5',
+};
+
+const OTHER_UNIT: Readonly<Record<WeightUnit, WeightUnit>> = { kg: 'lb', lb: 'kg' };
 
 /**
  * Campo numérico de peso. El valor vive en gramos enteros; lo que se teclea se convierte
  * al confirmar (al salir del campo o con Intro), nunca en cada pulsación, para que
  * escribir "8" de camino a "82,5" no dispare tres cambios de peso.
+ *
+ * Se teclea en kilos o en libras y debajo se lee siempre el mismo peso en la otra unidad: la
+ * unidad es solo una forma de escribirlo, lo que sale del campo sigue siendo gramos.
  */
 export function WeightField({
   label,
   valueGrams,
   onChange,
-  step,
-  onStepChange,
+  locale,
+  unit,
+  onUnitChange,
   disabled = false,
   hint,
 }: WeightFieldProps) {
@@ -43,18 +56,25 @@ export function WeightField({
   // `null` significa "no se está editando": lo que se ve sale del valor de fuera.
   const [draft, setDraft] = useState<string | null>(null);
   const [invalid, setInvalid] = useState(false);
-  const [internalStep, setInternalStep] = useState<WeightStepGrams>(DEFAULT_WEIGHT_STEP_GRAMS);
+  const [internalUnit, setInternalUnit] = useState<WeightUnit>('kg');
+  // Un salto elegido por unidad: volver a libras recupera el de libras, no el de kilos convertido.
+  const [steps, setSteps] = useState(DEFAULT_WEIGHT_STEPS);
 
-  const activeStep = step ?? internalStep;
-  const shownValue = draft ?? formatWeightForInput(valueGrams);
+  const activeUnit = unit ?? internalUnit;
+  const activeStep = steps[activeUnit];
+  const unitStepLabel = `${formatWeightStep(activeStep, activeUnit)} ${activeUnit}`;
+  const shownValue = draft ?? formatWeightForInput(valueGrams, activeUnit);
 
-  const selectStep = (next: WeightStepGrams): void => {
-    setInternalStep(next);
-    onStepChange?.(next);
+  const selectUnit = (next: WeightUnit): void => {
+    // Pulsar la unidad saca el foco del campo, y ese `blur` ya confirmó lo tecleado en la anterior.
+    setInternalUnit(next);
+    setDraft(null);
+    setInvalid(false);
+    onUnitChange?.(next);
   };
 
   const commit = (): void => {
-    const parsed = parseWeightInput(draft ?? shownValue);
+    const parsed = parseWeightInput(draft ?? shownValue, activeUnit);
     if (parsed.kind === 'invalid') {
       setInvalid(true);
       return;
@@ -65,7 +85,7 @@ export function WeightField({
   };
 
   const nudge = (direction: 1 | -1): void => {
-    onChange(stepWeight(valueGrams, direction * activeStep));
+    onChange(stepWeight(valueGrams, direction * activeStep, activeUnit));
     setDraft(null);
     setInvalid(false);
   };
@@ -83,13 +103,32 @@ export function WeightField({
     }
   };
 
-  const message = invalid ? INVALID_MESSAGE : hint;
+  const message = invalid ? INVALID_MESSAGES[activeUnit] : hint;
 
   return (
     <div className={styles.field}>
-      <label className={styles.label} htmlFor={inputId}>
-        {label}
-      </label>
+      <div className={styles.header}>
+        <label className={styles.label} htmlFor={inputId}>
+          {label}
+        </label>
+
+        <div className={styles.units} role="group" aria-label="Unidad de peso">
+          {WEIGHT_UNITS.map((candidate) => (
+            <button
+              key={candidate}
+              type="button"
+              className={cx(styles.unitOption, candidate === activeUnit && styles.unitOptionActive)}
+              aria-pressed={candidate === activeUnit}
+              disabled={disabled}
+              onClick={() => {
+                selectUnit(candidate);
+              }}
+            >
+              {candidate}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className={styles.controls}>
         <button
@@ -99,7 +138,7 @@ export function WeightField({
             nudge(-1);
           }}
           disabled={disabled || (valueGrams ?? 0) === 0}
-          aria-label={`Restar ${formatWeightForInput(activeStep)} kg`}
+          aria-label={`Restar ${unitStepLabel}`}
         >
           −
         </button>
@@ -123,7 +162,7 @@ export function WeightField({
             aria-describedby={message !== undefined ? messageId : undefined}
           />
           <span className={styles.unit} aria-hidden="true">
-            kg
+            {activeUnit}
           </span>
         </div>
 
@@ -134,14 +173,20 @@ export function WeightField({
             nudge(1);
           }}
           disabled={disabled}
-          aria-label={`Sumar ${formatWeightForInput(activeStep)} kg`}
+          aria-label={`Sumar ${unitStepLabel}`}
         >
           +
         </button>
       </div>
 
+      {valueGrams !== null && (
+        <p className={styles.equivalent}>
+          ≈ {formatWeightInUnit(valueGrams, OTHER_UNIT[activeUnit], locale)}
+        </p>
+      )}
+
       <div className={styles.steps} role="group" aria-label="Salto de peso">
-        {WEIGHT_STEPS_GRAMS.map((candidate) => (
+        {WEIGHT_STEPS[activeUnit].map((candidate) => (
           <button
             key={candidate}
             type="button"
@@ -149,10 +194,10 @@ export function WeightField({
             aria-pressed={candidate === activeStep}
             disabled={disabled}
             onClick={() => {
-              selectStep(candidate);
+              setSteps((current) => ({ ...current, [activeUnit]: candidate }));
             }}
           >
-            {formatWeightForInput(candidate)}
+            {formatWeightStep(candidate, activeUnit)}
           </button>
         ))}
       </div>

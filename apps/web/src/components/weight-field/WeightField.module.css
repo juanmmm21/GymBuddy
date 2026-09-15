@@ -4,6 +4,45 @@
   gap: var(--gb-space-sm);
 }
 
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gb-space-sm);
+}
+
+.units {
+  display: inline-flex;
+  padding: var(--gb-space-xxs);
+  border: var(--gb-size-border-width) solid var(--gb-color-border);
+  border-radius: var(--gb-radius-pill);
+  background: var(--gb-color-surface-sunken);
+}
+
+.unitOption {
+  min-width: var(--gb-size-touch-target);
+  padding: var(--gb-space-xxs) var(--gb-space-md);
+  border: none;
+  border-radius: var(--gb-radius-pill);
+  background: transparent;
+  color: var(--gb-color-text-secondary);
+  font-size: var(--gb-type-caption-size);
+  font-weight: var(--gb-type-body-strong-weight);
+  transition:
+    background-color var(--gb-duration-fast) var(--gb-ease-standard),
+    color var(--gb-duration-fast) var(--gb-ease-standard);
+}
+
+.unitOptionActive {
+  background: var(--gb-color-accent);
+  color: var(--gb-color-on-accent);
+}
+
+.unitOption:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
 .label {
   color: var(--gb-color-text-secondary);
   font-size: var(--gb-type-label-size);
@@ -79,6 +118,15 @@
   color: var(--gb-color-text-muted);
   font-size: var(--gb-type-caption-size);
   pointer-events: none;
+}
+
+.equivalent {
+  color: var(--gb-color-text-secondary);
+  font-family: var(--gb-font-display);
+  font-stretch: var(--gb-font-width-condensed);
+  font-size: var(--gb-type-body-size);
+  font-weight: var(--gb-type-body-strong-weight);
+  text-align: center;
 }
 
 .steps {

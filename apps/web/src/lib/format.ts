@@ -3,6 +3,7 @@ import {
   parseKilogramsToGrams,
   type Locale,
   type WeightKilograms,
+  type WeightUnit,
 } from '@gymbuddy/shared';
 import { formatWeightForInput } from '../components/weight-field/weight-math';
 
@@ -13,16 +14,36 @@ const INTL_LOCALE: Readonly<Record<Locale, string>> = { es: 'es-ES', en: 'en-GB'
  * por gramos enteros y no por `Number(...)`, igual que todo lo demás que toca un peso.
  */
 export function formatWeightLabel(weight: WeightKilograms, locale: Locale): string {
-  return `${formatWeightValue(parseKilogramsToGrams(weight), locale)} kg`;
+  return formatWeightInUnit(parseKilogramsToGrams(weight), 'kg', locale);
 }
 
 /**
  * El número de un peso en gramos, sin su unidad: "82,5". Es lo que va en el eje de una
  * gráfica, donde los kilogramos se dicen una sola vez en la leyenda y no en cada marca.
  */
-export function formatWeightValue(grams: number, locale: Locale): string {
-  const text = formatWeightForInput(grams);
+export function formatWeightValue(grams: number, locale: Locale, unit: WeightUnit = 'kg'): string {
+  const text = formatWeightForInput(grams, unit);
   return locale === 'es' ? text.replace('.', ',') : text;
+}
+
+/** Un peso en gramos leído en una unidad concreta: "82,5 kg" o "100 lb". */
+export function formatWeightInUnit(grams: number, unit: WeightUnit, locale: Locale): string {
+  return `${formatWeightValue(grams, locale, unit)} ${unit}`;
+}
+
+/**
+ * El peso de una serie en la unidad en que se registra ese ejercicio. En libras lleva detrás los
+ * kilos ("100 lb · 45,36 kg"): lo pidió Juan, que entrena con máquinas en libras y piensa en kilos.
+ * En kilos va solo, como siempre, para no llenar de libras las listas de quien no las usa.
+ */
+export function formatSetWeightLabel(
+  weight: WeightKilograms,
+  unit: WeightUnit,
+  locale: Locale,
+): string {
+  const grams = parseKilogramsToGrams(weight);
+  if (unit === 'kg') return formatWeightInUnit(grams, 'kg', locale);
+  return `${formatWeightInUnit(grams, 'lb', locale)} · ${formatWeightInUnit(grams, 'kg', locale)}`;
 }
 
 /**

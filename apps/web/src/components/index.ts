@@ -27,11 +27,12 @@ export type { TextFieldProps } from './text-field/TextField';
 export { WeightField } from './weight-field/WeightField';
 export type { WeightFieldProps } from './weight-field/WeightField';
 export {
-  DEFAULT_WEIGHT_STEP_GRAMS,
+  DEFAULT_WEIGHT_STEPS,
   MAX_WEIGHT_GRAMS,
-  WEIGHT_STEPS_GRAMS,
+  WEIGHT_STEPS,
   formatWeightForInput,
+  formatWeightStep,
   parseWeightInput,
   stepWeight,
 } from './weight-field/weight-math';
-export type { ParsedWeight, WeightStepGrams } from './weight-field/weight-math';
+export type { ParsedWeight } from './weight-field/weight-math';
