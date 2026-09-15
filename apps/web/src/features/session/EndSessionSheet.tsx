@@ -1,15 +1,19 @@
 import type {
   Locale,
   PersonalRecord,
+  ResourceId,
   TrackedExercise,
   WorkoutSessionDetail,
 } from '@gymbuddy/shared';
 import { useState, type FormEvent } from 'react';
+import { Link } from 'react-router';
 import { useEndSession } from '../../api/mutations';
 import { Button, Notice, Sheet, TextArea } from '../../components/index';
 import { describeError } from '../../lib/errors';
 import { formatVolumeLabel, pluralize } from '../../lib/format';
 import { MAX_SESSION_NOTES_LENGTH, normalizeNotes } from '../../lib/notes';
+import { bodyPartPath } from '../catalog/paths';
+import type { FinalCardioOffer } from './final-cardio';
 import { SessionRecordItems } from './SessionRecordItems';
 import { summarizeSession } from './summary';
 import styles from './EndSessionSheet.module.css';
@@ -21,8 +25,12 @@ export interface EndSessionSheetProps {
   /** Para nombrar el ejercicio de cada marca; con los archivados. */
   readonly exercises: readonly TrackedExercise[];
   readonly locale: Locale;
+  /** El cardio opcional con el que rematar, que decide `finalCardioOffer`. */
+  readonly finalCardio: FinalCardioOffer;
   readonly open: boolean;
   readonly onClose: () => void;
+  /** Apuntar el cardio final con ese ejercicio antes de cerrar. */
+  readonly onLogFinalCardio: (exerciseId: ResourceId) => void;
   readonly onEnded: () => void;
 }
 
@@ -32,8 +40,10 @@ export function EndSessionSheet({
   records,
   exercises,
   locale,
+  finalCardio,
   open,
   onClose,
+  onLogFinalCardio,
   onEnded,
 }: EndSessionSheetProps) {
   return (
@@ -43,6 +53,8 @@ export function EndSessionSheet({
         records={records}
         exercises={exercises}
         locale={locale}
+        finalCardio={finalCardio}
+        onLogFinalCardio={onLogFinalCardio}
         onEnded={onEnded}
       />
     </Sheet>
@@ -54,10 +66,20 @@ interface EndSessionFormProps {
   readonly records: readonly PersonalRecord[];
   readonly exercises: readonly TrackedExercise[];
   readonly locale: Locale;
+  readonly finalCardio: FinalCardioOffer;
+  readonly onLogFinalCardio: (exerciseId: ResourceId) => void;
   readonly onEnded: () => void;
 }
 
-function EndSessionForm({ session, records, exercises, locale, onEnded }: EndSessionFormProps) {
+function EndSessionForm({
+  session,
+  records,
+  exercises,
+  locale,
+  finalCardio,
+  onLogFinalCardio,
+  onEnded,
+}: EndSessionFormProps) {
   const [notes, setNotes] = useState(session.notes ?? '');
   const end = useEndSession();
   const totals = summarizeSession(session.sets);
@@ -72,6 +94,8 @@ function EndSessionForm({ session, records, exercises, locale, onEnded }: EndSes
 
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
+      <FinalCardioPrompt offer={finalCardio} onLog={onLogFinalCardio} />
+
       <ul className={styles.totals}>
         <Total label="Series" value={String(totals.setCount)} />
         <Total label="Ejercicios" value={String(totals.exerciseCount)} />
@@ -111,6 +135,51 @@ function EndSessionForm({ session, records, exercises, locale, onEnded }: EndSes
       </Button>
     </form>
   );
+}
+
+/**
+ * El cardio final es opcional: se ofrece arriba y sin cortar el paso, y quien no lo quiere termina
+ * con el botón de siempre. Va delante del resumen porque apuntarlo cambia ese resumen.
+ */
+function FinalCardioPrompt({
+  offer,
+  onLog,
+}: {
+  readonly offer: FinalCardioOffer;
+  readonly onLog: (exerciseId: ResourceId) => void;
+}) {
+  switch (offer.kind) {
+    case 'none':
+      return null;
+    case 'no_exercise':
+      return (
+        <Notice
+          title="¿Rematas con cardio?"
+          action={<Link to={bodyPartPath('cardio')}>Ver cardio en el catálogo</Link>}
+        >
+          Es opcional. No sigues ningún ejercicio de cardio: sigue uno y podrás apuntarlo aquí.
+        </Notice>
+      );
+    case 'exercise':
+      return (
+        <Notice
+          title="¿Rematas con cardio?"
+          action={
+            <Button
+              variant="secondary"
+              fullWidth
+              onClick={() => {
+                onLog(offer.exerciseId);
+              }}
+            >
+              Apuntar cardio
+            </Button>
+          }
+        >
+          Es opcional, esté o no en tu rutina. Apúntalo con su duración y vuelves aquí a terminar.
+        </Notice>
+      );
+  }
 }
 
 function Total({ label, value }: { readonly label: string; readonly value: string }) {

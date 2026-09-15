@@ -5,6 +5,7 @@ import {
   type ResourceId,
   type Routine,
   type SetEntry,
+  type SetKind,
   type TrackedExercise,
   type WorkoutSessionDetail,
 } from '@gymbuddy/shared';
@@ -34,6 +35,7 @@ import { openSessionSignals, sessionDeviceSignals } from '../mascot/mascot-signa
 import { describeRoutineSize } from '../routines/items';
 import { EditSetSheet } from './EditSetSheet';
 import { EndSessionSheet } from './EndSessionSheet';
+import { finalCardioOffer } from './final-cardio';
 import { SessionRecordItems } from './SessionRecordItems';
 import { LogSetSheet } from './LogSetSheet';
 import { logExerciseIdFor } from './log-target';
@@ -61,9 +63,14 @@ import { usesOlympicBar } from '../exercises/equipment';
 
 const BACK_TO_HOME: BackLink = { to: '/', label: 'Hoy' };
 
-/** Con qué ejercicio se abre la hoja de registro; `null` es el primero de la lista. */
+/** Con qué se abre la hoja de registro. */
 interface LogSheetTarget {
+  /** `null` es el primero de la lista. */
   readonly exerciseId: ResourceId | null;
+  /** `null` deja el tipo al ejercicio (`defaultSetKind`). */
+  readonly kind: SetKind | null;
+  /** Viene de «Terminar sesión»: apuntado el cardio final, se vuelve a esa hoja. */
+  readonly thenEnd: boolean;
 }
 
 /**
@@ -87,7 +94,9 @@ export function SessionScreen() {
   // Llegar desde la ficha de un ejercicio abre la hoja directamente: ese es el motivo de
   // venir. El valor inicial se decide en el primer pintado, sin efecto que lo resincronice.
   const [logging, setLogging] = useState<LogSheetTarget | null>(
-    requestedExerciseId === null ? null : { exerciseId: requestedExerciseId },
+    requestedExerciseId === null
+      ? null
+      : { exerciseId: requestedExerciseId, kind: null, thenEnd: false },
   );
   const [editing, setEditing] = useState<SetEntry | null>(null);
   const [ending, setEnding] = useState(false);
@@ -98,6 +107,8 @@ export function SessionScreen() {
 
   const handleLogged = (fresh: readonly PersonalRecord[]): void => {
     setRecords((current) => [...current, ...fresh]);
+    // Tras el cardio final se vuelve a terminar: es lo que se estaba haciendo al pedirlo.
+    if (logging?.thenEnd === true) setEnding(true);
     setLogging(null);
   };
 
@@ -141,7 +152,11 @@ export function SessionScreen() {
                     saveRestPreferences(storage, next);
                   }}
                   onOpenLog={(exerciseId) => {
-                    setLogging({ exerciseId });
+                    setLogging({ exerciseId, kind: null, thenEnd: false });
+                  }}
+                  onOpenFinalCardio={(exerciseId) => {
+                    setEnding(false);
+                    setLogging({ exerciseId, kind: 'cardio', thenEnd: true });
                   }}
                   onCloseLog={() => {
                     setLogging(null);
@@ -261,6 +276,7 @@ interface ActiveSessionProps {
   readonly restPreferences: RestPreferences;
   readonly onRestTargetChange: (kind: RestKind, seconds: number) => void;
   readonly onOpenLog: (exerciseId: ResourceId | null) => void;
+  readonly onOpenFinalCardio: (exerciseId: ResourceId) => void;
   readonly onCloseLog: () => void;
   readonly onLogged: (records: readonly PersonalRecord[]) => void;
   readonly onOpenEdit: (set: SetEntry) => void;
@@ -284,6 +300,7 @@ function ActiveSession({
   restPreferences,
   onRestTargetChange,
   onOpenLog,
+  onOpenFinalCardio,
   onCloseLog,
   onLogged,
   onOpenEdit,
@@ -446,6 +463,7 @@ function ActiveSession({
         sessionId={session.id}
         exercises={selectable}
         defaultExerciseId={logging?.exerciseId ?? null}
+        defaultKind={logging?.kind ?? null}
         routineProgress={progress}
         sessionSets={session.sets}
         locale={locale}
@@ -485,8 +503,10 @@ function ActiveSession({
         records={bestRecords}
         exercises={exercises}
         locale={locale}
+        finalCardio={finalCardioOffer(selectable, session.sets)}
         open={ending}
         onClose={onCloseEnd}
+        onLogFinalCardio={onOpenFinalCardio}
         onEnded={() => {
           // Cerrada la sesión, su rutina ya no guía nada.
           clearSessionRoutine(storage);
