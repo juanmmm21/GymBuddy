@@ -42,6 +42,7 @@ import { LogSetSheet } from './LogSetSheet';
 import { logExerciseIdFor } from './log-target';
 import { SESSION_EXERCISE_PARAM, SESSION_ROUTINE_PARAM } from './paths';
 import { RestTimer } from './RestTimer';
+import { useRestNoticeSync, useWithdrawRestNotice } from './use-rest-notice';
 import { loadIphoneTimerEnabled, offersIphoneTimer } from './iphone-timer';
 import { restTargetFor, withRestTarget, type RestKind, type RestPreferences } from './rest';
 import { loadRestPreferences, saveRestPreferences } from './rest-preferences-store';
@@ -361,6 +362,13 @@ function ActiveSession({
 
   const startCardio = useStartCardio();
   const cardioStartedAt = session.cardioStartedAt ?? null;
+  useRestNoticeSync({
+    sessionId: session.id,
+    lastSetAt,
+    targetSeconds: restTarget,
+    cardioStartedAt,
+  });
+  const withdrawRestNotice = useWithdrawRestNotice();
   const cardioExerciseId = suggestedCardioExerciseId(selectable, session.sets);
   const handleStartCardio = (): void => {
     startCardio.mutate({ sessionId: session.id });
@@ -558,8 +566,9 @@ function ActiveSession({
           onCloseEnd();
         }}
         onEnded={() => {
-          // Cerrada la sesión, su rutina ya no guía nada.
+          // Cerrada la sesión, su rutina ya no guía nada y su descanso ya no se avisa.
           clearSessionRoutine(storage);
+          withdrawRestNotice();
           void navigate('/');
         }}
       />
