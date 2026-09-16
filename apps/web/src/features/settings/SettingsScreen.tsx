@@ -7,6 +7,7 @@ import { DEVICES_PATH } from '../devices/paths';
 import { useInstallGuide } from '../install/InstallProvider';
 import { INSTALL_PATH } from '../install/paths';
 import { INVITE_PATH } from '../invitations/paths';
+import { IphoneTimerSettings } from './IphoneTimerSettings';
 import { ProfileNameForm } from './ProfileNameForm';
 import styles from './SettingsScreen.module.css';
 
@@ -48,7 +49,7 @@ const INSTALL_ENTRY: SettingsEntry = {
  */
 export function SettingsScreen() {
   const { session, signOut } = useSession();
-  const { situation } = useInstallGuide();
+  const { situation, platform } = useInstallGuide();
   const entries =
     situation.kind === 'installed' ? ACCOUNT_ENTRIES : [...ACCOUNT_ENTRIES, INSTALL_ENTRY];
 
@@ -66,6 +67,14 @@ export function SettingsScreen() {
               Tu nombre
             </h2>
             <ProfileNameForm currentName={session.user.displayName} />
+          </Surface>
+        )}
+        {platform === 'ios' && (
+          <Surface as="section" padding="none" aria-labelledby="settings-rest">
+            <h2 id="settings-rest" className={styles.sectionTitle}>
+              Descanso
+            </h2>
+            <IphoneTimerSettings />
           </Surface>
         )}
         <Surface as="section" padding="none" aria-labelledby="settings-account">
