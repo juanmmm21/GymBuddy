@@ -2,7 +2,7 @@ import { barbellLoad } from '@gymbuddy/shared';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { PlateStack, describeLoad } from '../../src/components/plate-stack/PlateStack';
-import { usesOlympicBar } from '../../src/features/exercises/equipment';
+import { drawsPlates, usesOlympicBar } from '../../src/features/exercises/equipment';
 
 describe('PlateStack', () => {
   it('dibuja un lado de la barra y dice los discos por lado', () => {
@@ -42,5 +42,13 @@ describe('usesOlympicBar', () => {
     for (const equipment of ['smith', 'ez-bar', 'dumbbell', 'cable', 'lever', null]) {
       expect(usesOlympicBar(equipment)).toBe(false);
     }
+  });
+});
+
+describe('drawsPlates', () => {
+  it('uno a un brazo no dibuja discos aunque sea con barra olímpica', () => {
+    expect(drawsPlates({ equipment: 'barbell', unilateral: false })).toBe(true);
+    expect(drawsPlates({ equipment: 'barbell', unilateral: true })).toBe(false);
+    expect(drawsPlates({ equipment: 'dumbbell', unilateral: false })).toBe(false);
   });
 });
