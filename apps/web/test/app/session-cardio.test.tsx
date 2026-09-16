@@ -12,6 +12,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { jsonResponse, type FakeFetch } from '../fake-fetch';
 import { activeSession, benchPress, customCurl, session } from '../fixtures';
+import { choiceNameFor, chooseExercise, chosenExerciseButton } from './exercise-choice';
 import { renderApp } from './render-app';
 
 const treadmill: TrackedExercise = {
@@ -153,7 +154,7 @@ describe('sesión: registrar cardio', () => {
     });
 
     await openLogSheet(user);
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Ejercicio' }), treadmill.id);
+    await chooseExercise(user, treadmill);
 
     expect(screen.getByLabelText('Duración')).toHaveValue('20');
     expect(screen.getByLabelText('Distancia (km)')).toHaveValue('3');
@@ -176,7 +177,7 @@ describe('sesión: registrar cardio', () => {
     expect(screen.queryByLabelText('Duración')).not.toBeInTheDocument();
     expect(screen.queryByRole('group', { name: 'Tipo de serie' })).not.toBeInTheDocument();
 
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Ejercicio' }), treadmill.id);
+    await chooseExercise(user, treadmill);
     expect(screen.queryByLabelText('Peso')).not.toBeInTheDocument();
     await user.type(screen.getByLabelText('Duración'), '10{Enter}');
     await user.click(submitButton());
@@ -285,7 +286,7 @@ describe('sesión: cardio final al terminar', () => {
     await user.click(within(summary).getByRole('button', { name: 'Apuntar cardio' }));
 
     const log = await screen.findByRole('dialog', { name: 'Registrar serie' });
-    expect(within(log).getByRole('combobox', { name: 'Ejercicio' })).toHaveValue(treadmill.id);
+    expect(chosenExerciseButton(within(log))).toHaveAccessibleName(choiceNameFor(treadmill));
     await user.type(within(log).getByLabelText('Duración'), '20{Enter}');
     await user.click(within(log).getByRole('button', { name: 'Registrar serie' }));
 
@@ -436,7 +437,7 @@ describe('sesión: cardio en marcha', () => {
     await user.click(within(card).getByRole('button', { name: 'Apuntar cardio' }));
 
     const log = await screen.findByRole('dialog', { name: 'Registrar serie' });
-    expect(within(log).getByRole('combobox', { name: 'Ejercicio' })).toHaveValue(treadmill.id);
+    expect(chosenExerciseButton(within(log))).toHaveAccessibleName(choiceNameFor(treadmill));
     expect(within(log).getByLabelText('Duración')).toHaveValue('25');
     expect(within(log).getByText(/desde que empezaste el cardio/)).toBeInTheDocument();
     await user.click(within(log).getByRole('button', { name: 'Registrar serie' }));

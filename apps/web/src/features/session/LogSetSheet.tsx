@@ -9,10 +9,9 @@ import {
 } from '@gymbuddy/shared';
 import { useState, type FormEvent } from 'react';
 import { freshRecords, useLogSet } from '../../api/mutations';
-import { Button, Notice, Select, Sheet } from '../../components/index';
+import { Button, Notice, Sheet } from '../../components/index';
 import { describeError } from '../../lib/errors';
 import { newResourceId } from '../../lib/ids';
-import { exerciseSelectOptions } from '../exercises/grouping';
 import { describeNextSet, lineForNextSet, type RoutineProgress } from './routine-progress';
 import {
   describeCardioProposal,
@@ -23,6 +22,8 @@ import {
   type CardioSetProposal,
 } from './set-proposal';
 import { cardioDurationSoFar } from './cardio-in-progress';
+import { ExerciseChoice } from './ExerciseChoice';
+import { ExercisePicker } from './ExercisePicker';
 import styles from './LogSetSheet.module.css';
 import {
   CardioSetFields,
@@ -141,6 +142,7 @@ function LogSetForm({
   // Fijado al abrir la hoja y no al pulsar: reintentar tras un fallo es la misma serie, y la
   // cola offline no puede convertir un doble toque sin red en dos series.
   const [setId] = useState(newResourceId);
+  const [picking, setPicking] = useState(false);
   const log = useLogSet();
   // Sale del ejercicio elegido: cambiarlo en el selector cambia también el objetivo que se lee.
   const kind = setKindFor(exercise);
@@ -204,45 +206,65 @@ function LogSetForm({
   };
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit}>
-      <Select
-        label="Ejercicio"
-        value={exercise.id}
-        onChange={selectExercise}
-        options={exerciseSelectOptions(exercises)}
-      />
-
-      {kind === 'strength' ? (
-        <SetFields
-          values={values}
-          onChange={setValues}
+    <>
+      {picking && (
+        <ExercisePicker
+          exercises={exercises}
+          selected={exercise}
+          routineProgress={routineProgress}
+          sessionSets={sessionSets}
           locale={locale}
-          unilateral={exercise.unilateral}
-          weightHint={describeProposal(proposal.source)}
-          repsHint={routineLine === null ? undefined : describeNextSet(routineLine)}
-        />
-      ) : (
-        <CardioSetFields
-          values={cardioValues}
-          onChange={setCardioValues}
-          locale={locale}
-          durationHint={
-            cardioStartedAt === null
-              ? describeCardioProposal(cardioProposal.source)
-              : 'El tiempo desde que empezaste el cardio. Cámbialo si paraste antes.'
-          }
+          onPick={(exerciseId) => {
+            // Volver a tocar el elegido no recarga nada: lo tecleado se queda.
+            if (exerciseId !== exercise.id) selectExercise(exerciseId);
+            setPicking(false);
+          }}
+          onBack={() => {
+            setPicking(false);
+          }}
         />
       )}
+      {/* Oculto y no desmontado mientras se elige: volver sin cambiar conserva lo tecleado. */}
+      <form className={styles.form} onSubmit={handleSubmit} hidden={picking}>
+        <ExerciseChoice
+          exercise={exercise}
+          onChange={() => {
+            setPicking(true);
+          }}
+        />
 
-      {log.isError && (
-        <Notice tone="danger" title="No se pudo registrar">
-          {describeError(log.error)}
-        </Notice>
-      )}
+        {kind === 'strength' ? (
+          <SetFields
+            values={values}
+            onChange={setValues}
+            locale={locale}
+            unilateral={exercise.unilateral}
+            weightHint={describeProposal(proposal.source)}
+            repsHint={routineLine === null ? undefined : describeNextSet(routineLine)}
+          />
+        ) : (
+          <CardioSetFields
+            values={cardioValues}
+            onChange={setCardioValues}
+            locale={locale}
+            durationHint={
+              cardioStartedAt === null
+                ? describeCardioProposal(cardioProposal.source)
+                : 'El tiempo desde que empezaste el cardio. Cámbialo si paraste antes.'
+            }
+          />
+        )}
 
-      <Button type="submit" size="lg" fullWidth loading={log.isPending} disabled={!complete}>
-        Registrar serie
-      </Button>
-    </form>
+        {log.isError && (
+          <Notice tone="danger" title="No se pudo registrar">
+            {describeError(log.error)}
+          </Notice>
+        )}
+
+        <Button type="submit" size="lg" fullWidth loading={log.isPending} disabled={!complete}>
+          Registrar serie
+        </Button>
+      </form>
+    </>
   );
 }

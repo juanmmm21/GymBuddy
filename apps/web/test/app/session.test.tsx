@@ -19,6 +19,13 @@ import {
   squat,
 } from '../fixtures';
 import { REST_PREFERENCES_STORAGE_KEY } from '../../src/features/session/rest-preferences-store';
+import {
+  choiceNameFor,
+  chooseExercise,
+  chosenExerciseButton,
+  findChosenExerciseButton,
+  queryChosenExerciseButton,
+} from './exercise-choice';
 import { renderApp } from './render-app';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -142,7 +149,7 @@ describe('sesión en curso', () => {
     await user.click(await screen.findByRole('button', { name: 'Registrar serie' }));
 
     // El peso habitual del ejercicio elegido, ya puesto: entre series no se teclea nada.
-    expect(screen.getByRole('combobox', { name: 'Ejercicio' })).toHaveValue(benchPress.id);
+    expect(chosenExerciseButton()).toHaveAccessibleName(choiceNameFor(benchPress));
     expect(screen.getByLabelText('Peso')).toHaveValue('82.5');
     expect(screen.getByLabelText('Repeticiones')).toHaveValue('8');
 
@@ -285,7 +292,7 @@ describe('sesión en curso', () => {
     renderApp({ path: '/session', session, setup: serveActiveSession });
 
     await user.click(await screen.findByRole('button', { name: 'Registrar serie' }));
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Ejercicio' }), squat.id);
+    await chooseExercise(user, squat);
 
     // La sentadilla no se ha hecho hoy: propone su última serie (100 kg × 5) y lo dice.
     expect(screen.getByLabelText('Peso')).toHaveValue('100');
@@ -293,7 +300,7 @@ describe('sesión en curso', () => {
     expect(screen.getByText(/última serie de este ejercicio/)).toBeInTheDocument();
 
     // El press de banca sí se hizo hoy (82,5 kg × 8): manda esa, no la de otro día (80 kg × 6).
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Ejercicio' }), benchPress.id);
+    await chooseExercise(user, benchPress);
     expect(screen.getByLabelText('Peso')).toHaveValue('82.5');
     expect(screen.getByText(/última serie de hoy/)).toBeInTheDocument();
   });
@@ -303,7 +310,7 @@ describe('sesión en curso', () => {
     renderApp({ path: '/session', session, setup: serveActiveSession });
 
     await user.click(await screen.findByRole('button', { name: 'Registrar serie' }));
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Ejercicio' }), squat.id);
+    await chooseExercise(user, squat);
 
     expect(screen.getByLabelText('Peso')).toHaveValue('100');
     expect(screen.getByLabelText('Repeticiones')).toHaveValue('5');
@@ -312,7 +319,7 @@ describe('sesión en curso', () => {
   it('llegar desde la ficha de un ejercicio abre la hoja con él elegido', async () => {
     renderApp({ path: `/session?exercise=${squat.id}`, session, setup: serveActiveSession });
 
-    expect(await screen.findByRole('combobox', { name: 'Ejercicio' })).toHaveValue(squat.id);
+    expect(await findChosenExerciseButton()).toHaveAccessibleName(choiceNameFor(squat));
     expect(screen.getByLabelText('Peso')).toHaveValue('100');
   });
 
@@ -342,7 +349,7 @@ describe('sesión en curso', () => {
     await user.click(await screen.findByRole('button', { name: 'Registrar serie' }));
 
     // El press de banca va primero en la lista, pero lo último que se hizo fue sentadilla.
-    expect(screen.getByRole('combobox', { name: 'Ejercicio' })).toHaveValue(squat.id);
+    expect(chosenExerciseButton()).toHaveAccessibleName(choiceNameFor(squat));
     expect(screen.getByLabelText('Peso')).toHaveValue('100');
   });
 
@@ -350,15 +357,15 @@ describe('sesión en curso', () => {
     const user = userEvent.setup();
     renderApp({ path: `/session?exercise=${squat.id}`, session, setup: serveActiveSession });
 
-    expect(await screen.findByRole('combobox', { name: 'Ejercicio' })).toHaveValue(squat.id);
+    expect(await findChosenExerciseButton()).toHaveAccessibleName(choiceNameFor(squat));
     await user.click(screen.getByRole('button', { name: 'Cerrar' }));
     await waitFor(() => {
-      expect(screen.queryByRole('combobox', { name: 'Ejercicio' })).not.toBeInTheDocument();
+      expect(queryChosenExerciseButton()).not.toBeInTheDocument();
     });
 
     // La sesión ya tiene una serie de press de banca: eso es lo que se está haciendo.
     await user.click(screen.getByRole('button', { name: 'Registrar serie' }));
-    expect(screen.getByRole('combobox', { name: 'Ejercicio' })).toHaveValue(benchPress.id);
+    expect(chosenExerciseButton()).toHaveAccessibleName(choiceNameFor(benchPress));
   });
 
   it('sin ejercicios seguidos la hoja lo dice en vez de quedarse en blanco', async () => {
@@ -375,7 +382,7 @@ describe('sesión en curso', () => {
     await user.click(await screen.findByRole('button', { name: 'Registrar serie' }));
 
     expect(screen.getByText('Todavía no sigues ningún ejercicio')).toBeInTheDocument();
-    expect(screen.queryByRole('combobox', { name: 'Ejercicio' })).not.toBeInTheDocument();
+    expect(queryChosenExerciseButton()).not.toBeInTheDocument();
   });
 
   it('un fallo al registrar se ve dentro de la hoja', async () => {

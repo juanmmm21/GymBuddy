@@ -23,6 +23,7 @@ import {
   squat,
   weeklyCalendar,
 } from '../fixtures';
+import { choiceNameFor, chooseExercise, chosenExerciseButton } from './exercise-choice';
 import { renderApp } from './render-app';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -221,11 +222,11 @@ describe('sesión guiada por una rutina: seguir el guion', () => {
     await screen.findByRole('list', { name: 'Guion de la rutina' });
     await user.click(screen.getByRole('button', { name: 'Registrar serie' }));
 
-    expect(screen.getByRole('combobox', { name: 'Ejercicio' })).toHaveValue(benchPress.id);
+    expect(chosenExerciseButton()).toHaveAccessibleName(choiceNameFor(benchPress));
     expect(screen.getByText('Rutina: 6–8 reps · serie 2 de 4')).toBeInTheDocument();
 
     // Cambiar de ejercicio cambia también el objetivo que se lee.
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Ejercicio' }), squat.id);
+    await chooseExercise(user, squat);
     expect(screen.getByText('Rutina: 5 reps · serie 1 de 3')).toBeInTheDocument();
   });
 
@@ -267,7 +268,7 @@ describe('sesión guiada por una rutina: seguir el guion', () => {
     await user.click(
       await screen.findByRole('button', { name: 'Registrar Sentadilla con barra, 0 de 3 series' }),
     );
-    expect(screen.getByRole('combobox', { name: 'Ejercicio' })).toHaveValue(squat.id);
+    expect(chosenExerciseButton()).toHaveAccessibleName(choiceNameFor(squat));
     expect(screen.getByLabelText('Peso')).toHaveValue('100');
 
     await user.click(screen.getAllByRole('button', { name: 'Registrar serie' })[1] as HTMLElement);
@@ -297,11 +298,9 @@ describe('sesión guiada por una rutina: seguir el guion', () => {
       await screen.findByRole('button', { name: 'Registrar Sentadilla con barra, 0 de 3 series' }),
     );
 
-    const select = screen.getByRole('combobox', { name: 'Ejercicio' });
-    expect(select).toHaveValue(squat.id);
-    expect(
-      within(select).getByRole('option', { name: 'Sentadilla con barra (archivado)' }),
-    ).toBeInTheDocument();
+    const choice = chosenExerciseButton();
+    expect(choice).toHaveAccessibleName(choiceNameFor(squat));
+    expect(within(choice).getByText('Piernas · archivado')).toBeInTheDocument();
   });
 
   it('con todas las líneas hechas celebra la rutina completada', async () => {
@@ -369,7 +368,7 @@ describe('sesión guiada por una rutina: cambiarla solo para hoy', () => {
     expect(within(swapped).getByText('Solo hoy')).toBeInTheDocument();
 
     await user.click(swapped);
-    expect(screen.getByRole('combobox', { name: 'Ejercicio' })).toHaveValue(customCurl.id);
+    expect(chosenExerciseButton()).toHaveAccessibleName(choiceNameFor(customCurl));
     // Nunca registrado: no hay serie anterior que proponer.
     await user.type(screen.getByLabelText('Peso'), '20');
     await user.type(screen.getByLabelText('Repeticiones'), '10');
