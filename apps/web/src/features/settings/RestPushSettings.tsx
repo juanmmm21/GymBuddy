@@ -92,8 +92,8 @@ export function RestPushSettings() {
       )}
       {enabled.data === true && (
         <p className={styles.note}>
-          Encendido en este dispositivo. Los avisos empiezan a llegar con la próxima actualización
-          de la app.
+          Encendido en este dispositivo: al registrar una serie, te avisa cuando se cumple el
+          descanso.
         </p>
       )}
       {failure !== null && (
