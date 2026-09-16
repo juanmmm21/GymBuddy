@@ -5,7 +5,11 @@ import { VitePWA } from 'vite-plugin-pwa';
 // compilar. Por eso los scripts arrancan Vite con `--configLoader runner`: el cargador por
 // defecto deja el paquete fuera del bundle de la configuración y Node no resuelve sus imports.
 import { colors } from './src/design/tokens';
-import { workboxOptions } from './src/offline/service-worker';
+import {
+  PUSH_SW_ENTRY_NAME,
+  PUSH_SW_FILE_NAME,
+  workboxOptions,
+} from './src/offline/service-worker';
 
 /** Puerto de `wrangler dev`; en desarrollo la PWA habla con el Worker a través del proxy. */
 const LOCAL_WORKER_URL = 'http://127.0.0.1:8787';
@@ -39,6 +43,20 @@ export default defineConfig({
       devOptions: { enabled: false },
     }),
   ],
+  build: {
+    rolldownOptions: {
+      input: {
+        index: 'index.html',
+        [PUSH_SW_ENTRY_NAME]: 'src/offline/push-sw.ts',
+      },
+      output: {
+        // El manejador del push va a la raíz con nombre fijo: el `sw.js` lo carga con
+        // `importScripts` y no puede saber un hash.
+        entryFileNames: (chunk) =>
+          chunk.name === PUSH_SW_ENTRY_NAME ? PUSH_SW_FILE_NAME : 'assets/[name]-[hash].js',
+      },
+    },
+  },
   server: {
     port: 5173,
     proxy: {

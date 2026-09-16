@@ -66,6 +66,17 @@ export const catalogGifRuntimeCaching: RuntimeCachingRule = {
 };
 
 /**
+ * El manejador del aviso de fin de descanso (ADR 0009), compilado como entrada aparte del build
+ * desde `src/offline/push-sw.ts`. Nombre fijo y sin hash porque `importScripts` lo nombra dentro del
+ * `sw.js`; aun así se actualiza con cada versión, porque entra en el precache con su revisión y un
+ * cambio suyo cambia el `sw.js`.
+ */
+export const PUSH_SW_FILE_NAME = 'push-sw.js';
+
+/** El nombre de la entrada del build que produce `PUSH_SW_FILE_NAME`. */
+export const PUSH_SW_ENTRY_NAME = 'push-sw';
+
+/**
  * Lo que genera el `sw.js`. Se precachea el shell y nada más: ni un GIF del catálogo entra en
  * el build (ADR 0001), solo en la caché de lo ya visto.
  */
@@ -74,4 +85,5 @@ export const workboxOptions: WorkboxOptions = {
   // Una petición a la API que falle no puede responderse con el index.html del shell.
   navigateFallbackDenylist: [/^\/api\//],
   runtimeCaching: [catalogGifRuntimeCaching],
+  importScripts: [PUSH_SW_FILE_NAME],
 };
