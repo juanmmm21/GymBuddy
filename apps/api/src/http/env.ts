@@ -8,7 +8,14 @@
  * de importar, y cada sitio que necesita uno tiene que decidir explícitamente qué hacer
  * cuando falta, que es la situación real de un Worker recién desplegado.
  */
-export const SECRET_NAMES = ['ADMIN_TOKEN', 'JWT_SECRET'] as const;
+export const SECRET_NAMES = [
+  'ADMIN_TOKEN',
+  'JWT_SECRET',
+  // Las dos mitades de la clave VAPID van por aquí aunque la pública no sea secreta: se generan
+  // juntas, y ponerlas por el mismo camino impide desplegar una con la pareja de otra.
+  'VAPID_PUBLIC_KEY',
+  'VAPID_PRIVATE_KEY',
+] as const;
 
 export type SecretName = (typeof SECRET_NAMES)[number];
 
