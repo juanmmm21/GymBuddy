@@ -7,6 +7,7 @@ import {
   type PasskeyAuthenticator,
 } from '../../src/auth/passkey-authenticator';
 import { SESSION_STORAGE_KEY } from '../../src/auth/session-store';
+import type { PhotoCodec } from '../../src/features/exercises/photo-compression';
 import type { InstallSupport } from '../../src/features/install/InstallProvider';
 import type { PushBrowser } from '../../src/features/settings/push-notices';
 import type { StorageLike } from '../../src/lib/storage';
@@ -46,6 +47,8 @@ export function renderApp(options: {
   readonly install?: InstallSupport;
   /** El push del navegador; por defecto, ninguno, como jsdom. */
   readonly pushBrowser?: PushBrowser | null;
+  /** El codificador de fotos; por defecto, ninguno, como jsdom. */
+  readonly photoCodec?: PhotoCodec | null;
   readonly setup?: (fake: FakeFetch) => void;
 }): RenderedApp {
   const fake = createFakeFetch();
@@ -71,6 +74,7 @@ export function renderApp(options: {
       authenticator={options.authenticator ?? noPasskeys}
       writeQueueStore={queueStore}
       pushBrowser={options.pushBrowser ?? null}
+      photoCodec={options.photoCodec ?? null}
       {...(options.install === undefined ? {} : { install: options.install })}
     />,
   );

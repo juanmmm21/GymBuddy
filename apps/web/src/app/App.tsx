@@ -12,6 +12,9 @@ import {
 } from '../auth/passkey-authenticator';
 import { SessionProvider, useSession } from '../auth/SessionProvider';
 import { loadStoredSession } from '../auth/session-store';
+import { createBrowserPhotoCodec } from '../features/exercises/browser-photo-codec';
+import type { PhotoCodec } from '../features/exercises/photo-compression';
+import { PhotoCodecProvider } from '../features/exercises/PhotoCodecProvider';
 import { unavailableInstallPrompt } from '../features/install/install-prompt';
 import { InstallProvider, type InstallSupport } from '../features/install/InstallProvider';
 import { readBrowserEnvironment } from '../features/install/platform';
@@ -44,6 +47,8 @@ export interface AppProps {
   readonly install?: InstallSupport;
   /** El push del navegador; `null` simula uno sin push. Sin pasarlo, el del navegador real. */
   readonly pushBrowser?: PushBrowser | null;
+  /** El codificador de fotos; `null` simula un navegador sin canvas, como jsdom. */
+  readonly photoCodec?: PhotoCodec | null;
 }
 
 /** Medio minuto sin volver a pedir lo mismo: entre pantalla y pantalla no cambia nada. */
@@ -69,6 +74,7 @@ export function App({
   writeQueueStore,
   install,
   pushBrowser,
+  photoCodec,
 }: AppProps) {
   const [queryClient] = useState(() => {
     const client = new QueryClient({
@@ -91,6 +97,9 @@ export function App({
   const [devicePush] = useState<PushBrowser | null>(() =>
     pushBrowser === undefined ? createBrowserPushBrowser() : pushBrowser,
   );
+  const [devicePhotoCodec] = useState<PhotoCodec | null>(() =>
+    photoCodec === undefined ? createBrowserPhotoCodec() : photoCodec,
+  );
   // Una sola cola por app: lee lo que quedó guardado al abrirla y no se rehace con el token.
   const [writeQueue] = useState(
     () => new WriteQueue({ store: writeQueueStore ?? createBrowserWriteQueueStore() }),
@@ -105,7 +114,9 @@ export function App({
               <AuthenticatorProvider authenticator={authenticator}>
                 <InstallProvider support={installSupport}>
                   <PushBrowserProvider browser={devicePush}>
-                    <RouterProvider router={appRouter} flushSync={flushRouterUpdate} />
+                    <PhotoCodecProvider codec={devicePhotoCodec}>
+                      <RouterProvider router={appRouter} flushSync={flushRouterUpdate} />
+                    </PhotoCodecProvider>
                   </PushBrowserProvider>
                 </InstallProvider>
               </AuthenticatorProvider>
