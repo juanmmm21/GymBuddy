@@ -14,6 +14,10 @@ export const RECORD_ORDER: readonly PersonalRecordKind[] = [
   'max_volume',
 ];
 
+/** Lo que explica el interruptor «A un brazo», en la ficha y al crear un ejercicio propio. */
+export const UNILATERAL_HINT =
+  'Una serie son los dos lados: el peso es el de un brazo y el volumen cuenta los dos.';
+
 export const ORIGIN_LABELS: Readonly<Record<TrackedExercise['origin'], string>> = {
   catalog: 'Del catálogo',
   custom: 'Ejercicio propio',

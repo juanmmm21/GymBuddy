@@ -14,9 +14,10 @@ import { useExerciseHistory, useExerciseStats, useTrackedExercises } from '../..
 import { useSession } from '../../auth/SessionProvider';
 import { ScreenHeader, type BackLink } from '../../app/ScreenHeader';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
-import { Badge, Button, Notice, Surface } from '../../components/index';
+import { Badge, Button, Notice, Surface, Switch } from '../../components/index';
 import { describeError } from '../../lib/errors';
 import {
+  formatExerciseWeightLabel,
   formatRecordValueLabel,
   formatRpe,
   formatSessionDate,
@@ -30,8 +31,9 @@ import { ExerciseGif } from '../catalog/ExerciseGif';
 import { BODY_PART_LABELS, MUSCLE_LABELS } from '../catalog/labels';
 import { catalogExercisePath, catalogExerciseRef } from '../catalog/paths';
 import { sessionPathForExercise } from '../session/paths';
+import { offersUnilateral } from './custom-exercise';
 import { EditExerciseSheet } from './EditExerciseSheet';
-import { ORIGIN_LABELS, RECORD_LABELS, RECORD_ORDER } from './labels';
+import { ORIGIN_LABELS, RECORD_LABELS, RECORD_ORDER, UNILATERAL_HINT } from './labels';
 import { EXERCISES_PATH } from './paths';
 import { ProgressionChart } from './ProgressionChart';
 import styles from './TrackedExerciseScreen.module.css';
@@ -120,6 +122,11 @@ function TrackedExerciseDetail({ exerciseId }: TrackedExerciseDetailProps) {
 
                 <ExerciseTags exercise={found} />
 
+                {/* Uno marcado se enseña siempre, para poder desmarcarlo aunque ahora sea de cardio. */}
+                {(offersUnilateral(found.bodyPart) || found.unilateral) && (
+                  <UnilateralSetting exercise={found} />
+                )}
+
                 {found.archivedAt === null && (
                   <Link to={sessionPathForExercise(found.id)} className={styles.logLink}>
                     Registrar una serie
@@ -127,7 +134,9 @@ function TrackedExerciseDetail({ exerciseId }: TrackedExerciseDetailProps) {
                 )}
 
                 <AsyncContent query={stats}>
-                  {(data) => <StatsSection stats={data} locale={locale} />}
+                  {(data) => (
+                    <StatsSection stats={data} unilateral={found.unilateral} locale={locale} />
+                  )}
                 </AsyncContent>
 
                 {found.notes !== null && (
@@ -138,7 +147,9 @@ function TrackedExerciseDetail({ exerciseId }: TrackedExerciseDetailProps) {
                 )}
 
                 <AsyncContent query={history}>
-                  {(data) => <HistorySection history={data} locale={locale} />}
+                  {(data) => (
+                    <HistorySection history={data} unilateral={found.unilateral} locale={locale} />
+                  )}
                 </AsyncContent>
               </div>
 
@@ -222,8 +233,41 @@ function ExerciseTags({ exercise }: ExerciseProps) {
   );
 }
 
+/**
+ * «A un brazo» se marca aquí, en la ficha, y no al registrar (lo decidió Juan): es del ejercicio y
+ * no de cada serie. Va directo al Worker, fuera de la cola offline, igual que archivar: cambiarlo
+ * reescala las marcas de volumen guardadas, y eso no se puede adelantar en el móvil.
+ */
+function UnilateralSetting({ exercise }: ExerciseProps) {
+  const update = useUpdateTrackedExercise();
+  // Mientras se guarda se enseña lo pedido: la lista no cambia hasta que el Worker contesta.
+  const checked = update.isPending
+    ? (update.variables.body.unilateral ?? exercise.unilateral)
+    : exercise.unilateral;
+
+  return (
+    <Surface as="section" padding="md">
+      <Switch
+        label="A un brazo"
+        checked={checked}
+        disabled={update.isPending}
+        onChange={(unilateral) => {
+          update.mutate({ exerciseId: exercise.id, body: { unilateral } });
+        }}
+        hint={UNILATERAL_HINT}
+      />
+      {update.isError && (
+        <Notice tone="danger" title="No se pudo cambiar">
+          {describeError(update.error)}
+        </Notice>
+      )}
+    </Surface>
+  );
+}
+
 interface StatsSectionProps {
   readonly stats: ExerciseStats;
+  readonly unilateral: boolean;
   readonly locale: Locale;
 }
 
@@ -231,7 +275,7 @@ interface StatsSectionProps {
  * Peso habitual, marcas vigentes y aviso de estancamiento. Sin series todavía no hay
  * nada que decir aquí: el historial, más abajo, es quien explica qué va a aparecer.
  */
-function StatsSection({ stats, locale }: StatsSectionProps) {
+function StatsSection({ stats, unilateral, locale }: StatsSectionProps) {
   if (stats.workingWeight === null) return null;
 
   const records = RECORD_ORDER.flatMap((kind) =>
@@ -243,7 +287,7 @@ function StatsSection({ stats, locale }: StatsSectionProps) {
       <Surface as="section" className={styles.working}>
         <p className={styles.sectionLabel}>Peso habitual</p>
         <p className={styles.workingValue}>
-          {formatWeightLabel(stats.workingWeight.weight, locale)}{' '}
+          {formatExerciseWeightLabel(stats.workingWeight.weight, locale, unilateral)}{' '}
           <span className={styles.workingReps}>× {stats.workingWeight.reps}</span>
         </p>
         <p className={styles.workingMeta}>
@@ -258,7 +302,7 @@ function StatsSection({ stats, locale }: StatsSectionProps) {
       {stats.stalled !== null && (
         <Notice
           tone="warning"
-          title={`Estancado en ${formatWeightLabel(stats.stalled.weight, locale)}`}
+          title={`Estancado en ${formatExerciseWeightLabel(stats.stalled.weight, locale, unilateral)}`}
         >
           Llevas {pluralize(stats.stalled.sessions, 'sesión', 'sesiones')} con el mismo peso sin
           perder repeticiones. Prueba con{' '}
@@ -266,7 +310,12 @@ function StatsSection({ stats, locale }: StatsSectionProps) {
         </Notice>
       )}
 
-      <ProgressionChart points={stats.points} records={stats.records} locale={locale} />
+      <ProgressionChart
+        points={stats.points}
+        records={stats.records}
+        unilateral={unilateral}
+        locale={locale}
+      />
 
       {records.length > 0 && (
         <Surface as="section">
@@ -275,7 +324,9 @@ function StatsSection({ stats, locale }: StatsSectionProps) {
             {records.map((record) => (
               <li key={record.id} className={styles.record}>
                 <span className={styles.recordLabel}>{RECORD_LABELS[record.kind]}</span>
-                <span className={styles.recordValue}>{formatRecordValueLabel(record, locale)}</span>
+                <span className={styles.recordValue}>
+                  {formatRecordValueLabel(record, locale, unilateral)}
+                </span>
                 <span className={styles.recordDate}>
                   {formatSessionDate(record.achievedAt, locale)}
                 </span>
@@ -290,10 +341,11 @@ function StatsSection({ stats, locale }: StatsSectionProps) {
 
 interface HistorySectionProps {
   readonly history: ExerciseHistory;
+  readonly unilateral: boolean;
   readonly locale: Locale;
 }
 
-function HistorySection({ history, locale }: HistorySectionProps) {
+function HistorySection({ history, unilateral, locale }: HistorySectionProps) {
   if (history.sessions.length === 0) {
     return (
       <Notice title="Todavía no has registrado ninguna serie">
@@ -307,7 +359,12 @@ function HistorySection({ history, locale }: HistorySectionProps) {
       <h2 className={styles.sectionTitle}>Últimas sesiones</h2>
       <ul className={styles.sessions}>
         {history.sessions.map((entry) => (
-          <HistoryEntry key={entry.sessionId} entry={entry} locale={locale} />
+          <HistoryEntry
+            key={entry.sessionId}
+            entry={entry}
+            unilateral={unilateral}
+            locale={locale}
+          />
         ))}
       </ul>
     </section>
@@ -316,10 +373,11 @@ function HistorySection({ history, locale }: HistorySectionProps) {
 
 interface HistoryEntryProps {
   readonly entry: ExerciseHistoryEntry;
+  readonly unilateral: boolean;
   readonly locale: Locale;
 }
 
-function HistoryEntry({ entry, locale }: HistoryEntryProps) {
+function HistoryEntry({ entry, unilateral, locale }: HistoryEntryProps) {
   return (
     <Surface as="li" className={styles.session}>
       <p className={styles.sessionDate}>
@@ -328,7 +386,7 @@ function HistoryEntry({ entry, locale }: HistoryEntryProps) {
       </p>
       <ul className={styles.sets}>
         {entry.sets.map((set) => (
-          <SetRow key={set.id} set={set} locale={locale} />
+          <SetRow key={set.id} set={set} unilateral={unilateral} locale={locale} />
         ))}
       </ul>
     </Surface>
@@ -337,13 +395,14 @@ function HistoryEntry({ entry, locale }: HistoryEntryProps) {
 
 interface SetRowProps {
   readonly set: SetEntry;
+  readonly unilateral: boolean;
   readonly locale: Locale;
 }
 
-function SetRow({ set, locale }: SetRowProps) {
+function SetRow({ set, unilateral, locale }: SetRowProps) {
   return (
     <li className={styles.set}>
-      <span className={styles.setValue}>{formatSetValueLabel(set, locale)}</span>
+      <span className={styles.setValue}>{formatSetValueLabel(set, locale, unilateral)}</span>
       <span className={styles.setMeta}>
         {set.isWarmup && <Badge>Calentamiento</Badge>}
         {set.rpe !== null && <span>{formatRpe(set.rpe, locale)}</span>}

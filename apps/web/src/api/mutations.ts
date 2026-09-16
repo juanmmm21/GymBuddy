@@ -60,8 +60,11 @@ export interface UpdateTrackedExerciseVariables {
 }
 
 /**
- * Edita las notas o archiva / recupera un ejercicio seguido. Cambia lo que el listado
- * muestra de él, así que se invalida el listado entero: las fichas lo leen de ahí.
+ * Edita las notas, archiva / recupera o marca a un brazo un ejercicio seguido. Cambia lo que el
+ * listado muestra de él, así que se invalida el listado entero: las fichas lo leen de ahí.
+ *
+ * Marcarlo a un brazo, además, reescala en el Worker sus marcas de volumen y cambia el volumen de
+ * la semana y de su gráfica: sin invalidar las estadísticas, la ficha seguiría con la marca vieja.
  */
 export function useUpdateTrackedExercise(): UseMutationResult<
   TrackedExercise,
@@ -74,7 +77,14 @@ export function useUpdateTrackedExercise(): UseMutationResult<
   return useMutation({
     mutationFn: ({ exerciseId, body }: UpdateTrackedExerciseVariables) =>
       updateTrackedExercise(client, exerciseId, body),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.exercises.all }),
+    onSuccess: async (_exercise, { body }) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.exercises.all }),
+        body.unilateral === undefined
+          ? Promise.resolve()
+          : queryClient.invalidateQueries({ queryKey: queryKeys.stats.all }),
+      ]);
+    },
   });
 }
 

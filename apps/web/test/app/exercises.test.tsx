@@ -167,6 +167,48 @@ describe('mis ejercicios: ficha', () => {
     expect(screen.queryByRole('img', { name: /Peso y 1RM estimado/ })).not.toBeInTheDocument();
   });
 
+  it('marca el ejercicio a un brazo desde la ficha y entonces los pesos se leen por brazo', async () => {
+    const user = userEvent.setup();
+    let current: TrackedExercise = benchPress;
+    const { fake } = renderApp({
+      path: DETAIL_PATH,
+      session,
+      setup: (fake) => {
+        fake.on('GET', '/exercises', () => jsonResponse([current]));
+        fake.on('GET', `/stats/exercise/${benchPress.id}`, () => jsonResponse(benchPressStats));
+        fake.on('GET', `/history/exercises/${benchPress.id}`, () =>
+          jsonResponse(benchPressHistory),
+        );
+        fake.on('PATCH', `/exercises/${benchPress.id}`, (request) => {
+          const body = request.body as { unilateral: boolean };
+          current = { ...current, unilateral: body.unilateral };
+          return jsonResponse(current);
+        });
+      },
+    });
+
+    const toggle = await screen.findByRole('switch', { name: 'A un brazo' });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    // El press de banca no es a un brazo: aquí solo importa que la marca sea del ejercicio.
+    expect(screen.getByText('82,5 kg × 8')).toBeInTheDocument();
+
+    await user.click(toggle);
+
+    expect(await screen.findByText('82,5 kg por brazo × 8')).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'A un brazo' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+    const records = within(screen.getByRole('list', { name: 'Marcas' }));
+    expect(records.getByText('85 kg por brazo')).toBeInTheDocument();
+
+    const patch = fake.requests.find((r) => r.method === 'PATCH');
+    expect(patch?.body).toEqual({ unilateral: true });
+    // Reescala las marcas de volumen en el Worker: las estadísticas se vuelven a pedir.
+    const statsRequests = fake.requests.filter((r) => r.path.startsWith('/stats/exercise'));
+    expect(statsRequests.length).toBeGreaterThan(1);
+  });
+
   it('las notas se editan en la hoja y se guardan con un PATCH', async () => {
     const user = userEvent.setup();
     let current: TrackedExercise = benchPress;

@@ -6,7 +6,7 @@ import { useSession } from '../../auth/SessionProvider';
 import { ScreenHeader } from '../../app/ScreenHeader';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
 import { Badge, Button, Notice, Surface } from '../../components/index';
-import { formatWeightLabel } from '../../lib/format';
+import { formatExerciseWeightLabel } from '../../lib/format';
 import { MUSCLE_LABELS } from '../catalog/labels';
 import { CATALOG_PATH } from '../catalog/paths';
 import { ROUTINES_PATH } from '../routines/paths';
@@ -119,8 +119,8 @@ function ExerciseRow({ exercise, locale }: ExerciseRowProps) {
           <Badge>Sin series</Badge>
         ) : (
           <Badge tone="accent">
-            {formatWeightLabel(exercise.workingWeight.weight, locale)} ×{' '}
-            {exercise.workingWeight.reps}
+            {formatExerciseWeightLabel(exercise.workingWeight.weight, locale, exercise.unilateral)}{' '}
+            × {exercise.workingWeight.reps}
           </Badge>
         )}
       </Link>

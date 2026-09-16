@@ -16,7 +16,13 @@ import {
   type ChartValue,
 } from '../../lib/chart';
 import { cx } from '../../lib/cx';
-import { formatShortDate, formatWeightLabel, formatWeightValue, pluralize } from '../../lib/format';
+import {
+  formatExerciseWeightLabel,
+  formatShortDate,
+  formatWeightValue,
+  PER_ARM,
+  pluralize,
+} from '../../lib/format';
 import { RECORD_LABELS } from './labels';
 import { markValue, progressionMarks } from './progression-marks';
 import styles from './ProgressionChart.module.css';
@@ -57,6 +63,8 @@ export interface ProgressionChartProps {
   /** De la sesión más antigua a la más reciente, tal como los da el contrato. */
   readonly points: readonly ProgressionPointView[];
   readonly records: readonly PersonalRecord[];
+  /** A un brazo: la línea, el 1RM y sus marcas son de un brazo, y se dice. */
+  readonly unilateral: boolean;
   readonly locale: Locale;
 }
 
@@ -66,7 +74,7 @@ export interface ProgressionChartProps {
  * los tokens del sistema de diseño. Aquí solo se pinta; la escala y las coordenadas salen
  * de `lib/chart.ts`, que es puro y tiene sus tests.
  */
-export function ProgressionChart({ points, records, locale }: ProgressionChartProps) {
+export function ProgressionChart({ points, records, unilateral, locale }: ProgressionChartProps) {
   const first = points.at(0);
   const last = points.at(-1);
   if (points.length < MIN_POINTS || first === undefined || last === undefined) return null;
@@ -84,7 +92,7 @@ export function ProgressionChart({ points, records, locale }: ProgressionChartPr
   if (layout === null) return null;
 
   const marks = progressionMarks(points, records);
-  const summary = `Peso y 1RM estimado en ${pluralize(points.length, 'sesión', 'sesiones')}: de ${formatWeightLabel(first.topWeight, locale)} el ${formatShortDate(first.startedAt, locale)} a ${formatWeightLabel(last.topWeight, locale)} el ${formatShortDate(last.startedAt, locale)}`;
+  const summary = `Peso y 1RM estimado en ${pluralize(points.length, 'sesión', 'sesiones')}: de ${formatExerciseWeightLabel(first.topWeight, locale, unilateral)} el ${formatShortDate(first.startedAt, locale)} a ${formatExerciseWeightLabel(last.topWeight, locale, unilateral)} el ${formatShortDate(last.startedAt, locale)}`;
 
   return (
     <Surface as="section" className={styles.card}>
@@ -145,7 +153,7 @@ export function ProgressionChart({ points, records, locale }: ProgressionChartPr
               r={MARK_RADIUS}
             >
               <title>
-                {`${RECORD_LABELS[mark.record.kind]}: ${formatWeightLabel(markValue(mark), locale)} · ${formatShortDate(mark.point.startedAt, locale)}`}
+                {`${RECORD_LABELS[mark.record.kind]}: ${formatExerciseWeightLabel(markValue(mark), locale, unilateral)} · ${formatShortDate(mark.point.startedAt, locale)}`}
               </title>
             </circle>
           );
@@ -162,7 +170,7 @@ export function ProgressionChart({ points, records, locale }: ProgressionChartPr
       <ul className={styles.legend} aria-label="Leyenda de la gráfica">
         <li className={styles.legendItem}>
           <span className={cx(styles.swatch, styles.weightSwatch)} aria-hidden="true" />
-          Peso en kg
+          {unilateral ? `Peso en kg ${PER_ARM}` : 'Peso en kg'}
         </li>
         <li className={styles.legendItem}>
           <span className={cx(styles.swatch, styles.oneRepMaxSwatch)} aria-hidden="true" />
