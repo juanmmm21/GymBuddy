@@ -44,3 +44,14 @@ export type { SessionPageQuery } from './history';
 export { getExportSnapshot, listExportSessionPage } from './export';
 export type { ExportSessionPageQuery } from './export';
 export { importExercises, importRoutines, importSessions } from './import';
+export {
+  MEDIA_MONTHLY_UPLOAD_LIMIT,
+  MEDIA_STORAGE_BUDGET_BYTES,
+  acceptMediaUpload,
+  mediaObjectKey,
+  putExerciseMedia,
+  readExerciseMedia,
+  removeExerciseMedia,
+  uploadMonth,
+} from './media';
+export type { AcceptedMediaUpload, MediaUploadHeaders, PutExerciseMediaInput } from './media';

@@ -13,6 +13,9 @@ import {
   exerciseNotFound,
   findTrackedExercise,
   listTrackedExercises,
+  putExerciseMedia,
+  readExerciseMedia,
+  removeExerciseMedia,
   updateTrackedExercise,
 } from '../../training/index';
 
@@ -76,6 +79,69 @@ export const exercisesRoute = new Hono<AuthenticatedEnv>()
     if (exercise === null) throw exerciseNotFound(exerciseId);
 
     return c.json(exercise);
+  })
+
+  /**
+   * Pone o sustituye la foto de la técnica. El cuerpo es el fichero tal cual (ya re-codificado en el
+   * móvil), no JSON: así pasa a R2 en streaming. Responde el ejercicio con su foto nueva.
+   */
+  .put('/exercises/:id/media', async (c) => {
+    const user = c.get('user');
+
+    return c.json(
+      await putExerciseMedia(
+        createDatabase(c.env.DB),
+        c.env.MEDIA,
+        user.id,
+        c.req.param('id'),
+        {
+          headers: {
+            contentType: c.req.header('content-type'),
+            contentLength: c.req.header('content-length'),
+          },
+          body: c.req.raw.body,
+        },
+        user.locale,
+        new Date(),
+      ),
+    );
+  })
+
+  /** Quita la foto y devuelve el ejercicio sin ella. Repetirlo no falla. */
+  .delete('/exercises/:id/media', async (c) => {
+    const user = c.get('user');
+
+    return c.json(
+      await removeExerciseMedia(
+        createDatabase(c.env.DB),
+        c.env.MEDIA,
+        user.id,
+        c.req.param('id'),
+        user.locale,
+      ),
+    );
+  })
+
+  /**
+   * El fichero. La dirección cambia con cada subida, así que se cachea para siempre; es `private`
+   * porque lleva la sesión y ningún intermediario debe guardarlo.
+   */
+  .get('/exercises/:id/media/:mediaId', async (c) => {
+    const object = await readExerciseMedia(
+      createDatabase(c.env.DB),
+      c.env.MEDIA,
+      c.get('user').id,
+      c.req.param('id'),
+      c.req.param('mediaId'),
+    );
+
+    const headers = new Headers();
+    object.writeHttpMetadata(headers);
+    headers.set('content-length', String(object.size));
+    headers.set('etag', object.httpEtag);
+    headers.set('cache-control', 'private, max-age=31536000, immutable');
+
+    return new Response(object.body, { headers });
   })
 
   .patch('/exercises/:id', async (c) => {

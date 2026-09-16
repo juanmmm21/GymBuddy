@@ -1,6 +1,7 @@
 import {
   WORKING_WEIGHT_SESSIONS,
   bodyPartSchema,
+  exerciseMediaKindSchema,
   formatGramsAsKilograms,
   muscleSchema,
   summarizeWorkingWeight,
@@ -22,8 +23,10 @@ import type { Database } from '../db/client';
 import { listLastCardioSets, listLastEffectiveSets, listTopSetsPerSession } from '../db/queries';
 import {
   catalogExercise,
+  exerciseMedia,
   personalRecord,
   trackedExercise,
+  type ExerciseMediaRow,
   type TrackedExerciseRow,
 } from '../db/schema';
 import { ApiException } from '../http/errors';
@@ -40,9 +43,21 @@ const catalogColumns = {
 
 type CatalogFields = { [K in keyof typeof catalogColumns]: string };
 
+/** Lo que la ficha enseña de la foto; el dueño y el ejercicio ya salen de la fila principal. */
+const mediaColumns = {
+  mediaId: exerciseMedia.mediaId,
+  kind: exerciseMedia.kind,
+  contentType: exerciseMedia.contentType,
+  bytes: exerciseMedia.bytes,
+  uploadedAt: exerciseMedia.uploadedAt,
+};
+
+type MediaFields = Pick<ExerciseMediaRow, keyof typeof mediaColumns>;
+
 interface TrackedExerciseJoin {
   readonly exercise: TrackedExerciseRow;
   readonly catalog: CatalogFields | null;
+  readonly media: MediaFields | null;
 }
 
 export interface ListTrackedExercisesOptions {
@@ -66,9 +81,14 @@ export async function listTrackedExercises(
 
   const [rows, progress] = await Promise.all([
     db
-      .select({ exercise: getTableColumns(trackedExercise), catalog: catalogColumns })
+      .select({
+        exercise: getTableColumns(trackedExercise),
+        catalog: catalogColumns,
+        media: mediaColumns,
+      })
       .from(trackedExercise)
       .leftJoin(catalogExercise, eq(trackedExercise.catalogId, catalogExercise.catalogId))
+      .leftJoin(exerciseMedia, eq(exerciseMedia.trackedExerciseId, trackedExercise.id))
       .where(filter)
       .orderBy(trackedExercise.createdAt),
     findProgressByExercise(db, userId),
@@ -464,9 +484,14 @@ async function findTrackedExerciseJoin(
   exerciseId: string,
 ): Promise<TrackedExerciseJoin | null> {
   const [row] = await db
-    .select({ exercise: getTableColumns(trackedExercise), catalog: catalogColumns })
+    .select({
+      exercise: getTableColumns(trackedExercise),
+      catalog: catalogColumns,
+      media: mediaColumns,
+    })
     .from(trackedExercise)
     .leftJoin(catalogExercise, eq(trackedExercise.catalogId, catalogExercise.catalogId))
+    .leftJoin(exerciseMedia, eq(exerciseMedia.trackedExerciseId, trackedExercise.id))
     .where(and(eq(trackedExercise.id, exerciseId), eq(trackedExercise.userId, userId)))
     .limit(1);
 
@@ -529,7 +554,7 @@ function toTrackedExercise(
   locale: Locale,
   progress: ExerciseProgress,
 ): TrackedExercise {
-  const { exercise, catalog } = row;
+  const { exercise, catalog, media } = row;
   const fromCatalog = exercise.catalogId !== null && catalog !== null;
 
   return {
@@ -550,6 +575,17 @@ function toTrackedExercise(
     workingWeight: progress.workingWeights.get(exercise.id) ?? null,
     lastSet: progress.lastSets.get(exercise.id) ?? null,
     lastCardioSet: progress.lastCardioSets.get(exercise.id) ?? null,
+    media:
+      media === null
+        ? null
+        : {
+            id: media.mediaId,
+            // Texto en SQLite sin CHECK (ver `exerciseMedia`): se valida al salir con el contrato.
+            kind: exerciseMediaKindSchema.parse(media.kind),
+            contentType: media.contentType,
+            bytes: media.bytes,
+            uploadedAt: media.uploadedAt,
+          },
     createdAt: exercise.createdAt,
     archivedAt: exercise.archivedAt,
   };
