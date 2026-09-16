@@ -41,6 +41,12 @@ migrations_dir = "drizzle"
 name = "REST_NOTICE"
 class_name = "RestNoticeAlarm"
 
+# Las fotos de la técnica de los ejercicios propios. Cubo privado: solo se sirve a través del
+# Worker, que comprueba la cuenta. Dentro del gratuito de R2 por los topes de training/media.ts.
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "gymbuddy-media"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["RestNoticeAlarm"]
@@ -54,7 +60,7 @@ crons = ["*/5 * * * *"]
 # Producción: `wrangler deploy --env production`. Va aparte para no tocar el database_id de arriba,
 # que es el de la D1 local con datos de entrenamiento. `vars` y `d1_databases` no se heredan del
 # nivel superior y por eso se repiten; `assets`, `triggers`, `migrations` y `observability` sí
-# (`durable_objects` tampoco se hereda). El nombre se fija
+# (`durable_objects` y `r2_buckets` tampoco se heredan). El nombre se fija
 # a mano: sin él wrangler desplegaría "gymbuddy-production" y la dirección, que es el rpID de las
 # passkeys, sería otra.
 [env.production]
@@ -69,6 +75,10 @@ binding = "DB"
 database_name = "gymbuddy"
 database_id = "2684847d-e4b7-4054-bb54-8d0290b72a48"
 migrations_dir = "drizzle"
+
+[[env.production.r2_buckets]]
+binding = "MEDIA"
+bucket_name = "gymbuddy-media"
 
 [[env.production.durable_objects.bindings]]
 name = "REST_NOTICE"

@@ -1,5 +1,7 @@
 import { createDatabase, type Database } from '../src/db/client';
 import {
+  exerciseMedia,
+  mediaUploadMonth,
   personalRecord,
   routine,
   routineItem,
@@ -193,6 +195,9 @@ export async function seedUsers(binding: D1Database): Promise<SeededUsers> {
 export async function resetTrainingTables(db: Database): Promise<void> {
   // En orden inverso a las dependencias: D1 aplica las claves ajenas.
   await db.delete(personalRecord);
+  await db.delete(exerciseMedia);
+  // No cuelga de ninguna cuenta, pero los topes del gratuito la leen: un test no hereda las subidas de otro.
+  await db.delete(mediaUploadMonth);
   await db.delete(routineItem);
   await db.delete(routine);
   await db.delete(setEntry);

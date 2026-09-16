@@ -390,6 +390,47 @@ export const pushSubscription = sqliteTable(
   (table) => [index('push_subscription_user_idx').on(table.userId, table.subscribedAt)],
 );
 
+/**
+ * La foto de la técnica de un ejercicio propio, una como mucho por ejercicio. El fichero vive en R2
+ * y aquí solo queda lo que hace falta para servirlo y para vigilar el gratuito: su tamaño.
+ *
+ * Va en su propia tabla y no en columnas de `tracked_exercise` porque la regla «todo o nada» de
+ * estas columnas exige un CHECK de tabla, y añadirlo a una tabla que ya existe obliga a
+ * reconstruirla (ver la migración 0008). La clase no lleva CHECK por lo mismo: cuando llegue el
+ * vídeo, ampliar la lista sería otra reconstrucción; se valida con el enum del contrato al leer.
+ */
+export const exerciseMedia = sqliteTable(
+  'exercise_media',
+  {
+    trackedExerciseId: rowId('tracked_exercise_id')
+      .primaryKey()
+      .references(() => trackedExercise.id, { onDelete: 'cascade' }),
+    userId: rowId('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    // Nuevo en cada subida: forma la clave en R2 y la dirección del fichero, que así no se reutiliza.
+    mediaId: rowId('media_id').notNull(),
+    kind: text('kind').notNull(),
+    contentType: text('content_type').notNull(),
+    bytes: integer('bytes').notNull(),
+    uploadedAt: isoTimestamp('uploaded_at').notNull(),
+  },
+  (table) => [check('exercise_media_bytes_positive', sql`${table.bytes} > 0`)],
+);
+
+/**
+ * Subidas a R2 por mes (`YYYY-MM`, UTC). Cada subida es una operación de clase A y el gratuito da un
+ * millón al mes: el tope del Worker queda muy por debajo, y esta tabla es como se hace cumplir.
+ */
+export const mediaUploadMonth = sqliteTable(
+  'media_upload_month',
+  {
+    month: text('month').primaryKey(),
+    uploads: integer('uploads').notNull(),
+  },
+  (table) => [check('media_upload_month_uploads_positive', sql`${table.uploads} > 0`)],
+);
+
 export type UserRow = typeof user.$inferSelect;
 export type NewUserRow = typeof user.$inferInsert;
 export type InvitationRow = typeof invitation.$inferSelect;
@@ -406,6 +447,8 @@ export type CatalogSyncStateRow = typeof catalogSyncState.$inferSelect;
 export type NewCatalogSyncStateRow = typeof catalogSyncState.$inferInsert;
 export type TrackedExerciseRow = typeof trackedExercise.$inferSelect;
 export type NewTrackedExerciseRow = typeof trackedExercise.$inferInsert;
+export type ExerciseMediaRow = typeof exerciseMedia.$inferSelect;
+export type NewExerciseMediaRow = typeof exerciseMedia.$inferInsert;
 export type WorkoutSessionRow = typeof workoutSession.$inferSelect;
 export type NewWorkoutSessionRow = typeof workoutSession.$inferInsert;
 export type SetEntryRow = typeof setEntry.$inferSelect;
