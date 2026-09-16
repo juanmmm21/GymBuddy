@@ -14,6 +14,10 @@ export function describeError(error: unknown): string {
         return 'La sesión ha caducado. Entra de nuevo.';
       case 'catalog_unavailable':
         return 'El catálogo de ejercicios no está disponible ahora mismo.';
+      case 'media_too_large':
+        return 'La foto pesa demasiado. Prueba con otra.';
+      case 'media_quota_exceeded':
+        return 'Se ha llegado al tope gratuito de fotos (espacio o subidas del mes). No se ha guardado.';
       default:
         return error.message;
     }

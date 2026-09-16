@@ -33,6 +33,7 @@ import { catalogExercisePath, catalogExerciseRef } from '../catalog/paths';
 import { sessionPathForExercise } from '../session/paths';
 import { offersUnilateral } from './custom-exercise';
 import { EditExerciseSheet } from './EditExerciseSheet';
+import { ExercisePhotoSection } from './ExercisePhotoSection';
 import { ORIGIN_LABELS, RECORD_LABELS, RECORD_ORDER, UNILATERAL_HINT } from './labels';
 import { EXERCISES_PATH } from './paths';
 import { ProgressionChart } from './ProgressionChart';
@@ -121,6 +122,8 @@ function TrackedExerciseDetail({ exerciseId }: TrackedExerciseDetailProps) {
                 )}
 
                 <ExerciseTags exercise={found} />
+
+                {found.origin === 'custom' && <ExercisePhotoSection exercise={found} />}
 
                 {/* Uno marcado se enseña siempre, para poder desmarcarlo aunque ahora sea de cardio. */}
                 {(offersUnilateral(found.bodyPart) || found.unilateral) && (

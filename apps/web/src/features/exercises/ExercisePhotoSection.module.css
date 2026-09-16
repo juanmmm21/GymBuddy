@@ -1,0 +1,58 @@
+.title {
+  margin-bottom: var(--gb-space-md);
+  font-size: var(--gb-type-title-size);
+  font-weight: var(--gb-type-title-weight);
+  line-height: var(--gb-type-title-line);
+  letter-spacing: var(--gb-type-title-tracking);
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-md);
+}
+
+/* Cuadrada como la animación del catálogo: una foto vertical u horizontal cabe entera dentro. */
+.frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  margin: 0;
+  overflow: hidden;
+  border-radius: var(--gb-radius-lg);
+  background: var(--gb-color-surface-sunken);
+}
+
+.placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.hint,
+.status {
+  margin: 0;
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-caption-size);
+  line-height: var(--gb-type-caption-line);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gb-space-sm);
+}
+
+/* El selector de ficheros no se enseña: lo abre el botón, que sí lleva el diseño. */
+.fileInput {
+  display: none;
+}
