@@ -15,6 +15,9 @@ import { loadStoredSession } from '../auth/session-store';
 import { createBrowserPhotoCodec } from '../features/exercises/browser-photo-codec';
 import type { PhotoCodec } from '../features/exercises/photo-compression';
 import { PhotoCodecProvider } from '../features/exercises/PhotoCodecProvider';
+import { createBrowserVideoConverter } from '../features/exercises/browser-video-converter';
+import type { VideoConverter } from '../features/exercises/video-conversion';
+import { VideoConverterProvider } from '../features/exercises/VideoConverterProvider';
 import { unavailableInstallPrompt } from '../features/install/install-prompt';
 import { InstallProvider, type InstallSupport } from '../features/install/InstallProvider';
 import { readBrowserEnvironment } from '../features/install/platform';
@@ -49,6 +52,8 @@ export interface AppProps {
   readonly pushBrowser?: PushBrowser | null;
   /** El codificador de fotos; `null` simula un navegador sin canvas, como jsdom. */
   readonly photoCodec?: PhotoCodec | null;
+  /** El conversor de vídeo; `null` simula un navegador sin WebCodecs, como jsdom. */
+  readonly videoConverter?: VideoConverter | null;
 }
 
 /** Medio minuto sin volver a pedir lo mismo: entre pantalla y pantalla no cambia nada. */
@@ -75,6 +80,7 @@ export function App({
   install,
   pushBrowser,
   photoCodec,
+  videoConverter,
 }: AppProps) {
   const [queryClient] = useState(() => {
     const client = new QueryClient({
@@ -100,6 +106,9 @@ export function App({
   const [devicePhotoCodec] = useState<PhotoCodec | null>(() =>
     photoCodec === undefined ? createBrowserPhotoCodec() : photoCodec,
   );
+  const [deviceVideoConverter] = useState<VideoConverter | null>(() =>
+    videoConverter === undefined ? createBrowserVideoConverter() : videoConverter,
+  );
   // Una sola cola por app: lee lo que quedó guardado al abrirla y no se rehace con el token.
   const [writeQueue] = useState(
     () => new WriteQueue({ store: writeQueueStore ?? createBrowserWriteQueueStore() }),
@@ -115,7 +124,9 @@ export function App({
                 <InstallProvider support={installSupport}>
                   <PushBrowserProvider browser={devicePush}>
                     <PhotoCodecProvider codec={devicePhotoCodec}>
-                      <RouterProvider router={appRouter} flushSync={flushRouterUpdate} />
+                      <VideoConverterProvider converter={deviceVideoConverter}>
+                        <RouterProvider router={appRouter} flushSync={flushRouterUpdate} />
+                      </VideoConverterProvider>
                     </PhotoCodecProvider>
                   </PushBrowserProvider>
                 </InstallProvider>
