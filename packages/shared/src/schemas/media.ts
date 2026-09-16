@@ -32,6 +32,20 @@ export const EXERCISE_PHOTO_MAX_EDGE_PIXELS = 1600;
 export const EXERCISE_PHOTO_JPEG_QUALITY = 0.82;
 
 /**
+ * El vídeo de la técnica se re-codifica en el móvil a 720p: el lado corto a 720 px como mucho y el
+ * largo a 1280, para que un vídeo muy apaisado tampoco se dispare. Se ve bien en la ficha y pesa poco.
+ */
+export const EXERCISE_VIDEO_MAX_SHORT_EDGE_PIXELS = 720;
+
+export const EXERCISE_VIDEO_MAX_LONG_EDGE_PIXELS = 1280;
+
+/** Unos 2 Mbps en H.264: un minuto ronda los 15 MB, que se sube con poca cobertura. */
+export const EXERCISE_VIDEO_BITRATE_BPS = 2_000_000;
+
+/** Un vídeo de la técnica enseña unas pocas repeticiones: más de un minuto no se admite. */
+export const EXERCISE_VIDEO_MAX_DURATION_SECONDS = 60;
+
+/**
  * La foto de la técnica de un ejercicio propio. El `id` cambia con cada subida: la dirección del
  * fichero no se reutiliza nunca, así que se puede cachear para siempre.
  */
