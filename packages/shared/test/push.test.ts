@@ -4,6 +4,7 @@ import {
   MAX_PUSH_ENDPOINT_LENGTH,
   pushConfigSchema,
   pushSubscriptionSchema,
+  restNoticeRequestSchema,
 } from '../src/schemas/push';
 
 // Claves sintéticas generadas con `crypto.generateKeyPairSync('ec', { namedCurve: 'prime256v1' })`.
@@ -66,5 +67,25 @@ describe('pushConfigSchema', () => {
     expect(pushConfigSchema.parse({ publicKey: P256DH })).toStrictEqual({ publicKey: P256DH });
     expect(pushConfigSchema.parse({ publicKey: null })).toStrictEqual({ publicKey: null });
     expect(pushConfigSchema.safeParse({ publicKey: 'no-es-una-clave' }).success).toBe(false);
+  });
+});
+
+describe('restNoticeRequestSchema', () => {
+  const notice = {
+    sessionId: '0d6f3b1a-7c2e-4f58-9a41-2b3c4d5e6f70',
+    endsAt: '2026-09-16T18:31:30.000+02:00',
+  };
+
+  it('admite la sesión y el fin del descanso con zona horaria', () => {
+    expect(restNoticeRequestSchema.parse(notice)).toStrictEqual(notice);
+  });
+
+  it('rechaza una hora sin zona y una sesión que no es un uuid', () => {
+    expect(
+      restNoticeRequestSchema.safeParse({ ...notice, endsAt: '2026-09-16T18:31:30' }).success,
+    ).toBe(false);
+    expect(restNoticeRequestSchema.safeParse({ ...notice, sessionId: 'sesion-1' }).success).toBe(
+      false,
+    );
   });
 });

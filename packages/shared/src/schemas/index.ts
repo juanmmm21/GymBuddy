@@ -250,9 +250,16 @@ export type {
 } from './import';
 export {
   MAX_PUSH_ENDPOINT_LENGTH,
+  MAX_REST_NOTICE_DELAY_SECONDS,
   deletePushSubscriptionRequestSchema,
   p256PublicKeySchema,
   pushConfigSchema,
   pushSubscriptionSchema,
+  restNoticeRequestSchema,
 } from './push';
-export type { DeletePushSubscriptionRequest, PushConfig, PushSubscriptionRequest } from './push';
+export type {
+  DeletePushSubscriptionRequest,
+  PushConfig,
+  PushSubscriptionRequest,
+  RestNoticeRequest,
+} from './push';

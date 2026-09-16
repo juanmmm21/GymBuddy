@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isoDatetimeSchema, resourceIdSchema } from './common';
 
 /** Una URL de servicio de push es corta (unos 200 caracteres); el tope solo corta abusos. */
 export const MAX_PUSH_ENDPOINT_LENGTH = 2048;
@@ -46,3 +47,22 @@ export const pushConfigSchema = z.object({
 export type PushSubscriptionRequest = z.infer<typeof pushSubscriptionSchema>;
 export type DeletePushSubscriptionRequest = z.infer<typeof deletePushSubscriptionRequestSchema>;
 export type PushConfig = z.infer<typeof pushConfigSchema>;
+
+/**
+ * Hasta dónde puede quedar por delante el fin de un descanso. El objetivo más largo de la PWA son
+ * cinco minutos; el margen cubre un descanso alargado a mano sin dejar programar avisos para dentro
+ * de horas, que sonarían cuando ya nadie está entrenando.
+ */
+export const MAX_REST_NOTICE_DELAY_SECONDS = 15 * 60;
+
+/**
+ * Programa el aviso de fin de descanso (ADR 0009). `endsAt` es el instante en que se cumple el
+ * objetivo: lo calcula la PWA desde la última serie, que es quien conoce el objetivo del
+ * dispositivo. Repetirlo con otra hora reprograma el aviso; solo hay uno por cuenta.
+ */
+export const restNoticeRequestSchema = z.object({
+  sessionId: resourceIdSchema,
+  endsAt: isoDatetimeSchema,
+});
+
+export type RestNoticeRequest = z.infer<typeof restNoticeRequestSchema>;
