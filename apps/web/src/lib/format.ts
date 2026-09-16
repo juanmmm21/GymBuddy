@@ -20,6 +20,26 @@ export function formatWeightLabel(weight: WeightKilograms, locale: Locale): stri
   return formatWeightInUnit(parseKilogramsToGrams(weight), 'kg', locale);
 }
 
+/** Lo que se añade al peso de un ejercicio a un brazo: el peso es el de uno solo. */
+export const PER_ARM = 'por brazo';
+
+/** Lo que se añade al volumen de un ejercicio a un brazo: cuenta los dos. */
+export const BOTH_SIDES = 'los dos lados';
+
+/**
+ * El peso de un ejercicio concreto: "20 kg por brazo" si es a un brazo y "82,5 kg" si no. Pide la
+ * marca siempre, igual que `ProgressionSet.unilateral`: un sitio nuevo que enseñe un peso tiene que
+ * decidir, y olvidarlo haría leer los 20 kg de una mancuerna como si fueran los de las dos.
+ */
+export function formatExerciseWeightLabel(
+  weight: WeightKilograms,
+  locale: Locale,
+  unilateral: boolean,
+): string {
+  const label = formatWeightLabel(weight, locale);
+  return unilateral ? `${label} ${PER_ARM}` : label;
+}
+
 /**
  * El número de un peso en gramos, sin su unidad: "82,5". Es lo que va en el eje de una
  * gráfica, donde los kilogramos se dicen una sola vez en la leyenda y no en cada marca.
@@ -38,12 +58,18 @@ export function formatWeightInUnit(grams: number, unit: WeightUnit, locale: Loca
  * El valor de una marca, siempre en kilos. No pasa por `formatWeightLabel` porque llega con el ancho
  * del volumen (`volumeKilogramsSchema`): una marca de volumen de más de 9999 kg, una prensa pesada a
  * diez repeticiones, no cabe en el patrón de un peso y reventaría la pantalla.
+ *
+ * En uno a un brazo, el peso máximo y el 1RM son de un brazo (lo decidió Juan) y el volumen ya suma
+ * los dos lados: sin decirlo, «400 kg» parecería el doble de lo que se levantó.
  */
 export function formatRecordValueLabel(
-  record: Pick<PersonalRecord, 'value'>,
+  record: Pick<PersonalRecord, 'kind' | 'value'>,
   locale: Locale,
+  unilateral: boolean,
 ): string {
-  return formatVolumeLabel(parseVolumeKilogramsToGrams(record.value), locale);
+  const value = formatVolumeLabel(parseVolumeKilogramsToGrams(record.value), locale);
+  if (!unilateral) return value;
+  return record.kind === 'max_volume' ? `${value}, ${BOTH_SIDES}` : `${value} ${PER_ARM}`;
 }
 
 /**
@@ -171,12 +197,13 @@ export function formatDistanceLabel(meters: number, locale: Locale): string {
 }
 
 /**
- * El valor de una serie tal y como se lee en una fila: "82,5 kg × 8" o "30 min · 5,2 km". Una sola
- * función para las tres listas que pintan series, para que ninguna se olvide del cardio.
+ * El valor de una serie tal y como se lee en una fila: "82,5 kg × 8", "20 kg por brazo × 10" o
+ * "30 min · 5,2 km". Una sola función para las listas que pintan series, para que ninguna se olvide
+ * del cardio ni de los ejercicios a un brazo.
  */
-export function formatSetValueLabel(set: SetEntry, locale: Locale): string {
+export function formatSetValueLabel(set: SetEntry, locale: Locale, unilateral: boolean): string {
   if (set.kind === 'strength')
-    return `${formatWeightLabel(set.weight, locale)} × ${String(set.reps)}`;
+    return `${formatExerciseWeightLabel(set.weight, locale, unilateral)} × ${String(set.reps)}`;
 
   const duration = formatCardioDuration(set.durationSeconds);
   return set.distanceMeters === null

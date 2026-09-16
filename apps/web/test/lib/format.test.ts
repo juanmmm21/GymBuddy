@@ -3,6 +3,7 @@ import { describeError } from '../../src/lib/errors';
 import {
   formatDaysAgo,
   formatDuration,
+  formatExerciseWeightLabel,
   formatRpe,
   formatRecordValueLabel,
   formatSessionDate,
@@ -43,9 +44,33 @@ describe('formatWeightInUnit', () => {
 
 describe('formatRecordValueLabel', () => {
   it('lee la marca en kilos, también un volumen que no cabe en el ancho de un peso', () => {
-    expect(formatRecordValueLabel({ value: '104.50' }, 'es')).toBe('104,5 kg');
+    expect(formatRecordValueLabel({ kind: 'max_weight', value: '104.50' }, 'es', false)).toBe(
+      '104,5 kg',
+    );
     // Una prensa de 1100 kg a 10 repeticiones: con el formateador de peso reventaba.
-    expect(formatRecordValueLabel({ value: '11000.00' }, 'es')).toBe('11000 kg');
+    expect(formatRecordValueLabel({ kind: 'max_volume', value: '11000.00' }, 'es', false)).toBe(
+      '11000 kg',
+    );
+  });
+
+  it('en uno a un brazo, peso y 1RM son por brazo y el volumen cuenta los dos lados', () => {
+    expect(formatRecordValueLabel({ kind: 'max_weight', value: '20.00' }, 'es', true)).toBe(
+      '20 kg por brazo',
+    );
+    expect(formatRecordValueLabel({ kind: 'estimated_1rm', value: '26.67' }, 'es', true)).toBe(
+      '26,67 kg por brazo',
+    );
+    // El ejemplo de Juan: 10 repeticiones con 20 kg en cada lado son 400 kg.
+    expect(formatRecordValueLabel({ kind: 'max_volume', value: '400.00' }, 'es', true)).toBe(
+      '400 kg, los dos lados',
+    );
+  });
+});
+
+describe('formatExerciseWeightLabel', () => {
+  it('añade «por brazo» solo en un ejercicio a un brazo', () => {
+    expect(formatExerciseWeightLabel('20.00', 'es', true)).toBe('20 kg por brazo');
+    expect(formatExerciseWeightLabel('82.50', 'es', false)).toBe('82,5 kg');
   });
 });
 
