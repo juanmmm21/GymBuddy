@@ -1,6 +1,12 @@
 import { createContext, useContext, useMemo, useSyncExternalStore, type ReactNode } from 'react';
 import type { InstallPrompt, InstallPromptOutcome, InstallPromptState } from './install-prompt';
-import { detectInstallSituation, type BrowserEnvironment, type InstallSituation } from './platform';
+import {
+  detectInstallSituation,
+  detectPlatform,
+  type BrowserEnvironment,
+  type DevicePlatform,
+  type InstallSituation,
+} from './platform';
 
 /** El entorno leído al arrancar y el diálogo capturado antes de montar React. */
 export interface InstallSupport {
@@ -22,6 +28,8 @@ export function InstallProvider({ support, children }: InstallProviderProps) {
 
 export interface InstallGuide {
   readonly situation: InstallSituation;
+  /** iPhone, Android o escritorio, esté o no instalada: lo usan también las funciones propias de iOS. */
+  readonly platform: DevicePlatform;
   readonly promptState: InstallPromptState;
   readonly openPrompt: () => Promise<InstallPromptOutcome>;
   readonly appUrl: string;
@@ -36,6 +44,13 @@ export function useInstallGuide(): InstallGuide {
 
   const promptState = useSyncExternalStore(prompt.subscribe, prompt.getState);
   const situation = useMemo(() => detectInstallSituation(environment), [environment]);
+  const platform = useMemo(() => detectPlatform(environment), [environment]);
 
-  return { situation, promptState, openPrompt: prompt.prompt, appUrl: environment.appUrl };
+  return {
+    situation,
+    platform,
+    promptState,
+    openPrompt: prompt.prompt,
+    appUrl: environment.appUrl,
+  };
 }
