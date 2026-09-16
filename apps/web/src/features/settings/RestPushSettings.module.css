@@ -1,0 +1,13 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-md);
+  padding: 0 var(--gb-space-lg) var(--gb-space-lg);
+}
+
+.note {
+  margin: 0;
+  color: var(--gb-color-text-secondary);
+  font-size: var(--gb-type-caption-size);
+  line-height: var(--gb-type-caption-line);
+}

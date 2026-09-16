@@ -15,6 +15,9 @@ import { loadStoredSession } from '../auth/session-store';
 import { unavailableInstallPrompt } from '../features/install/install-prompt';
 import { InstallProvider, type InstallSupport } from '../features/install/InstallProvider';
 import { readBrowserEnvironment } from '../features/install/platform';
+import { createBrowserPushBrowser } from '../features/settings/push-browser';
+import type { PushBrowser } from '../features/settings/push-notices';
+import { PushBrowserProvider } from '../features/settings/PushBrowserProvider';
 import type { StorageLike } from '../lib/storage';
 import {
   clearDeviceSnapshot,
@@ -39,6 +42,8 @@ export interface AppProps {
   readonly writeQueueStore?: WriteQueueStore;
   /** El entorno del navegador y el diálogo de instalación; los tests simulan un iPhone o un chat. */
   readonly install?: InstallSupport;
+  /** El push del navegador; `null` simula uno sin push. Sin pasarlo, el del navegador real. */
+  readonly pushBrowser?: PushBrowser | null;
 }
 
 /** Medio minuto sin volver a pedir lo mismo: entre pantalla y pantalla no cambia nada. */
@@ -63,6 +68,7 @@ export function App({
   authenticator = browserPasskeyAuthenticator,
   writeQueueStore,
   install,
+  pushBrowser,
 }: AppProps) {
   const [queryClient] = useState(() => {
     const client = new QueryClient({
@@ -82,6 +88,9 @@ export function App({
     () =>
       install ?? { environment: readBrowserEnvironment(window), prompt: unavailableInstallPrompt },
   );
+  const [devicePush] = useState<PushBrowser | null>(() =>
+    pushBrowser === undefined ? createBrowserPushBrowser() : pushBrowser,
+  );
   // Una sola cola por app: lee lo que quedó guardado al abrirla y no se rehace con el token.
   const [writeQueue] = useState(
     () => new WriteQueue({ store: writeQueueStore ?? createBrowserWriteQueueStore() }),
@@ -95,7 +104,9 @@ export function App({
             <ApiBoundary apiBaseUrl={apiBaseUrl} fetchImpl={fetchImpl} queryClient={queryClient}>
               <AuthenticatorProvider authenticator={authenticator}>
                 <InstallProvider support={installSupport}>
-                  <RouterProvider router={appRouter} flushSync={flushRouterUpdate} />
+                  <PushBrowserProvider browser={devicePush}>
+                    <RouterProvider router={appRouter} flushSync={flushRouterUpdate} />
+                  </PushBrowserProvider>
                 </InstallProvider>
               </AuthenticatorProvider>
             </ApiBoundary>

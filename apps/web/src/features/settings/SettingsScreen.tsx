@@ -9,6 +9,7 @@ import { INSTALL_PATH } from '../install/paths';
 import { INVITE_PATH } from '../invitations/paths';
 import { IphoneTimerSettings } from './IphoneTimerSettings';
 import { ProfileNameForm } from './ProfileNameForm';
+import { RestPushSettings } from './RestPushSettings';
 import styles from './SettingsScreen.module.css';
 
 const BACK_TO_HOME: BackLink = { to: '/', label: 'Hoy' };
@@ -69,14 +70,13 @@ export function SettingsScreen() {
             <ProfileNameForm currentName={session.user.displayName} />
           </Surface>
         )}
-        {platform === 'ios' && (
-          <Surface as="section" padding="none" aria-labelledby="settings-rest">
-            <h2 id="settings-rest" className={styles.sectionTitle}>
-              Descanso
-            </h2>
-            <IphoneTimerSettings />
-          </Surface>
-        )}
+        <Surface as="section" padding="none" aria-labelledby="settings-rest">
+          <h2 id="settings-rest" className={styles.sectionTitle}>
+            Descanso
+          </h2>
+          <RestPushSettings />
+          {platform === 'ios' && <IphoneTimerSettings />}
+        </Surface>
         <Surface as="section" padding="none" aria-labelledby="settings-account">
           <h2 id="settings-account" className={styles.sectionTitle}>
             Tu cuenta
