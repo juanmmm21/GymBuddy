@@ -16,6 +16,7 @@ import {
   logSetResponseSchema,
   MAX_EXPORT_SESSION_PAGE_SIZE,
   noContentSchema,
+  pushConfigSchema,
   registrationOptionsResponseSchema,
   routineSchema,
   sessionSchema,
@@ -36,6 +37,7 @@ import {
   type CatalogSearchFilters,
   type CreateRoutineRequest,
   type CreateTrackedExerciseRequest,
+  type DeletePushSubscriptionRequest,
   type DeviceLink,
   type DeviceLinkOptionsRequest,
   type EndSessionRequest,
@@ -55,6 +57,8 @@ import {
   type LogSetRequest,
   type LogSetResponse,
   type Muscle,
+  type PushConfig,
+  type PushSubscriptionRequest,
   type RegistrationOptionsRequest,
   type RegistrationOptionsResponse,
   type RegistrationVerifyRequest,
@@ -188,6 +192,37 @@ export function fetchCurrentUser(client: ApiClient): Promise<User> {
 /** Cambia el propio perfil (el nombre, desde Ajustes) y devuelve cómo queda. */
 export function updateCurrentUser(client: ApiClient, body: UpdateUserRequest): Promise<User> {
   return client.request({ method: 'PATCH', path: '/auth/me', schema: userSchema, body });
+}
+
+/** La clave VAPID para suscribirse al aviso de descanso, o `null` si el servidor no puede mandarlo. */
+export function fetchPushConfig(client: ApiClient): Promise<PushConfig> {
+  return client.request({ method: 'GET', path: '/push/config', schema: pushConfigSchema });
+}
+
+/** Guarda la suscripción de este navegador. 204 también al repetirla. */
+export function savePushSubscription(
+  client: ApiClient,
+  body: PushSubscriptionRequest,
+): Promise<null> {
+  return client.request({
+    method: 'PUT',
+    path: '/push/subscription',
+    schema: noContentSchema,
+    body,
+  });
+}
+
+/** Retira la suscripción de este navegador. 204 aunque ya no estuviera. */
+export function deletePushSubscription(
+  client: ApiClient,
+  body: DeletePushSubscriptionRequest,
+): Promise<null> {
+  return client.request({
+    method: 'DELETE',
+    path: '/push/subscription',
+    schema: noContentSchema,
+    body,
+  });
 }
 
 export interface ListTrackedExercisesOptions {

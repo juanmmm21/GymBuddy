@@ -77,6 +77,10 @@ export const queryKeys = {
     detail: (sessionId: ResourceId) => ['sessions', 'detail', sessionId] as const,
     history: (options: SessionHistoryOptions) => ['sessions', 'history', options] as const,
   },
+  push: {
+    config: ['push', 'config'] as const,
+    device: ['push', 'device'] as const,
+  },
   stats: {
     all: ['stats'] as const,
     signals: ['stats', 'signals'] as const,
