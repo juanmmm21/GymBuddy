@@ -68,10 +68,21 @@ export const trainingSignalsSchema = z.object({
 });
 
 /**
- * Un día del mini calendario de la semana. Lleva **una sola** parte del cuerpo, la de más
- * volumen: la fila tiene que caber en el ancho de un móvil. `bodyPart` nulo con `trained`
- * en cierto es un día de ejercicios propios sin clasificar — entrenó, pero no hay etiqueta
- * honesta que ponerle—, y con `trained` en falso, un día de descanso.
+ * Lo que trabajó una parte del cuerpo en un día del calendario. Las series son las efectivas
+ * (sin calentamiento) y deciden lo oscura que sale su zona en la silueta (`bodyPartLoadLevel`).
+ */
+export const weeklyCalendarBodyPartSchema = z.object({
+  bodyPart: bodyPartSchema,
+  setCount: z.int().positive(),
+  volume: volumeKilogramsSchema,
+});
+
+/**
+ * Un día del mini calendario de la semana, con **todas** las partes del cuerpo que trabajaron
+ * (opción B que eligió Juan el 2026-09-16: la silueta enciende cada zona, más oscura cuanto más
+ * se entrenó). Van de la que más series tuvo a la que menos y ninguna se repite. Sin partes y con
+ * `trained` en cierto es un día de ejercicios propios sin clasificar —entrenó, pero no hay zona
+ * honesta que encender—, y con `trained` en falso, un día de descanso.
  */
 export const weeklyCalendarDaySchema = z.object({
   /** 0 es lunes y 6 domingo, que es el orden en el que se pinta la fila. */
@@ -81,8 +92,13 @@ export const weeklyCalendarDaySchema = z.object({
     .max(DAYS_PER_WEEK - 1),
   date: z.iso.date(),
   trained: z.boolean(),
-  bodyPart: bodyPartSchema.nullable(),
-  /** Volumen del día entero, no solo el de la parte dominante. */
+  bodyParts: z
+    .array(weeklyCalendarBodyPartSchema)
+    .max(bodyPartSchema.options.length)
+    .refine((parts) => new Set(parts.map((part) => part.bodyPart)).size === parts.length, {
+      message: 'Una parte del cuerpo no puede salir dos veces en el mismo día',
+    }),
+  /** Volumen del día entero, sumando lo que no se pudo clasificar. */
   volume: volumeKilogramsSchema,
   setCount: z.int().nonnegative(),
 });
@@ -102,5 +118,6 @@ export type ProgressionPointView = z.infer<typeof progressionPointSchema>;
 export type StalledExercise = z.infer<typeof stalledExerciseSchema>;
 export type ExerciseStats = z.infer<typeof exerciseStatsSchema>;
 export type TrainingSignals = z.infer<typeof trainingSignalsSchema>;
+export type WeeklyCalendarBodyPart = z.infer<typeof weeklyCalendarBodyPartSchema>;
 export type WeeklyCalendarDay = z.infer<typeof weeklyCalendarDaySchema>;
 export type WeeklyCalendar = z.infer<typeof weeklyCalendarSchema>;

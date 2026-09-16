@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { ProgressionSet } from '../src/domain/progression';
 import {
+  bodyPartLoadLevel,
   dayIndexOf,
   isoDateOfDay,
   weekIndexOf,
   weekStartDayIndex,
   weeklyBodyPartCalendar,
+  type WeekDaySummary,
   type WeekSetEntry,
 } from '../src/domain/week';
 import type { BodyPart } from '../src/schemas/catalog';
@@ -32,6 +34,10 @@ const entry = (
 ): WeekSetEntry => ({ sessionStartedAt, bodyPart, set: progressionSet });
 
 const cardio = (isWarmup = false): WeekSetEntry['set'] => ({ kind: 'cardio', isWarmup });
+
+/** Las partes de un día en su orden, que es lo que decide la silueta. */
+const partsOf = (day: WeekDaySummary | undefined): string[] =>
+  day?.bodyParts.map((load) => load.bodyPart) ?? [];
 
 describe('aritmética de la semana', () => {
   it('la semana empieza el lunes', () => {
@@ -73,7 +79,7 @@ describe('weeklyBodyPartCalendar', () => {
     expect(days.every((day) => !day.trained)).toBe(true);
   });
 
-  it('etiqueta cada día con la parte del cuerpo de más volumen', () => {
+  it('lista cada parte del día con sus series y su volumen, de la que más series tuvo a la que menos', () => {
     const days = weeklyBodyPartCalendar(
       [
         entry(MONDAY, 'chest', set(80_000, 8)),
@@ -84,10 +90,13 @@ describe('weeklyBodyPartCalendar', () => {
       NOW,
     );
 
-    expect(days[0]?.bodyPart).toBe('chest');
+    expect(days[0]?.bodyParts).toEqual([
+      { bodyPart: 'chest', setCount: 2, volumeGrams: 80_000 * 8 * 2 },
+      { bodyPart: 'arms', setCount: 1, volumeGrams: 20_000 * 10 },
+    ]);
     expect(days[0]?.volumeGrams).toBe(80_000 * 8 * 2 + 20_000 * 10);
     expect(days[0]?.setCount).toBe(3);
-    expect(days[2]?.bodyPart).toBe('legs');
+    expect(partsOf(days[2])).toEqual(['legs']);
     expect(days[1]?.trained).toBe(false);
   });
 
@@ -103,19 +112,19 @@ describe('weeklyBodyPartCalendar', () => {
 
     const days = weeklyBodyPartCalendar([entry(WEDNESDAY, 'back', late)], NOW);
 
-    expect(days[2]?.bodyPart).toBe('back');
+    expect(partsOf(days[2])).toEqual(['back']);
     expect(days[3]?.trained).toBe(false);
   });
 
-  it('un día de ejercicios propios sin clasificar entrenó, pero no se le inventa etiqueta', () => {
+  it('un día de ejercicios propios sin clasificar entrenó, pero no se le inventa zona', () => {
     const days = weeklyBodyPartCalendar([entry(THURSDAY, null, set(40_000, 12))], NOW);
 
     expect(days[3]?.trained).toBe(true);
-    expect(days[3]?.bodyPart).toBeNull();
+    expect(days[3]?.bodyParts).toEqual([]);
     expect(days[3]?.volumeGrams).toBe(40_000 * 12);
   });
 
-  it('un ejercicio a un brazo pesa el doble al decidir la parte del día', () => {
+  it('con las mismas series, un ejercicio a un brazo pesa el doble al ordenar las partes', () => {
     // 20 kg × 10 por brazo son 400 kg: más que los 300 kg de la pierna, aunque la mancuerna pese menos.
     const days = weeklyBodyPartCalendar(
       [
@@ -125,36 +134,37 @@ describe('weeklyBodyPartCalendar', () => {
       NOW,
     );
 
-    expect(days[3]?.bodyPart).toBe('back');
+    expect(partsOf(days[3])).toEqual(['back', 'legs']);
+    expect(days[3]?.bodyParts[0]?.volumeGrams).toBe(400_000);
     expect(days[3]?.volumeGrams).toBe(400_000 + 300_000);
   });
 
-  it('lo que no se puede clasificar suma al día pero no compite por la etiqueta', () => {
+  it('lo que no se puede clasificar suma al día pero no sale como zona', () => {
     const days = weeklyBodyPartCalendar(
       [entry(THURSDAY, null, set(100_000, 10)), entry(THURSDAY, 'arms', set(10_000, 10))],
       NOW,
     );
 
-    expect(days[3]?.bodyPart).toBe('arms');
+    expect(partsOf(days[3])).toEqual(['arms']);
     expect(days[3]?.volumeGrams).toBe(100_000 * 10 + 10_000 * 10);
   });
 
-  it('con todo a peso corporal manda el número de series', () => {
+  it('manda el número de series aunque la otra parte mueva más kilos', () => {
     const days = weeklyBodyPartCalendar(
       [
-        entry(THURSDAY, 'chest', set(0, 20)),
+        entry(THURSDAY, 'legs', set(140_000, 5)),
         entry(THURSDAY, 'core', set(0, 20)),
         entry(THURSDAY, 'core', set(0, 20)),
       ],
       NOW,
     );
 
-    expect(days[3]?.bodyPart).toBe('core');
-    expect(days[3]?.volumeGrams).toBe(0);
+    expect(partsOf(days[3])).toEqual(['core', 'legs']);
+    expect(days[3]?.volumeGrams).toBe(700_000);
     expect(days[3]?.setCount).toBe(3);
   });
 
-  it('el empate perfecto se rompe siempre igual, para que la etiqueta no baile', () => {
+  it('el empate perfecto se rompe siempre igual, para que el orden no baile', () => {
     const first = weeklyBodyPartCalendar(
       [entry(THURSDAY, 'legs', set(50_000, 10)), entry(THURSDAY, 'back', set(50_000, 10))],
       NOW,
@@ -164,15 +174,15 @@ describe('weeklyBodyPartCalendar', () => {
       NOW,
     );
 
-    expect(first[3]?.bodyPart).toBe('back');
-    expect(reversed[3]?.bodyPart).toBe('back');
+    expect(partsOf(first[3])).toEqual(['back', 'legs']);
+    expect(partsOf(reversed[3])).toEqual(['back', 'legs']);
   });
 
   it('un día de solo calentamiento cuenta como entrenado y no suma volumen', () => {
     const days = weeklyBodyPartCalendar([entry(THURSDAY, 'chest', set(40_000, 10, true))], NOW);
 
     expect(days[3]?.trained).toBe(true);
-    expect(days[3]?.bodyPart).toBeNull();
+    expect(days[3]?.bodyParts).toEqual([]);
     expect(days[3]?.volumeGrams).toBe(0);
     expect(days[3]?.setCount).toBe(0);
   });
@@ -184,12 +194,12 @@ describe('weeklyBodyPartCalendar', () => {
     );
 
     expect(days[3]?.trained).toBe(true);
-    expect(days[3]?.bodyPart).toBe('cardio');
+    expect(days[3]?.bodyParts).toEqual([{ bodyPart: 'cardio', setCount: 2, volumeGrams: 0 }]);
     expect(days[3]?.volumeGrams).toBe(0);
     expect(days[3]?.setCount).toBe(2);
   });
 
-  it('el cardio del final no le quita la etiqueta a la parte que movió peso', () => {
+  it('el cardio del final sale junto a la parte que movió peso, no en su lugar', () => {
     const days = weeklyBodyPartCalendar(
       [
         entry(THURSDAY, 'legs', set(100_000, 5)),
@@ -199,7 +209,7 @@ describe('weeklyBodyPartCalendar', () => {
       NOW,
     );
 
-    expect(days[3]?.bodyPart).toBe('legs');
+    expect(partsOf(days[3])).toEqual(['cardio', 'legs']);
     expect(days[3]?.volumeGrams).toBe(500_000);
     expect(days[3]?.setCount).toBe(3);
   });
@@ -208,7 +218,7 @@ describe('weeklyBodyPartCalendar', () => {
     const days = weeklyBodyPartCalendar([entry(THURSDAY, 'cardio', cardio(true))], NOW);
 
     expect(days[3]?.trained).toBe(true);
-    expect(days[3]?.bodyPart).toBeNull();
+    expect(days[3]?.bodyParts).toEqual([]);
     expect(days[3]?.setCount).toBe(0);
   });
 
@@ -223,5 +233,15 @@ describe('weeklyBodyPartCalendar', () => {
     );
 
     expect(days.every((day) => !day.trained)).toBe(true);
+  });
+});
+
+describe('bodyPartLoadLevel', () => {
+  it('sin series efectivas no hay nivel: la zona no se enciende', () => {
+    expect(bodyPartLoadLevel(0)).toBeNull();
+  });
+
+  it('sube por escalones fijos de series, para comparar un día con otro', () => {
+    expect([1, 3, 4, 6, 7, 9, 10, 25].map(bodyPartLoadLevel)).toEqual([1, 1, 2, 2, 3, 3, 4, 4]);
   });
 });

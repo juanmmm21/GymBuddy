@@ -189,6 +189,7 @@ export {
   progressionPointSchema,
   stalledExerciseSchema,
   trainingSignalsSchema,
+  weeklyCalendarBodyPartSchema,
   weeklyCalendarDaySchema,
   weeklyCalendarSchema,
 } from './stats';
@@ -198,6 +199,7 @@ export type {
   StalledExercise,
   TrainingSignals,
   WeeklyCalendar,
+  WeeklyCalendarBodyPart,
   WeeklyCalendarDay,
 } from './stats';
 export {

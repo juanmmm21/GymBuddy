@@ -106,11 +106,19 @@ export {
   DAYS_PER_WEEK,
   dayIndexOf,
   isoDateOfDay,
+  BODY_PART_LOAD_LEVEL_MIN_SETS,
+  bodyPartLoadLevel,
   weekIndexOf,
   weekStartDayIndex,
   weeklyBodyPartCalendar,
 } from './week';
-export type { CardioWeekSet, WeekDaySummary, WeekSetEntry } from './week';
+export type {
+  BodyPartLoadLevel,
+  CardioWeekSet,
+  WeekBodyPartLoad,
+  WeekDaySummary,
+  WeekSetEntry,
+} from './week';
 export {
   MAX_IMPORT_EXERCISES_PER_BATCH,
   MAX_IMPORT_ROUTINES_PER_BATCH,

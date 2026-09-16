@@ -42,9 +42,20 @@ export interface CardioWeekSet {
 }
 
 /**
+ * Lo que trabajó una parte del cuerpo en un día. Solo aparecen partes con alguna serie efectiva:
+ * un calentamiento suelto no es trabajo hecho en ninguna otra cuenta del dominio.
+ */
+export interface WeekBodyPartLoad {
+  readonly bodyPart: BodyPart;
+  /** Series efectivas: la medida con la que se oscurece la zona en la silueta. */
+  readonly setCount: number;
+  readonly volumeGrams: number;
+}
+
+/**
  * Un día de la semana en curso, ya resuelto a lo que se pinta. `trained` no se deduce del
  * volumen: un día de calistenia mueve cero gramos y sigue siendo un día de entrenamiento,
- * y un día entero de ejercicios propios sin clasificar tiene `bodyPart` nulo sin estar vacío.
+ * y un día entero de ejercicios propios sin clasificar no tiene partes y sí entrenó.
  */
 export interface WeekDaySummary {
   /** 0 es lunes y 6 domingo, que es el orden en el que se pinta la fila. */
@@ -52,22 +63,47 @@ export interface WeekDaySummary {
   /** El día en `YYYY-MM-DD` UTC: sirve de clave y de "hoy" sin volver a calcular nada. */
   readonly date: string;
   readonly trained: boolean;
-  /** La parte del cuerpo con más volumen del día, o `null` si no hay ninguna clasificable. */
-  readonly bodyPart: BodyPart | null;
-  /** Volumen efectivo del día entero, no solo el de la parte dominante. */
+  /**
+   * Todas las partes del cuerpo que trabajaron, de la que más a la que menos (ver
+   * `comparesLoad`). Vacío si no hubo ninguna clasificable.
+   */
+  readonly bodyParts: readonly WeekBodyPartLoad[];
+  /** Volumen efectivo del día entero, sumando lo que no se pudo clasificar. */
   readonly volumeGrams: number;
   /** Series efectivas del día entero. El calentamiento no cuenta, igual que en el volumen. */
   readonly setCount: number;
 }
 
-interface BodyPartTotals {
-  readonly volumeGrams: number;
-  readonly setCount: number;
+/**
+ * Lo oscura que sale una zona de la silueta: de 1 (poco) a 4 (mucho). Son escalones fijos de
+ * series y no relativos al día, para que el lunes y el jueves se puedan comparar entre sí.
+ */
+export type BodyPartLoadLevel = 1 | 2 | 3 | 4;
+
+/**
+ * Series efectivas desde las que empieza cada nivel. Tres series de un grupo es un toque; diez o
+ * más, un día dedicado a él. Se cuentan series y no kilos: los kilos premian siempre a la pierna y
+ * dan cero en peso corporal y en cardio.
+ */
+export const BODY_PART_LOAD_LEVEL_MIN_SETS: Readonly<Record<BodyPartLoadLevel, number>> = {
+  1: 1,
+  2: 4,
+  3: 7,
+  4: 10,
+};
+
+/** El nivel de una parte según sus series efectivas, o `null` si no hizo ninguna. */
+export function bodyPartLoadLevel(setCount: number): BodyPartLoadLevel | null {
+  if (setCount >= BODY_PART_LOAD_LEVEL_MIN_SETS[4]) return 4;
+  if (setCount >= BODY_PART_LOAD_LEVEL_MIN_SETS[3]) return 3;
+  if (setCount >= BODY_PART_LOAD_LEVEL_MIN_SETS[2]) return 2;
+  if (setCount >= BODY_PART_LOAD_LEVEL_MIN_SETS[1]) return 1;
+  return null;
 }
 
 /**
- * Los siete días de la semana en la que cae `now`, cada uno con su parte del cuerpo
- * dominante. Devuelve siempre siete elementos: los días sin entrenar son parte del dibujo,
+ * Los siete días de la semana en la que cae `now`, cada uno con lo que trabajó cada parte
+ * del cuerpo. Devuelve siempre siete elementos: los días sin entrenar son parte del dibujo,
  * y un hueco que la pantalla tuviera que rellenar sería la misma lógica escrita dos veces.
  *
  * Las entradas de otra semana se descartan aquí aunque el Worker ya filtre: la función es
@@ -147,12 +183,12 @@ function summarizeDay(
   const date = isoDateOfDay(absoluteDay);
 
   if (setsByBodyPart === undefined) {
-    return { dayIndex, date, trained, bodyPart: null, volumeGrams: 0, setCount: 0 };
+    return { dayIndex, date, trained, bodyParts: [], volumeGrams: 0, setCount: 0 };
   }
 
   let volumeGrams = 0;
   let setCount = 0;
-  const totals = new Map<BodyPart, BodyPartTotals>();
+  const bodyParts: WeekBodyPartLoad[] = [];
 
   for (const [bodyPart, sets] of setsByBodyPart) {
     const strength = sets.filter((set): set is ProgressionSet => !('kind' in set));
@@ -163,48 +199,26 @@ function summarizeDay(
     volumeGrams += volume;
     setCount += count;
 
-    // Dos cosas suman al día sin competir por la etiqueta: lo que no se puede clasificar
-    // —inventarle una parte del cuerpo sería peor que dejar el día sin nombre— y lo que
-    // solo tuvo calentamiento, que no es trabajo hecho en ninguna otra cuenta del dominio.
+    // Dos cosas suman al día sin salir en la silueta: lo que no se puede clasificar
+    // —inventarle una parte del cuerpo sería peor que no marcar nada— y lo que solo tuvo
+    // calentamiento, que no es trabajo hecho en ninguna otra cuenta del dominio.
     if (bodyPart !== null && count > 0) {
-      totals.set(bodyPart, { volumeGrams: volume, setCount: count });
+      bodyParts.push({ bodyPart, setCount: count, volumeGrams: volume });
     }
   }
 
-  return { dayIndex, date, trained, bodyPart: dominantBodyPart(totals), volumeGrams, setCount };
+  bodyParts.sort(comparesLoad);
+
+  return { dayIndex, date, trained, bodyParts, volumeGrams, setCount };
 }
 
 /**
- * La parte del cuerpo del día. Manda el volumen; si empata —y empata siempre en un día de
- * peso corporal o de solo cardio, donde todo vale cero— decide el número de series, y el orden alfabético
- * rompe el último empate para que la etiqueta no baile entre dos consultas iguales.
+ * El orden de las partes de un día: primero la de más series, que es la que sale más oscura; si
+ * empatan, la de más volumen, y el orden alfabético rompe el último empate para que la lista no
+ * baile entre dos consultas iguales.
  */
-function dominantBodyPart(totals: ReadonlyMap<BodyPart, BodyPartTotals>): BodyPart | null {
-  let best: BodyPart | null = null;
-  let bestTotals: BodyPartTotals | null = null;
-
-  for (const [bodyPart, candidate] of totals) {
-    if (bestTotals === null || comparesDominant(bodyPart, candidate, best, bestTotals)) {
-      best = bodyPart;
-      bestTotals = candidate;
-    }
-  }
-
-  return best;
-}
-
-function comparesDominant(
-  candidate: BodyPart,
-  candidateTotals: BodyPartTotals,
-  best: BodyPart | null,
-  bestTotals: BodyPartTotals,
-): boolean {
-  if (candidateTotals.volumeGrams !== bestTotals.volumeGrams) {
-    return candidateTotals.volumeGrams > bestTotals.volumeGrams;
-  }
-  if (candidateTotals.setCount !== bestTotals.setCount) {
-    return candidateTotals.setCount > bestTotals.setCount;
-  }
-
-  return best === null || candidate < best;
+function comparesLoad(a: WeekBodyPartLoad, b: WeekBodyPartLoad): number {
+  if (a.setCount !== b.setCount) return b.setCount - a.setCount;
+  if (a.volumeGrams !== b.volumeGrams) return b.volumeGrams - a.volumeGrams;
+  return a.bodyPart < b.bodyPart ? -1 : a.bodyPart > b.bodyPart ? 1 : 0;
 }

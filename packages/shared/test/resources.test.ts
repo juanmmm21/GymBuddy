@@ -711,13 +711,22 @@ describe('calendario de la semana', () => {
     dayIndex,
     date,
     trained: false,
-    bodyPart: null,
+    bodyParts: [],
     volume: '0.00',
     setCount: 0,
   });
 
   const week = [
-    { ...day(0, '2026-09-07'), trained: true, bodyPart: 'chest', volume: '1320.00', setCount: 4 },
+    {
+      ...day(0, '2026-09-07'),
+      trained: true,
+      bodyParts: [
+        { bodyPart: 'chest', setCount: 3, volume: '1120.00' },
+        { bodyPart: 'arms', setCount: 1, volume: '200.00' },
+      ],
+      volume: '1320.00',
+      setCount: 4,
+    },
     day(1, '2026-09-08'),
     day(2, '2026-09-09'),
     { ...day(3, '2026-09-10'), trained: true },
@@ -746,11 +755,38 @@ describe('calendario de la semana', () => {
     expect(parsed.success).toBe(false);
   });
 
-  it('la etiqueta del día es una parte del cuerpo, no un músculo', () => {
+  it('cada zona del día es una parte del cuerpo, no un músculo', () => {
     const parsed = weeklyCalendarSchema.safeParse({
       generatedAt: '2026-09-10T18:00:00.000Z',
       weekStart: '2026-09-07',
-      days: [{ ...week[0], bodyPart: 'pectorals' }, ...week.slice(1)],
+      days: [
+        { ...week[0], bodyParts: [{ bodyPart: 'pectorals', setCount: 3, volume: '1120.00' }] },
+        ...week.slice(1),
+      ],
+    });
+
+    expect(parsed.success).toBe(false);
+  });
+
+  it('una parte del cuerpo no sale dos veces en el mismo día', () => {
+    const chest = { bodyPart: 'chest', setCount: 2, volume: '560.00' };
+    const parsed = weeklyCalendarSchema.safeParse({
+      generatedAt: '2026-09-10T18:00:00.000Z',
+      weekStart: '2026-09-07',
+      days: [{ ...week[0], bodyParts: [chest, chest] }, ...week.slice(1)],
+    });
+
+    expect(parsed.success).toBe(false);
+  });
+
+  it('una parte sin series efectivas no se lista: no hay zona que encender', () => {
+    const parsed = weeklyCalendarSchema.safeParse({
+      generatedAt: '2026-09-10T18:00:00.000Z',
+      weekStart: '2026-09-07',
+      days: [
+        { ...week[0], bodyParts: [{ bodyPart: 'chest', setCount: 0, volume: '0.00' }] },
+        ...week.slice(1),
+      ],
     });
 
     expect(parsed.success).toBe(false);
