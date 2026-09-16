@@ -25,14 +25,14 @@
   min-width: 0;
 }
 
-/* Cada día es un botón cuadrado que se toca con el pulgar para ver su detalle debajo. */
+/* Cada día es un botón alto, con la forma de la silueta, que se toca con el pulgar para ver su detalle debajo. */
 .mark {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
   max-width: var(--gb-size-control-height);
-  aspect-ratio: 1;
+  aspect-ratio: 3 / 4;
   padding: 0;
   border: var(--gb-size-border-width) solid transparent;
   border-radius: var(--gb-radius-sm);
@@ -62,9 +62,9 @@
   border-color: var(--gb-color-border-strong);
 }
 
-.icon {
-  width: 60%;
-  height: 60%;
+.figure {
+  width: 78%;
+  height: 86%;
 }
 
 .restDash {

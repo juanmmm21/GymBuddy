@@ -1,0 +1,38 @@
+/* Todas las zonas van del color del botón del día; solo cambia lo opacas que salen. */
+.rest,
+.level1,
+.level2,
+.level3,
+.level4 {
+  fill: currentColor;
+}
+
+.rest {
+  opacity: var(--gb-opacity-body-map-rest);
+}
+
+.level1 {
+  opacity: var(--gb-opacity-body-map-level1);
+}
+
+.level2 {
+  opacity: var(--gb-opacity-body-map-level2);
+}
+
+.level3 {
+  opacity: var(--gb-opacity-body-map-level3);
+}
+
+.level4 {
+  opacity: var(--gb-opacity-body-map-level4);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rest,
+  .level1,
+  .level2,
+  .level3,
+  .level4 {
+    transition: opacity var(--gb-duration-base) var(--gb-ease-standard);
+  }
+}

@@ -10,8 +10,8 @@ import { AsyncContent } from '../../components/async-content/AsyncContent';
 import { Surface } from '../../components/index';
 import { cx } from '../../lib/cx';
 import { formatVolumeLabel, pluralize } from '../../lib/format';
-import { BODY_PART_LABELS } from '../catalog/labels';
-import { BodyPartIcon } from './body-part-icons';
+import { BodyMap } from './BodyMap';
+import { bodyPartBreakdown, bodyPartNames } from './body-map';
 import styles from './WeekCalendar.module.css';
 import { UNCLASSIFIED_DAY_LABEL, WEEKDAY_INITIALS, WEEKDAY_NAMES } from './labels';
 
@@ -20,9 +20,10 @@ export interface WeekCalendarProps {
 }
 
 /**
- * La semana en curso de un vistazo (opción B que eligió Juan el 2026-09-14): cada día entrenado
- * lleva el dibujo de la parte del cuerpo con más volumen, sin texto que recortar en una columna de
- * un séptimo del ancho. El nombre entero sale debajo, del día que se toque o de hoy.
+ * La semana en curso de un vistazo: cada día entrenado lleva una silueta con todas las partes del
+ * cuerpo que trabajó, más oscuras cuanto más series tuvieron (opción B de la maqueta, elegida por
+ * Juan el 2026-09-16), sin texto que recortar en una columna de un séptimo del ancho. Lo que fue
+ * cada parte sale debajo, del día que se toque o de hoy.
  */
 export function WeekCalendar({ locale }: WeekCalendarProps) {
   const week = useWeeklyCalendar();
@@ -100,7 +101,7 @@ function DayCell({ day, isToday, isSelected, onSelect }: DayCellProps) {
         onClick={onSelect}
       >
         {day.trained ? (
-          <BodyPartIcon bodyPart={day.bodyPart} className={styles.icon} />
+          <BodyMap loads={day.bodyParts} className={styles.figure} />
         ) : (
           <span className={styles.restDash} aria-hidden="true" />
         )}
@@ -112,19 +113,27 @@ function DayCell({ day, isToday, isSelected, onSelect }: DayCellProps) {
   );
 }
 
-/** El nombre de lo entrenado, o que fue descanso. */
+/** Las partes entrenadas, o que fue descanso. */
 function dayLabel(day: WeeklyCalendarDay): string {
   if (!day.trained) return 'descanso';
 
-  return day.bodyPart === null ? UNCLASSIFIED_DAY_LABEL : BODY_PART_LABELS[day.bodyPart];
+  return day.bodyParts.length === 0 ? UNCLASSIFIED_DAY_LABEL : bodyPartNames(day.bodyParts);
 }
 
-/** El detalle del día elegido, entero: aquí sí hay ancho para el nombre, las series y el volumen. */
+/**
+ * El detalle del día elegido, entero: aquí sí hay ancho para las series de cada parte —lo que la
+ * silueta dice con lo oscuro—, el total y el volumen.
+ */
 export function describeDay(day: WeeklyCalendarDay, locale: Locale): string {
   if (!day.trained) return 'Descanso';
 
-  const series = pluralize(day.setCount, 'serie', 'series');
+  const parts =
+    day.bodyParts.length === 0 ? UNCLASSIFIED_DAY_LABEL : bodyPartBreakdown(day.bodyParts);
   const volume = formatVolumeLabel(parseVolumeKilogramsToGrams(day.volume), locale);
 
-  return `${dayLabel(day)} · ${series} · ${volume}`;
+  // Con una sola parte clasificada y nada más, su cuenta ya es el total: no se repite.
+  const onlyPart = day.bodyParts.length === 1 && day.bodyParts[0]?.setCount === day.setCount;
+  const total = onlyPart ? '' : ` · ${pluralize(day.setCount, 'serie', 'series')}`;
+
+  return `${parts}${total} · ${volume}`;
 }

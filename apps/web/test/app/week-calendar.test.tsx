@@ -17,13 +17,13 @@ const serveWeek = (fake: FakeFetch): void => {
 };
 
 describe('mini calendario de la semana', () => {
-  it('pinta los siete días con un botón que dice lo entrenado, sin texto recortado en la columna', async () => {
+  it('pinta los siete días con un botón que dice todas las partes entrenadas, sin texto recortado en la columna', async () => {
     renderApp({ path: '/', session, setup: serveWeek });
 
     const buttons = within(await weekRow()).getAllByRole('button');
 
     expect(buttons.map((button) => button.getAttribute('aria-label'))).toEqual([
-      'Lunes: Pecho',
+      'Lunes: Pecho y Brazos',
       'Martes: descanso',
       // Entrenó, pero fueron ejercicios propios sin clasificar: no se le inventa una parte.
       'Miércoles: Otro',
@@ -55,18 +55,43 @@ describe('mini calendario de la semana', () => {
     );
   });
 
-  it('tocar un día enseña su detalle entero debajo: parte del cuerpo, series y volumen', async () => {
+  it('tocar un día enseña su detalle entero debajo: las series de cada parte, el total y el volumen', async () => {
     const user = userEvent.setup();
     renderApp({ path: '/', session, setup: serveWeek });
 
-    await user.click(await screen.findByRole('button', { name: 'Lunes: Pecho' }));
+    await user.click(await screen.findByRole('button', { name: 'Lunes: Pecho y Brazos' }));
 
     expect(screen.getByText('Lunes')).toBeInTheDocument();
-    expect(screen.getByText(/· Pecho · 3 series · 1480 kg$/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Lunes: Pecho' })).toHaveAttribute(
+    expect(
+      screen.getByText(/· Pecho 8 series, Brazos 2 series · 10 series · 1480 kg$/),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Lunes: Pecho y Brazos' })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
+  });
+
+  it('la silueta del día oscurece cada zona según sus series y deja el resto en reposo', async () => {
+    renderApp({ path: '/', session, setup: serveWeek });
+
+    const monday = await screen.findByRole('button', { name: 'Lunes: Pecho y Brazos' });
+    const levelOf = (zone: string): string | null | undefined =>
+      monday.querySelector(`[data-zone="${zone}"]`)?.getAttribute('data-level');
+
+    // Ocho series de pecho son el tercer escalón; dos de brazos, el primero.
+    expect(levelOf('chest')).toBe('3');
+    expect(levelOf('arms')).toBe('1');
+    expect(levelOf('legs')).toBe('0');
+    // Sin cardio no hay corazón.
+    expect(monday.querySelector('[data-zone="cardio"]')).toBeNull();
+
+    // Un día de ejercicios propios sin clasificar entrenó: silueta entera en reposo.
+    const wednesday = screen.getByRole('button', { name: 'Miércoles: Otro' });
+    expect(
+      [...wednesday.querySelectorAll('[data-zone]')].every(
+        (zone) => zone.getAttribute('data-level') === '0',
+      ),
+    ).toBe(true);
   });
 
   it('si la semana falla, el resto de Hoy sigue en pie', async () => {

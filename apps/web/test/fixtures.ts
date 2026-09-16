@@ -95,8 +95,8 @@ export const signals: TrainingSignals = {
 };
 
 /**
- * La semana de las señales: lunes 7 con pecho, miércoles 9 sin clasificar y jueves 10 —el
- * día de `generatedAt`— todavía sin entrenar.
+ * La semana de las señales: lunes 7 con pecho y brazos, miércoles 9 sin clasificar y jueves 10
+ * —el día de `generatedAt`— todavía sin entrenar.
  */
 export const weeklyCalendar: WeeklyCalendar = {
   generatedAt: '2026-09-10T12:00:00.000Z',
@@ -106,15 +106,18 @@ export const weeklyCalendar: WeeklyCalendar = {
       dayIndex: 0,
       date: '2026-09-07',
       trained: true,
-      bodyPart: 'chest',
+      bodyParts: [
+        { bodyPart: 'chest', setCount: 8, volume: '1280.00' },
+        { bodyPart: 'arms', setCount: 2, volume: '200.00' },
+      ],
       volume: '1480.00',
-      setCount: 3,
+      setCount: 10,
     },
     {
       dayIndex: 1,
       date: '2026-09-08',
       trained: false,
-      bodyPart: null,
+      bodyParts: [],
       volume: '0.00',
       setCount: 0,
     },
@@ -122,7 +125,7 @@ export const weeklyCalendar: WeeklyCalendar = {
       dayIndex: 2,
       date: '2026-09-09',
       trained: true,
-      bodyPart: null,
+      bodyParts: [],
       volume: '240.00',
       setCount: 2,
     },
@@ -130,7 +133,7 @@ export const weeklyCalendar: WeeklyCalendar = {
       dayIndex: 3,
       date: '2026-09-10',
       trained: false,
-      bodyPart: null,
+      bodyParts: [],
       volume: '0.00',
       setCount: 0,
     },
@@ -138,7 +141,7 @@ export const weeklyCalendar: WeeklyCalendar = {
       dayIndex: 4,
       date: '2026-09-11',
       trained: false,
-      bodyPart: null,
+      bodyParts: [],
       volume: '0.00',
       setCount: 0,
     },
@@ -146,7 +149,7 @@ export const weeklyCalendar: WeeklyCalendar = {
       dayIndex: 5,
       date: '2026-09-12',
       trained: false,
-      bodyPart: null,
+      bodyParts: [],
       volume: '0.00',
       setCount: 0,
     },
@@ -154,7 +157,7 @@ export const weeklyCalendar: WeeklyCalendar = {
       dayIndex: 6,
       date: '2026-09-13',
       trained: false,
-      bodyPart: null,
+      bodyParts: [],
       volume: '0.00',
       setCount: 0,
     },
