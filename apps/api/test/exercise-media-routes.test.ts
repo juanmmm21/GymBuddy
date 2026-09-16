@@ -36,7 +36,7 @@ async function bearer(userId: string): Promise<string> {
   return `Bearer ${token}`;
 }
 
-function request(path: string, init: RequestInit): Promise<Response> {
+async function request(path: string, init: RequestInit): Promise<Response> {
   return app.request(`${BASE}${path}`, init, envWithSecrets({ JWT_SECRET }));
 }
 
