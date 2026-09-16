@@ -1,0 +1,15 @@
+/* Del mismo tamaño que `ExerciseThumb`: un propio y uno del catálogo alinean igual en la lista. */
+.initials {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: var(--gb-space-xxxl);
+  height: var(--gb-space-xxxl);
+  border-radius: var(--gb-radius-sm);
+  background: var(--gb-color-surface-sunken);
+  color: var(--gb-color-text-secondary);
+  font-family: var(--gb-font-display);
+  font-stretch: var(--gb-font-width-condensed);
+  font-size: var(--gb-type-body-strong-size);
+  font-weight: var(--gb-type-title-weight);
+}

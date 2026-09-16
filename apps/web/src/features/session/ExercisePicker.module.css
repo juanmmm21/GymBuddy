@@ -1,0 +1,138 @@
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-lg);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--gb-space-md);
+}
+
+.back {
+  min-height: var(--gb-size-touch-target);
+  padding: 0 var(--gb-space-sm) 0 0;
+  border: 0;
+  background: transparent;
+  color: var(--gb-color-accent);
+  font-family: var(--gb-font-sans);
+  font-size: var(--gb-type-body-strong-size);
+  font-weight: var(--gb-type-body-strong-weight);
+  cursor: pointer;
+}
+
+.heading {
+  font-family: var(--gb-font-display);
+  font-stretch: var(--gb-font-width-condensed);
+  font-size: var(--gb-type-title-size);
+  font-weight: var(--gb-type-title-weight);
+  line-height: var(--gb-type-title-line);
+}
+
+/* Los chips se deslizan en horizontal: siete partes del cuerpo no caben en un móvil. */
+.chips {
+  display: flex;
+  gap: var(--gb-space-sm);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.chip {
+  flex-shrink: 0;
+  min-height: var(--gb-size-touch-target);
+  padding: 0 var(--gb-space-lg);
+  border: var(--gb-size-border-width) solid var(--gb-color-border-strong);
+  border-radius: var(--gb-radius-pill);
+  background: transparent;
+  color: var(--gb-color-text-secondary);
+  font-family: var(--gb-font-sans);
+  font-size: var(--gb-type-caption-size);
+  font-weight: var(--gb-type-body-strong-weight);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.chipPressed {
+  border-color: var(--gb-color-text);
+  background: var(--gb-color-text);
+  color: var(--gb-color-canvas);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-xs);
+}
+
+.sectionTitle {
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-label-size);
+  font-weight: var(--gb-type-label-weight);
+  line-height: var(--gb-type-label-line);
+  letter-spacing: var(--gb-type-label-tracking);
+  text-transform: uppercase;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-xxs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--gb-space-md);
+  width: 100%;
+  min-height: var(--gb-size-touch-target);
+  padding: var(--gb-space-xs);
+  border: 0;
+  border-radius: var(--gb-radius-md);
+  background: transparent;
+  color: var(--gb-color-text);
+  font-family: var(--gb-font-sans);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--gb-duration-fast) var(--gb-ease-standard);
+}
+
+.row:focus-visible,
+.chip:focus-visible,
+.back:focus-visible {
+  outline: var(--gb-size-focus-ring-width) solid var(--gb-color-focus-ring);
+  outline-offset: var(--gb-space-xxs);
+}
+
+.rowSelected {
+  background: var(--gb-color-accent-soft);
+}
+
+.rowSelected .name {
+  color: var(--gb-color-accent-strong);
+}
+
+.text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-xxs);
+  min-width: 0;
+}
+
+.name {
+  font-size: var(--gb-type-body-strong-size);
+  font-weight: var(--gb-type-body-strong-weight);
+  line-height: var(--gb-type-body-strong-line);
+  overflow-wrap: anywhere;
+}
+
+.detail {
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-caption-size);
+  line-height: var(--gb-type-caption-line);
+  font-variant-numeric: tabular-nums;
+}
