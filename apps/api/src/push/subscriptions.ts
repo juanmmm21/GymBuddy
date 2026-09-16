@@ -1,8 +1,8 @@
-import { p256PublicKeySchema, type PushSubscriptionRequest } from '@gymbuddy/shared';
+import type { PushSubscriptionRequest } from '@gymbuddy/shared';
 import { and, eq, sql } from 'drizzle-orm';
 import type { Database } from '../db/client';
-import { pushSubscription } from '../db/schema';
-import { readSecret } from '../http/env';
+import { pushSubscription, type PushSubscriptionRow } from '../db/schema';
+import { readVapidKeys } from './web-push';
 
 /**
  * Cuántos navegadores de una cuenta reciben el aviso. Un móvil que reinstala la app o borra sus
@@ -16,18 +16,15 @@ export const MAX_PUSH_SUBSCRIPTIONS_PER_USER = 10;
  * solo la pública, el navegador se suscribiría a unos avisos que nadie podría mandar.
  */
 export function readVapidPublicKey(env: Env): string | null {
-  const publicKey = readSecret(env, 'VAPID_PUBLIC_KEY');
-  const privateKey = readSecret(env, 'VAPID_PRIVATE_KEY');
-  if (publicKey === undefined || privateKey === undefined) return null;
+  return readVapidKeys(env)?.publicKey ?? null;
+}
 
-  if (!p256PublicKeySchema.safeParse(publicKey).success) {
-    // Una clave mal copiada al ponerla con `wrangler secret` no es culpa de quien pregunta: se
-    // registra como fallo de despliegue y la PWA ve el aviso como no disponible.
-    console.error('VAPID_PUBLIC_KEY no es una clave P-256 en base64url: el aviso queda apagado');
-    return null;
-  }
-
-  return publicKey;
+/** Las suscripciones vivas de una cuenta: a todas se les manda el aviso. */
+export async function listPushSubscriptions(
+  db: Database,
+  userId: string,
+): Promise<readonly PushSubscriptionRow[]> {
+  return db.select().from(pushSubscription).where(eq(pushSubscription.userId, userId));
 }
 
 /**
