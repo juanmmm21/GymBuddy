@@ -49,10 +49,23 @@ interface RecordedPush {
   readonly headers: Headers;
 }
 
-/** Un servicio de push falso: responde por endpoint y apunta lo que le llega. Nada toca la red. */
+/**
+ * Un servicio de push falso: responde por endpoint y apunta lo que le llega. Nada toca la red.
+ *
+ * Imita también la comprobación del `fetch` de Workers, que lanza «Illegal invocation» si se llama
+ * como método de otro objeto (`options.fetchImpl(...)`). Un falso sin ella dejó pasar a producción
+ * una alarma que sonaba y nunca mandaba el aviso.
+ */
 function fakePushService(statusByEndpoint: Record<string, number | 'throw'>) {
   const received: RecordedPush[] = [];
-  const fetchImpl = vi.fn((input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+  const fetchImpl = vi.fn(function (
+    this: unknown,
+    input: RequestInfo | URL,
+    init?: RequestInit,
+  ): Promise<Response> {
+    if (this !== undefined && this !== globalThis) {
+      throw new TypeError('Illegal invocation: function called with incorrect `this` reference');
+    }
     const url = input instanceof Request ? input.url : String(input);
     received.push({ url, headers: new Headers(init?.headers) });
     const status = statusByEndpoint[url] ?? 201;
