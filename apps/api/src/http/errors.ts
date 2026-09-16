@@ -18,6 +18,10 @@ export const httpStatusByErrorCode: Record<ApiErrorCode, ContentfulStatusCode> =
   session_closed: 409,
   conflicting_write: 409,
   import_conflict: 409,
+  media_too_large: 413,
+  // 507 (Insufficient Storage): la petición es buena, pero no queda sitio dentro del gratuito.
+  media_quota_exceeded: 507,
+  media_not_allowed: 409,
   internal_error: 500,
 };
 

@@ -102,6 +102,17 @@ export {
 } from './user';
 export type { UpdateUserRequest, User } from './user';
 export {
+  EXERCISE_MEDIA_CONTENT_TYPES,
+  EXERCISE_MEDIA_MAX_BYTES,
+  EXERCISE_PHOTO_JPEG_QUALITY,
+  EXERCISE_PHOTO_MAX_EDGE_PIXELS,
+  exerciseMediaKindForContentType,
+  exerciseMediaKindSchema,
+  exerciseMediaPath,
+  exerciseMediaSchema,
+} from './media';
+export type { ExerciseMedia, ExerciseMediaKind } from './media';
+export {
   createTrackedExerciseRequestSchema,
   trackedExerciseNameSchema,
   trackedExerciseSchema,

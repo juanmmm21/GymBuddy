@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { isMuscleInBodyPart } from '../domain/muscles';
 import { bodyPartSchema, muscleSchema } from './catalog';
 import { isoDatetimeSchema, resourceIdSchema, weightKilogramsSchema } from './common';
+import { exerciseMediaSchema } from './media';
 import { cardioDistanceMetersSchema, cardioDurationSecondsSchema } from './session';
 
 /**
@@ -77,6 +78,11 @@ export const trackedExerciseSchema = z.object({
   lastSet: lastSetSchema.nullable(),
   // Nula por defecto: la instantánea del dispositivo guarda ejercicios leídos antes de que existiera.
   lastCardioSet: lastCardioSetSchema.nullable().default(null),
+  /**
+   * La foto de la técnica, solo en ejercicios propios. Nula por defecto: la instantánea del
+   * dispositivo guarda ejercicios leídos antes de que existiera.
+   */
+  media: exerciseMediaSchema.nullable().default(null),
   createdAt: isoDatetimeSchema,
   archivedAt: isoDatetimeSchema.nullable(),
 });

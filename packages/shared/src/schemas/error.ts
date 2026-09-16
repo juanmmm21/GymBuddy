@@ -40,6 +40,13 @@ export const apiErrorCodeSchema = z.enum([
   // Importarlo exigiría fusionar dos historiales, así que no se escribe nada de esa petición; el
   // `detail` lleva los `catalogIds` que chocan.
   'import_conflict',
+  // El fichero pasa del tope de su clase (una foto ya re-codificada no llega): no se guarda.
+  'media_too_large',
+  // Guardarlo sacaría la cuenta de Cloudflare del gratuito de R2 (espacio total o subidas del mes).
+  // Juan no quiere pagar: el Worker se niega antes de que R2 cobre nada.
+  'media_quota_exceeded',
+  // Solo los ejercicios propios llevan foto: los del catálogo ya traen su GIF.
+  'media_not_allowed',
   'internal_error',
 ]);
 
