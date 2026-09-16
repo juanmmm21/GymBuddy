@@ -90,6 +90,9 @@ export async function sendEmptyPush(
   target: PushTarget,
   options: EmptyPushOptions,
 ): Promise<PushDelivery> {
+  // Se saca del objeto antes de llamarlo: `options.fetchImpl(...)` llama a `fetch` con `options`
+  // como `this`, y en Workers eso lanza «Illegal invocation». Así la alarma sonaba y no mandaba nada.
+  const { fetchImpl } = options;
   try {
     const authorization = await vapidAuthorization(
       target.endpoint,
@@ -97,7 +100,7 @@ export async function sendEmptyPush(
       options.subject,
       options.now,
     );
-    const response = await options.fetchImpl(target.endpoint, {
+    const response = await fetchImpl(target.endpoint, {
       method: 'POST',
       headers: {
         authorization,
