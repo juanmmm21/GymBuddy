@@ -14,8 +14,15 @@ describe('summarizeLiveSession', () => {
     expect(summary.lastSet).toEqual({
       exerciseName: benchPress.name,
       equipment: 'barbell',
+      unilateral: false,
       set: firstSet,
     });
+  });
+
+  it('la última serie dice si su ejercicio es a un brazo', () => {
+    const summary = summarizeLiveSession(activeSession, [{ ...benchPress, unilateral: true }]);
+
+    expect(summary.lastSet?.unilateral).toBe(true);
   });
 
   it('la última es la de hora más reciente aunque la cola la deje antes en la lista', () => {
@@ -41,6 +48,7 @@ describe('summarizeLiveSession', () => {
     expect(summarizeLiveSession(activeSession, []).lastSet).toMatchObject({
       exerciseName: UNKNOWN_EXERCISE_NAME,
       equipment: null,
+      unilateral: false,
     });
   });
 });

@@ -11,6 +11,8 @@ export interface SessionExerciseGroup {
   readonly name: string;
   /** El del catálogo, o nulo en uno propio o en uno que no está en el listado. */
   readonly equipment: string | null;
+  /** A un brazo: sus pesos se leen «por brazo». Falso en uno que no está en el listado. */
+  readonly unilateral: boolean;
   readonly sets: readonly SetEntry[];
 }
 
@@ -48,6 +50,7 @@ export function groupSetsByExercise(
     trackedExerciseId,
     name: byId.get(trackedExerciseId)?.name ?? UNKNOWN_EXERCISE_NAME,
     equipment: byId.get(trackedExerciseId)?.equipment ?? null,
+    unilateral: byId.get(trackedExerciseId)?.unilateral ?? false,
     sets: buckets.get(trackedExerciseId) ?? [],
   }));
 }

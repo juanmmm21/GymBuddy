@@ -69,9 +69,16 @@ describe('formatDistanceLabel', () => {
 
 describe('formatSetValueLabel', () => {
   it('lee una de fuerza en kilos por repeticiones y una de cardio en tiempo y distancia', () => {
-    expect(formatSetValueLabel(strengthSet({ weight: '82.50' }), 'es')).toBe('82,5 kg × 8');
-    expect(formatSetValueLabel(cardioSet(), 'es')).toBe('30 min · 5 km');
-    expect(formatSetValueLabel(cardioSet({ distanceMeters: null }), 'es')).toBe('30 min');
+    expect(formatSetValueLabel(strengthSet({ weight: '82.50' }), 'es', false)).toBe('82,5 kg × 8');
+    expect(formatSetValueLabel(cardioSet(), 'es', false)).toBe('30 min · 5 km');
+    expect(formatSetValueLabel(cardioSet({ distanceMeters: null }), 'es', false)).toBe('30 min');
+  });
+
+  it('dice «por brazo» en una de fuerza a un brazo, y nada en una de cardio', () => {
+    expect(formatSetValueLabel(strengthSet({ weight: '20.00', reps: 10 }), 'es', true)).toBe(
+      '20 kg por brazo × 10',
+    );
+    expect(formatSetValueLabel(cardioSet(), 'es', true)).toBe('30 min · 5 km');
   });
 });
 
@@ -96,6 +103,7 @@ describe('el cardio en los resúmenes de la sesión', () => {
     expect(summary.lastSet).toEqual({
       exerciseName: squat.name,
       equipment: squat.equipment,
+      unilateral: false,
       set: cardioSet(),
     });
   });

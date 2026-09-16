@@ -5,6 +5,8 @@ import { UNKNOWN_EXERCISE_NAME, summarizeSession } from '../session/summary';
 export interface LiveLastSet {
   readonly exerciseName: string;
   readonly equipment: string | null;
+  /** A un brazo: el peso se lee «por brazo» y sin discos. */
+  readonly unilateral: boolean;
   /** La serie tal cual: de fuerza lleva peso y repeticiones, de cardio su duración. */
   readonly set: SetEntry;
 }
@@ -50,6 +52,7 @@ export function summarizeLiveSession(
         : {
             exerciseName: exercise?.name ?? UNKNOWN_EXERCISE_NAME,
             equipment: exercise?.equipment ?? null,
+            unilateral: exercise?.unilateral ?? false,
             set: latest,
           },
   };

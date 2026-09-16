@@ -72,6 +72,16 @@ describe('groupSetsByExercise', () => {
 
     expect(groups).toHaveLength(1);
     expect(groups[0]?.name).toBe(UNKNOWN_EXERCISE_NAME);
+    expect(groups[0]?.unilateral).toBe(false);
+  });
+
+  it('cada grupo dice si su ejercicio es a un brazo', () => {
+    const groups = groupSetsByExercise(
+      [firstBench, squatSet],
+      [{ ...benchPress, unilateral: true }, squat],
+    );
+
+    expect(groups.map((group) => group.unilateral)).toEqual([true, false]);
   });
 
   it('sin series no hay grupos', () => {
