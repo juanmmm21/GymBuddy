@@ -419,6 +419,21 @@ export function sessionNotFound(sessionId: string): ApiException {
   return new ApiException('not_found', `No existe la sesión "${sessionId}"`);
 }
 
+/** En qué punto está una sesión para quien pregunta: la ajena se ve igual que la que no existe. */
+export type SessionOpenState = 'open' | 'closed' | 'missing';
+
+/** Una sola lectura por clave primaria: lo usa el aviso de descanso, que no necesita las series. */
+export async function findSessionOpenState(
+  db: Database,
+  userId: string,
+  sessionId: string,
+): Promise<SessionOpenState> {
+  const session = await findSessionRow(db, userId, sessionId);
+  if (session === null) return 'missing';
+
+  return session.endedAt === null ? 'open' : 'closed';
+}
+
 function setNotFound(setId: string): ApiException {
   return new ApiException('not_found', `No existe la serie "${setId}" en esa sesión`);
 }

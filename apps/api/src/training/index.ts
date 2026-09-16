@@ -17,6 +17,7 @@ export {
   endWorkoutSession,
   findActiveSession,
   findSessionDetail,
+  findSessionOpenState,
   logSet,
   removeSet,
   sessionNotFound,
@@ -26,6 +27,7 @@ export {
   toWorkoutSession,
   updateSet,
 } from './sessions';
+export type { SessionOpenState } from './sessions';
 export {
   createRoutine,
   deleteRoutine,
