@@ -1,19 +1,21 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
 import { useCreateTrackedExercise } from '../../api/mutations';
-import { Button, Notice, Select, Sheet, TextField } from '../../components/index';
+import { Button, Notice, Select, Sheet, Switch, TextField } from '../../components/index';
 import { describeError } from '../../lib/errors';
 import { newResourceId } from '../../lib/ids';
 import { MAX_EXERCISE_NAME_LENGTH } from '../../lib/notes';
 import {
   bodyPartSelectOptions,
   muscleSelectOptions,
+  offersUnilateral,
   parseDraftBodyPart,
   reconcileMuscle,
   toCustomExerciseRequest,
   UNSELECTED,
   type CustomExerciseDraft,
 } from './custom-exercise';
+import { UNILATERAL_HINT } from './labels';
 import { trackedExercisePath } from './paths';
 import styles from './CreateExerciseSheet.module.css';
 
@@ -45,6 +47,7 @@ function CreateExerciseForm({ initialName }: { readonly initialName: string }) {
     name: initialName,
     bodyPart: UNSELECTED,
     muscle: UNSELECTED,
+    unilateral: false,
   });
   const create = useCreateTrackedExercise();
   const navigate = useNavigate();
@@ -101,6 +104,17 @@ function CreateExerciseForm({ initialName }: { readonly initialName: string }) {
         disabled={bodyPart === null}
         hint="Opcional."
       />
+
+      {offersUnilateral(bodyPart) && (
+        <Switch
+          label="A un brazo"
+          checked={draft.unilateral}
+          onChange={(unilateral) => {
+            setDraft((current) => ({ ...current, unilateral }));
+          }}
+          hint={UNILATERAL_HINT}
+        />
+      )}
 
       <p className={styles.note}>
         Un ejercicio propio no lleva animación; sus series, marcas y gráfica funcionan igual.

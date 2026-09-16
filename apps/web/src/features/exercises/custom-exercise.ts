@@ -23,6 +23,8 @@ export interface CustomExerciseDraft {
   readonly bodyPart: string;
   /** Un `Muscle`, o `''` para dejarlo sin concretar. */
   readonly muscle: string;
+  /** El interruptor «A un brazo». */
+  readonly unilateral: boolean;
 }
 
 /** El valor de los desplegables cuando no hay nada elegido. */
@@ -84,9 +86,18 @@ export function toCustomExerciseRequest(
     name: draft.name,
     bodyPart,
     muscle,
+    unilateral: offersUnilateral(bodyPart) && draft.unilateral,
   });
   if (!parsed.success || parsed.data.origin !== 'custom') return null;
   return parsed.data;
+}
+
+/**
+ * Si tiene sentido preguntar «A un brazo» para una parte del cuerpo. En cardio no: sus series son de
+ * tiempo y no llevan peso que repartir entre brazos. Sin parte elegida tampoco se sabe, así que no.
+ */
+export function offersUnilateral(bodyPart: BodyPart | null): boolean {
+  return bodyPart !== null && bodyPart !== 'cardio';
 }
 
 /**

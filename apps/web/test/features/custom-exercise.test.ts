@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   bodyPartSelectOptions,
   muscleSelectOptions,
+  offersUnilateral,
   reconcileMuscle,
   suggestedExerciseName,
   toCustomExerciseRequest,
@@ -52,6 +53,7 @@ describe('toCustomExerciseRequest', () => {
         name: '  Hip thrust en máquina ',
         bodyPart: 'legs',
         muscle: 'glutes',
+        unilateral: false,
       }),
     ).toEqual({
       id: EXERCISE_ID,
@@ -59,6 +61,7 @@ describe('toCustomExerciseRequest', () => {
       name: 'Hip thrust en máquina',
       bodyPart: 'legs',
       muscle: 'glutes',
+      unilateral: false,
     });
 
     expect(
@@ -66,19 +69,46 @@ describe('toCustomExerciseRequest', () => {
         name: 'Step up en polea',
         bodyPart: 'legs',
         muscle: UNSELECTED,
+        unilateral: false,
       }),
     ).toMatchObject({ bodyPart: 'legs', muscle: null });
   });
 
+  it('manda «a un brazo» si se marcó, salvo en cardio, que no lleva peso', () => {
+    expect(
+      toCustomExerciseRequest(EXERCISE_ID, {
+        name: 'Remo en polea a una mano',
+        bodyPart: 'back',
+        muscle: UNSELECTED,
+        unilateral: true,
+      }),
+    ).toMatchObject({ unilateral: true });
+
+    expect(
+      toCustomExerciseRequest(EXERCISE_ID, {
+        name: 'Remo ergómetro',
+        bodyPart: 'cardio',
+        muscle: UNSELECTED,
+        unilateral: true,
+      }),
+    ).toMatchObject({ unilateral: false });
+  });
+
   it('no arma nada sin nombre o sin parte del cuerpo', () => {
     expect(
-      toCustomExerciseRequest(EXERCISE_ID, { name: '   ', bodyPart: 'legs', muscle: UNSELECTED }),
+      toCustomExerciseRequest(EXERCISE_ID, {
+        name: '   ',
+        bodyPart: 'legs',
+        muscle: UNSELECTED,
+        unilateral: false,
+      }),
     ).toBeNull();
     expect(
       toCustomExerciseRequest(EXERCISE_ID, {
         name: 'Hip thrust',
         bodyPart: UNSELECTED,
         muscle: UNSELECTED,
+        unilateral: false,
       }),
     ).toBeNull();
   });
@@ -89,8 +119,18 @@ describe('toCustomExerciseRequest', () => {
         name: 'Hip thrust',
         bodyPart: 'chest',
         muscle: 'glutes',
+        unilateral: false,
       }),
     ).toBeNull();
+  });
+});
+
+describe('offersUnilateral', () => {
+  it('pregunta «a un brazo» en cualquier parte con peso, no en cardio ni sin parte', () => {
+    expect(offersUnilateral('back')).toBe(true);
+    expect(offersUnilateral('arms')).toBe(true);
+    expect(offersUnilateral('cardio')).toBe(false);
+    expect(offersUnilateral(null)).toBe(false);
   });
 });
 
