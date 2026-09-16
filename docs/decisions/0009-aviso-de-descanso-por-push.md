@@ -1,7 +1,7 @@
 # 0009 — El aviso de fin de descanso llega por Web Push desde el Worker
 
 **Fecha:** 2026-09-16
-**Estado:** aceptada (primera porción construida: el permiso y la suscripción)
+**Estado:** aceptada (construidas la primera porción, el permiso y la suscripción, y la segunda, la alarma y el envío en el Worker)
 
 ## Contexto
 
@@ -28,6 +28,13 @@ En el gimnasio de Juan hay **poca cobertura**. Por eso se hizo antes un Atajo de
 ## Consecuencias
 
 *   **Lo que no se puede prometer:** sin cobertura al empezar el descanso no hay aviso, porque el Worker no se entera; es justo el caso del gimnasio sin red, y para eso está el Atajo. Sin cobertura al acabar, el aviso llega tarde o no llega (se mandará con un TTL corto para que no suene a destiempo). APNs añade unos segundos. No hay sonido propio ni vibración a medida.
-*   **Todo cabe en el plan gratuito:** una fila por navegador; la alarma del Durable Object es una fila escrita por descanso; el cifrado del push hay que medirlo contra los 10 ms de CPU en la porción 2.
+*   **Todo cabe en el plan gratuito:** una fila por navegador; la alarma del Durable Object son dos escrituras por descanso (el aviso guardado y la alarma); firmar el JWT cuesta unos 0,1 ms de CPU por navegador, y no hay cifrado.
 *   **Cerrar sesión no retira la suscripción** del navegador. Los avisos solo salen de los descansos de la propia cuenta, así que un móvil del que se salió no recibe nada. Si entra otra cuenta y enciende el aviso, la fila pasa a ella.
-*   Hasta la porción 3, un push que llegara no tendría manejador en el service worker. No se manda ninguno hasta la porción 2, y la PWA lo dice debajo del interruptor encendido.
+*   Hasta la porción 3, un push que llegara no tendría manejador en el service worker, y en iOS cada push que no enseña notificación acerca a Safari a retirar la suscripción. Por eso **la PWA no programa el aviso hasta la porción 3**: el Worker ya sabe mandarlo, pero nadie se lo pide, y llamar a `PUT /push/rest-notice` llega junto con el manejador.
+
+## Revisión — 2026-09-16: la alarma y el envío (porción 2)
+
+*   **Un Durable Object por cuenta** (`RestNoticeAlarm`, con almacenamiento SQLite, el único del plan gratuito), con el id sacado del usuario: programar otra vez pisa el aviso anterior y nunca suenan dos, programe el móvil que programe. Guarda la cuenta, la sesión y el fin del descanso, y pone la alarma a esa hora.
+*   **`PUT /api/v1/push/rest-notice`** con `{sessionId, endsAt}` programa o reprograma (204). `endsAt` lo calcula la PWA, que es quien conoce el objetivo de descanso del dispositivo. La sesión tiene que ser de la cuenta (404 si no) y estar abierta (`session_closed`). Un fin a más de quince minutos (`MAX_REST_NOTICE_DELAY_SECONDS`) es `validation_failed`; uno que ya pasó quita el aviso pendiente, porque es lo que ocurre cuando la petición sale tarde por la cobertura. Sin claves VAPID no se programa nada y se responde 204 igual. **`DELETE /api/v1/push/rest-notice`** lo quita (204 idempotente).
+*   **El aviso va sin carga.** Cifrar una carga (RFC 8291) es un ECDH, un HKDF y un AES-GCM por navegador, y el texto del aviso es siempre el mismo: lo pondrá el service worker. Solo se firma el JWT ES256 de VAPID con WebCrypto, con el origen del servicio de push como audiencia, doce horas de vida y `WEBAUTHN_ORIGIN` como `sub`. Cabeceras: `TTL: 60` y `Urgency: high`.
+*   **Al sonar**, la alarma olvida el aviso **antes** de mandarlo y nunca lanza: un reintento de Cloudflare avisaría dos veces o a destiempo. No manda nada si la sesión ya no está abierta (se terminó en otro móvil o se borró), si la alarma llega más de un minuto tarde o si la cuenta no tiene suscripciones. Manda a todos los navegadores de la cuenta a la vez; los que responden 404 o 410 se retiran, y un fallo en uno no deja sin aviso a los demás.
