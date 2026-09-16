@@ -1,0 +1,65 @@
+.switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gb-space-md);
+  width: 100%;
+  min-height: var(--gb-size-touch-target);
+  padding: var(--gb-space-sm) 0;
+  border: none;
+  background: none;
+  color: var(--gb-color-text);
+  text-align: left;
+}
+
+.switch:disabled {
+  opacity: 0.55;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-xxs);
+}
+
+.label {
+  font-size: var(--gb-type-body-strong-size);
+  font-weight: var(--gb-type-body-strong-weight);
+  line-height: var(--gb-type-body-strong-line);
+}
+
+.hint {
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-caption-size);
+  line-height: var(--gb-type-caption-line);
+}
+
+/* La pista mide dos bolitas de ancho: el recorrido de la bolita es lo que sobra de una. */
+.track {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  width: var(--gb-space-xxxl);
+  height: calc(var(--gb-space-xl) + var(--gb-space-xs));
+  padding: var(--gb-space-xxs);
+  border-radius: var(--gb-radius-pill);
+  background: var(--gb-color-border-strong);
+  transition: background-color var(--gb-duration-fast) var(--gb-ease-standard);
+}
+
+.trackOn {
+  background: var(--gb-color-accent);
+}
+
+.thumb {
+  width: var(--gb-space-xl);
+  height: var(--gb-space-xl);
+  border-radius: var(--gb-radius-pill);
+  background: var(--gb-color-surface-raised);
+  box-shadow: var(--gb-shadow-raised);
+  transition: transform var(--gb-duration-fast) var(--gb-ease-standard);
+}
+
+.thumbOn {
+  transform: translateX(calc(var(--gb-space-xxxl) - var(--gb-space-xl) - var(--gb-space-xs)));
+}

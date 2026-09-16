@@ -24,6 +24,8 @@ export { Spinner } from './spinner/Spinner';
 export type { SpinnerProps, SpinnerSize } from './spinner/Spinner';
 export { Surface } from './surface/Surface';
 export type { SurfacePadding, SurfaceProps } from './surface/Surface';
+export { Switch } from './switch/Switch';
+export type { SwitchProps } from './switch/Switch';
 export { TextArea } from './text-area/TextArea';
 export type { TextAreaProps } from './text-area/TextArea';
 export { TextField } from './text-field/TextField';
