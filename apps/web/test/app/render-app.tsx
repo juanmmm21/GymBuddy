@@ -8,6 +8,7 @@ import {
 } from '../../src/auth/passkey-authenticator';
 import { SESSION_STORAGE_KEY } from '../../src/auth/session-store';
 import type { PhotoCodec } from '../../src/features/exercises/photo-compression';
+import type { VideoConverter } from '../../src/features/exercises/video-conversion';
 import type { InstallSupport } from '../../src/features/install/InstallProvider';
 import type { PushBrowser } from '../../src/features/settings/push-notices';
 import type { StorageLike } from '../../src/lib/storage';
@@ -49,6 +50,8 @@ export function renderApp(options: {
   readonly pushBrowser?: PushBrowser | null;
   /** El codificador de fotos; por defecto, ninguno, como jsdom. */
   readonly photoCodec?: PhotoCodec | null;
+  /** El conversor de vídeo; por defecto, ninguno, como jsdom. */
+  readonly videoConverter?: VideoConverter | null;
   readonly setup?: (fake: FakeFetch) => void;
 }): RenderedApp {
   const fake = createFakeFetch();
@@ -75,6 +78,7 @@ export function renderApp(options: {
       writeQueueStore={queueStore}
       pushBrowser={options.pushBrowser ?? null}
       photoCodec={options.photoCodec ?? null}
+      videoConverter={options.videoConverter ?? null}
       {...(options.install === undefined ? {} : { install: options.install })}
     />,
   );
