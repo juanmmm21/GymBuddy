@@ -1,7 +1,7 @@
 # 0010 — La foto (y después el vídeo) de la técnica se re-codifica en el móvil y se guarda en R2
 
 **Fecha:** 2026-09-16
-**Estado:** aceptada; construidas las fotos (porción 1). El vídeo y la caché sin red van en porciones siguientes.
+**Estado:** aceptada; construidas las fotos (porción 1) y la prueba de convertir vídeo en el móvil (porción 2). Guardar el vídeo y la caché sin red van en porciones siguientes.
 
 ## Contexto
 
@@ -29,3 +29,14 @@ Juan pidió poder ponerle a un ejercicio propio una foto o un vídeo de cómo se
 *   **Sin probar en un iPhone real** al construir las fotos: que Safari entregue el HEIC ya como JPEG o lo decodifique `createImageBitmap`, y el tiempo de preparar la foto.
 *   **Borrar la cuenta** se llevaría las filas en cascada, pero no los ficheros de R2. Hoy no hay forma de borrar una cuenta desde la app; si llega, tendrá que borrar antes el prefijo de la cuenta en R2.
 *   **Lo que queda:** el vídeo, empezando por una prueba de la conversión en el iPhone de Juan; y las fotos y los vídeos ya vistos guardados para verlos sin red (Juan también quiere los vídeos).
+
+## Revisión: la prueba de vídeo en el móvil (2026-09-16)
+
+Antes de construir el vídeo había que comprobar en un iPhone real lo que la investigación no podía asegurar: que decodifique un vídeo de su cámara (4K en HEVC), cuánto tarda y cuánto pesa lo que sale. Para eso hay una pantalla en Ajustes, **«Prueba de vídeo»**, que convierte un vídeo **sin subirlo** y enseña las medidas y el resultado reproducible.
+
+*   **La conversión es la definitiva, no una maqueta.** `convertVideo` (la lógica pura, con sus topes) va detrás de un puerto, `VideoConverter`, igual que las fotos con `PhotoCodec`; el del navegador usa Mediabunny sobre WebCodecs y se carga con un `import()` al elegir el vídeo. Guardar el vídeo en un ejercicio reutilizará las dos piezas.
+*   **Topes en el contrato:** lado corto a 720 px y largo a 1280 (un vídeo muy apaisado tampoco se dispara), unos 2 Mbps en H.264 y un minuto como máximo; más largo se rechaza sin intentar convertirlo. Los lados salen pares, que H.264 en 4:2:0 no admite impares.
+*   **El giro se hornea en los fotogramas** en vez de dejarlo en la metadata del MP4, y el índice va al principio del fichero para que el vídeo empiece a verse antes de bajarlo entero.
+*   **Mediabunny va fijado a una versión exacta** que ya ha pasado la espera mínima de publicación que exige pnpm: no se abre una excepción a esa política por una dependencia recién publicada.
+*   **Si la prueba sale mal** (el iPhone no decodifica el HEVC, tarda demasiado o se queda sin memoria), no se construye el vídeo así: se vuelve a decidir con Juan.
+
