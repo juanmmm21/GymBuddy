@@ -12,7 +12,16 @@ export default defineConfig({
   plugins: [
     cloudflareTest({
       wrangler: { configPath: './wrangler.toml' },
-      miniflare: { bindings: { TEST_MIGRATIONS: migrations } },
+      miniflare: {
+        bindings: {
+          TEST_MIGRATIONS: migrations,
+          // Un par VAPID sintético, solo de pruebas. La alarma del aviso de descanso es un Durable
+          // Object que lee los secretos de su propio `env`, y ahí no llega `envWithSecrets`.
+          VAPID_PUBLIC_KEY:
+            'BCZltgBrlYNek3lk5DDef_GcR7Mt19V45keKylwUMrIrosu4xn94--ID_9wnrEFE-MyrksZ61P96Ouq3Q67dsaI',
+          VAPID_PRIVATE_KEY: 'vcJz5119mQ2AHp04RTAPhdItdB7yik6qSvrQxXd7K5Y',
+        },
+      },
     }),
   ],
   test: {
