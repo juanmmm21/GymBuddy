@@ -77,3 +77,6 @@ async function scheduled(_event: ScheduledController, env: Env): Promise<void> {
 }
 
 export default { fetch: app.fetch, scheduled } satisfies ExportedHandler<Env>;
+
+// wrangler busca la clase del Durable Object entre los exports de la entrada.
+export { RestNoticeAlarm } from './push/rest-notice-alarm';

@@ -35,6 +35,16 @@ database_id = "local-development"
 # drizzle-kit escribe aquí; wrangler y el pool de tests leen de este mismo sitio.
 migrations_dir = "drizzle"
 
+# La alarma del aviso de descanso, una por cuenta (ADR 0009). Con almacenamiento SQLite, que es el
+# único que admite el plan gratuito. La migración crea la clase una vez y se hereda en producción.
+[[durable_objects.bindings]]
+name = "REST_NOTICE"
+class_name = "RestNoticeAlarm"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RestNoticeAlarm"]
+
 # La sincronización del catálogo avanza un músculo por disparo: diecinueve disparos
 # pueblan el snapshot entero. Cada cinco minutos es de sobra para un catálogo anclado a un
 # tag inmutable, y deja el gasto en 288 invocaciones al día de las 100.000 del plan gratuito.
@@ -43,7 +53,8 @@ crons = ["*/5 * * * *"]
 
 # Producción: `wrangler deploy --env production`. Va aparte para no tocar el database_id de arriba,
 # que es el de la D1 local con datos de entrenamiento. `vars` y `d1_databases` no se heredan del
-# nivel superior y por eso se repiten; `assets`, `triggers` y `observability` sí. El nombre se fija
+# nivel superior y por eso se repiten; `assets`, `triggers`, `migrations` y `observability` sí
+# (`durable_objects` tampoco se hereda). El nombre se fija
 # a mano: sin él wrangler desplegaría "gymbuddy-production" y la dirección, que es el rpID de las
 # passkeys, sería otra.
 [env.production]
@@ -58,3 +69,7 @@ binding = "DB"
 database_name = "gymbuddy"
 database_id = "2684847d-e4b7-4054-bb54-8d0290b72a48"
 migrations_dir = "drizzle"
+
+[[env.production.durable_objects.bindings]]
+name = "REST_NOTICE"
+class_name = "RestNoticeAlarm"
