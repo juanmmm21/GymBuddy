@@ -319,7 +319,11 @@ describe('series de cardio', () => {
     const trained = calendar.days.filter((day) => day.trained);
 
     expect(trained).toHaveLength(1);
-    expect(trained[0]).toMatchObject({ bodyPart: 'cardio', setCount: 2, volume: '0.00' });
+    expect(trained[0]).toMatchObject({
+      bodyParts: [{ bodyPart: 'cardio', setCount: 2, volume: '0.00' }],
+      setCount: 2,
+      volume: '0.00',
+    });
   });
 
   it('la copia exporta la serie de cardio y la importa en otra cuenta tal cual', async () => {

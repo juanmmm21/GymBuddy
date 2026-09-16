@@ -182,8 +182,8 @@ export async function getTrainingSignals(
 }
 
 /**
- * El mini calendario de la semana en curso: los siete días con la parte del cuerpo que más
- * volumen tuvo en cada uno. Va aparte de `GET /stats/signals` a propósito: las señales las
+ * El mini calendario de la semana en curso: los siete días con lo que trabajó cada parte del
+ * cuerpo en cada uno. Va aparte de `GET /stats/signals` a propósito: las señales las
  * pide también la mascota, y leer las series de la semana entera en cada una de esas
  * llamadas sería pagar por un dato que solo pinta la pantalla de Hoy.
  */
@@ -223,7 +223,11 @@ export async function getWeeklyCalendar(
       dayIndex: day.dayIndex,
       date: day.date,
       trained: day.trained,
-      bodyPart: day.bodyPart,
+      bodyParts: day.bodyParts.map((load) => ({
+        bodyPart: load.bodyPart,
+        setCount: load.setCount,
+        volume: formatGramsAsVolumeKilograms(load.volumeGrams),
+      })),
       volume: formatGramsAsVolumeKilograms(day.volumeGrams),
       setCount: day.setCount,
     })),

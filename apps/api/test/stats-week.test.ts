@@ -164,13 +164,13 @@ describe('calendario de la semana', () => {
     expect(week.weekStart).toBe(isoDateOfDay(WEEK_START_DAY));
     expect(week.days).toHaveLength(7);
     expect(week.days.every((day) => !day.trained)).toBe(true);
-    expect(week.days.every((day) => day.bodyPart === null)).toBe(true);
+    expect(week.days.every((day) => day.bodyParts.length === 0)).toBe(true);
     expect(week.days.map((day) => day.date)).toStrictEqual(
       Array.from({ length: 7 }, (_unused, index) => isoDateOfDay(WEEK_START_DAY + index)),
     );
   });
 
-  it('etiqueta el día con la parte del cuerpo de más volumen', async () => {
+  it('lista cada parte del cuerpo del día con sus series y su volumen', async () => {
     const chest = await seedExercise(userId, 'Press de banca', 'chest');
     const arms = await seedExercise(userId, 'Curl', 'arms');
 
@@ -183,7 +183,10 @@ describe('calendario de la semana', () => {
     const week = weeklyCalendarSchema.parse(await (await fetchWeek(token)).json());
 
     expect(week.days[0]?.trained).toBe(true);
-    expect(week.days[0]?.bodyPart).toBe('chest');
+    expect(week.days[0]?.bodyParts).toStrictEqual([
+      { bodyPart: 'chest', setCount: 2, volume: '1280.00' },
+      { bodyPart: 'arms', setCount: 1, volume: '200.00' },
+    ]);
     // 80 × 8 × 2 + 20 × 10 kilos.
     expect(week.days[0]?.volume).toBe('1480.00');
     expect(week.days[0]?.setCount).toBe(3);
@@ -201,8 +204,11 @@ describe('calendario de la semana', () => {
 
     const week = weeklyCalendarSchema.parse(await (await fetchWeek(token)).json());
 
-    // 20 × 10 × 2 kilos de espalda pesan más que 30 × 10 de pierna.
-    expect(week.days[2]?.bodyPart).toBe('back');
+    // 20 × 10 × 2 kilos de espalda: con las mismas series, va antes que 30 × 10 de pierna.
+    expect(week.days[2]?.bodyParts).toStrictEqual([
+      { bodyPart: 'back', setCount: 1, volume: '400.00' },
+      { bodyPart: 'legs', setCount: 1, volume: '300.00' },
+    ]);
     expect(week.days[2]?.volume).toBe('700.00');
   });
 
@@ -212,17 +218,17 @@ describe('calendario de la semana', () => {
 
     const week = weeklyCalendarSchema.parse(await (await fetchWeek(token)).json());
 
-    expect(week.days[1]?.bodyPart).toBe('legs');
+    expect(week.days[1]?.bodyParts.map((load) => load.bodyPart)).toStrictEqual(['legs']);
   });
 
-  it('un día de ejercicios propios sin clasificar cuenta como entrenado y sin etiqueta', async () => {
+  it('un día de ejercicios propios sin clasificar cuenta como entrenado y sin zonas', async () => {
     const exerciseId = await seedExercise(userId, 'Remo en anillas', null);
     await seedSession(userId, dayAt(2, 20), [{ exerciseId, weightGrams: 0, reps: 12 }]);
 
     const week = weeklyCalendarSchema.parse(await (await fetchWeek(token)).json());
 
     expect(week.days[2]?.trained).toBe(true);
-    expect(week.days[2]?.bodyPart).toBeNull();
+    expect(week.days[2]?.bodyParts).toStrictEqual([]);
     expect(week.days[2]?.volume).toBe('0.00');
   });
 
@@ -235,7 +241,7 @@ describe('calendario de la semana', () => {
 
     const week = weeklyCalendarSchema.parse(await (await fetchWeek(token)).json());
 
-    expect(week.days[3]?.bodyPart).toBe('chest');
+    expect(week.days[3]?.bodyParts.map((load) => load.bodyPart)).toStrictEqual(['chest']);
     expect(week.days[4]?.trained).toBe(false);
   });
 
