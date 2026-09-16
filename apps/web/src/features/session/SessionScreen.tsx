@@ -29,6 +29,7 @@ import {
 import { newResourceId, parseResourceId } from '../../lib/ids';
 import { elapsedSecondsSince } from '../../lib/time';
 import { useOpenSession } from '../../offline/use-open-session';
+import { useInstallGuide } from '../install/InstallProvider';
 import { LiveMascot } from '../mascot/LiveMascot';
 import { openSessionSignals, sessionDeviceSignals } from '../mascot/mascot-signals';
 import { describeRoutineSize } from '../routines/items';
@@ -41,6 +42,7 @@ import { LogSetSheet } from './LogSetSheet';
 import { logExerciseIdFor } from './log-target';
 import { SESSION_EXERCISE_PARAM, SESSION_ROUTINE_PARAM } from './paths';
 import { RestTimer } from './RestTimer';
+import { loadIphoneTimerEnabled, offersIphoneTimer } from './iphone-timer';
 import { restTargetFor, withRestTarget, type RestKind, type RestPreferences } from './rest';
 import { loadRestPreferences, saveRestPreferences } from './rest-preferences-store';
 import { AdjustLineSheet } from './AdjustLineSheet';
@@ -310,6 +312,9 @@ function ActiveSession({
   // Se lee una sola vez: la pantalla monta una `ActiveSession` por sesión y lo guardado
   // solo cambia desde aquí dentro. Si la URL trae una rutina, manda la de la URL.
   const [stored, setStored] = useState(() => loadSessionRoutine(storage, session.id));
+  const { platform } = useInstallGuide();
+  // Se enciende en Ajustes, que es otra pantalla: leerlo al montar la sesión basta.
+  const [iphoneTimerEnabled] = useState(() => loadIphoneTimerEnabled(storage));
   const [adjusting, setAdjusting] = useState<RoutineLineProgress | null>(null);
   const routineId = requestedRoutineId ?? stored?.routineId ?? null;
   // Los ajustes son de la rutina con la que se guardaron: si la URL trae otra, esa va tal cual.
@@ -399,6 +404,7 @@ function ActiveSession({
             lastSetAt={lastSetAt}
             kind={restKind}
             target={restTarget}
+            offerIphoneTimer={offersIphoneTimer(platform, iphoneTimerEnabled)}
             onTargetChange={(seconds) => {
               onRestTargetChange(restKind, seconds);
             }}

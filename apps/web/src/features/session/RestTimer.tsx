@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { useNow } from '../../hooks/use-now';
 import { cx } from '../../lib/cx';
 import { formatStopwatch } from '../../lib/format';
+import { iphoneTimerShortcutUrl } from './iphone-timer';
 import { restStateAt, restTargetsFor, type RestKind } from './rest';
 import styles from './RestTimer.module.css';
 
@@ -14,6 +15,11 @@ export interface RestTimerProps {
   readonly onTargetChange: (target: number) => void;
   /** La mascota, que descansa aquí dentro contigo y avisa cuando toca la siguiente. */
   readonly companion?: ReactNode;
+  /**
+   * Ofrecer el Temporizador del iPhone (encendido en Ajustes y en iOS): el único aviso que suena con
+   * la app cerrada y sin cobertura.
+   */
+  readonly offerIphoneTimer?: boolean;
 }
 
 /**
@@ -22,7 +28,14 @@ export interface RestTimerProps {
  * cuenta desde la última serie registrada, así que recargar la app o volver del catálogo no lo
  * reinicia.
  */
-export function RestTimer({ lastSetAt, kind, target, onTargetChange, companion }: RestTimerProps) {
+export function RestTimer({
+  lastSetAt,
+  kind,
+  target,
+  onTargetChange,
+  companion,
+  offerIphoneTimer = false,
+}: RestTimerProps) {
   const now = useNow();
   const rest = restStateAt(lastSetAt, now, target);
 
@@ -54,6 +67,14 @@ export function RestTimer({ lastSetAt, kind, target, onTargetChange, companion }
           ? 'Descanso cumplido: a por la siguiente.'
           : `De ${formatStopwatch(target)}${kind === 'exercise' ? ' para cambiar de máquina' : ''}`}
       </p>
+
+      {offerIphoneTimer && !rest.done && (
+        // Un enlace y no un botón que navegue por código: iOS solo abre otra app desde un toque, y
+        // el enlace lleva ya lo que queda, no el objetivo entero, porque se toca tras la serie.
+        <a className={styles.iphoneTimer} href={iphoneTimerShortcutUrl(rest.remainingSeconds)}>
+          Temporizador del iPhone · {formatStopwatch(rest.remainingSeconds)}
+        </a>
+      )}
 
       <div className={styles.targets} role="group" aria-label="Descanso objetivo">
         {restTargetsFor(kind).map((candidate) => (
