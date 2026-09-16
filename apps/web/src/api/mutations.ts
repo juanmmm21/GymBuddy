@@ -38,6 +38,7 @@ import {
   endSession,
   listTrackedExercises,
   logSet,
+  removeExerciseMedia,
   removeSet,
   startCardio,
   startSession,
@@ -45,6 +46,7 @@ import {
   updateSet,
   updateCurrentUser,
   updateTrackedExercise,
+  uploadExercisePhoto,
 } from './endpoints';
 import type { SubmitOutcome } from '../offline/write-queue';
 import { useWriteQueue } from '../offline/WriteQueueProvider';
@@ -85,6 +87,42 @@ export function useUpdateTrackedExercise(): UseMutationResult<
           : queryClient.invalidateQueries({ queryKey: queryKeys.stats.all }),
       ]);
     },
+  });
+}
+
+export interface UploadExercisePhotoVariables {
+  readonly exerciseId: ResourceId;
+  /** Ya re-codificada en el móvil (`compressPhoto`): el Worker no acepta el original. */
+  readonly photo: Blob;
+}
+
+/**
+ * Pone o sustituye la foto de la técnica. Directo al Worker y fuera de la cola offline: un fichero
+ * no cabe en la cola de IndexedDB junto a las series, y sin red se dice en vez de guardarlo a medias.
+ */
+export function useUploadExercisePhoto(): UseMutationResult<
+  TrackedExercise,
+  Error,
+  UploadExercisePhotoVariables
+> {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ exerciseId, photo }: UploadExercisePhotoVariables) =>
+      uploadExercisePhoto(client, exerciseId, photo),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.exercises.all }),
+  });
+}
+
+/** Quita la foto de la técnica; igual que subirla, directo y fuera de la cola offline. */
+export function useRemoveExerciseMedia(): UseMutationResult<TrackedExercise, Error, ResourceId> {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (exerciseId: ResourceId) => removeExerciseMedia(client, exerciseId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.exercises.all }),
   });
 }
 

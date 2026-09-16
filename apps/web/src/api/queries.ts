@@ -34,6 +34,7 @@ import type {
 import { nextPageOffset } from '../lib/paging';
 import { ApiRequestError } from './client';
 import {
+  downloadExerciseMedia,
   fetchActiveSession,
   fetchCatalogExercise,
   fetchCurrentUser,
@@ -67,6 +68,11 @@ export const queryKeys = {
     list: (options: ListTrackedExercisesOptions) => ['exercises', 'list', options] as const,
     history: (exerciseId: ResourceId) => ['exercises', 'history', exerciseId] as const,
   },
+  /**
+   * Fuera de `exercises` a propósito: invalidar los ejercicios volvería a descargar fotos que no
+   * cambian nunca (cada subida tiene su propio id).
+   */
+  exerciseMedia: (mediaId: string) => ['exercise-media', mediaId] as const,
   routines: {
     all: ['routines'] as const,
     list: (options: ListRoutinesOptions) => ['routines', 'list', options] as const,
@@ -137,6 +143,23 @@ export function useCurrentUser(): UseQueryResult<User> {
  * Los ejercicios del usuario. La mascota de Hoy solo necesita sus nombres cuando va a
  * nombrar uno estancado, y desactivada la consulta no pide nada.
  */
+/**
+ * El fichero de la foto de un ejercicio. Se descarga con la sesión puesta (una etiqueta `<img>` no
+ * la llevaría) y no caduca: un id de foto nunca cambia de contenido.
+ */
+export function useExerciseMediaFile(
+  exerciseId: ResourceId,
+  mediaId: string,
+): UseQueryResult<Blob> {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: queryKeys.exerciseMedia(mediaId),
+    queryFn: () => downloadExerciseMedia(client, exerciseId, mediaId),
+    staleTime: Number.POSITIVE_INFINITY,
+    retry: shouldRetryRequest,
+  });
+}
+
 /** Lo que la pantalla de invitar necesita para saber si todavía puede pedir un código. */
 export function useInvitationStatus(): UseQueryResult<InvitationStatus> {
   const client = useApiClient();

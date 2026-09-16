@@ -6,6 +6,7 @@ import {
   catalogExerciseSummarySchema,
   deviceLinkSchema,
   exerciseHistorySchema,
+  exerciseMediaPath,
   exerciseStatsSchema,
   exportSessionPageSchema,
   exportSnapshotSchema,
@@ -281,6 +282,41 @@ export function updateTrackedExercise(
     schema: trackedExerciseSchema,
     body,
   });
+}
+
+/** Pone o sustituye la foto de la técnica de un ejercicio propio; `photo` va ya re-codificada. */
+export function uploadExercisePhoto(
+  client: ApiClient,
+  exerciseId: string,
+  photo: Blob,
+): Promise<TrackedExercise> {
+  return client.upload({
+    method: 'PUT',
+    path: `/exercises/${encodeURIComponent(exerciseId)}/media`,
+    schema: trackedExerciseSchema,
+    file: photo,
+  });
+}
+
+export function removeExerciseMedia(
+  client: ApiClient,
+  exerciseId: string,
+): Promise<TrackedExercise> {
+  return client.request({
+    method: 'DELETE',
+    path: `/exercises/${encodeURIComponent(exerciseId)}/media`,
+    schema: trackedExerciseSchema,
+  });
+}
+
+export function downloadExerciseMedia(
+  client: ApiClient,
+  exerciseId: string,
+  mediaId: string,
+): Promise<Blob> {
+  return client.download(
+    exerciseMediaPath(encodeURIComponent(exerciseId), encodeURIComponent(mediaId)),
+  );
 }
 
 export interface ListRoutinesOptions {
