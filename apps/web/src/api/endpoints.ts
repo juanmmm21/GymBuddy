@@ -59,6 +59,7 @@ import {
   type Muscle,
   type PushConfig,
   type PushSubscriptionRequest,
+  type RestNoticeRequest,
   type RegistrationOptionsRequest,
   type RegistrationOptionsResponse,
   type RegistrationVerifyRequest,
@@ -223,6 +224,21 @@ export function deletePushSubscription(
     schema: noContentSchema,
     body,
   });
+}
+
+/** Programa o reprograma el aviso de fin de descanso de la cuenta. 204. */
+export function scheduleRestNotice(client: ApiClient, body: RestNoticeRequest): Promise<null> {
+  return client.request({
+    method: 'PUT',
+    path: '/push/rest-notice',
+    schema: noContentSchema,
+    body,
+  });
+}
+
+/** Quita el aviso de fin de descanso pendiente. 204 aunque no hubiera ninguno. */
+export function cancelRestNotice(client: ApiClient): Promise<null> {
+  return client.request({ method: 'DELETE', path: '/push/rest-notice', schema: noContentSchema });
 }
 
 export interface ListTrackedExercisesOptions {
