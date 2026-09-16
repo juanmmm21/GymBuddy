@@ -1,4 +1,5 @@
 import {
+  bodyMapOpacity,
   colors,
   elevation,
   fontFamilies,
@@ -57,6 +58,9 @@ export function cssVariablesFor(scheme: ColorScheme): CssVariables {
   }
   for (const [name, value] of Object.entries(motionEasing)) {
     variables[variableName('ease', name)] = value;
+  }
+  for (const [name, value] of Object.entries(bodyMapOpacity)) {
+    variables[variableName('opacity-body-map', kebabCase(name))] = String(value);
   }
   for (const [name, value] of Object.entries(sizes)) {
     variables[variableName('size', kebabCase(name))] = pixels(value);

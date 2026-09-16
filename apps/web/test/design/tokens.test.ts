@@ -27,6 +27,7 @@ describe('tokens de diseño', () => {
     expect(variables['--gb-type-body-strong-weight']).toBe('600');
     expect(variables['--gb-font-width-condensed']).toBe('78%');
     expect(variables['--gb-color-on-record']).toBe(colors.light.onRecord);
+    expect(variables['--gb-opacity-body-map-level1']).toBe('0.45');
   });
 });
 

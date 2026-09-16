@@ -261,6 +261,20 @@ export const sizes = {
   focusRingWidth: 3,
 } as const;
 
+/**
+ * Lo opaca que sale cada zona de la silueta de la semana (opción B que eligió Juan el 2026-09-16):
+ * `rest` es el cuerpo sin trabajar, que se ve pero no compite, y cada nivel de
+ * `bodyPartLoadLevel` oscurece un escalón. Van sobre el color del texto del día, así que valen igual
+ * en claro, en oscuro y con el día seleccionado.
+ */
+export const bodyMapOpacity = {
+  rest: 0.2,
+  level1: 0.45,
+  level2: 0.65,
+  level3: 0.82,
+  level4: 1,
+} as const;
+
 /** Color que se anuncia al sistema en `theme-color`: la barra de estado acompaña al fondo. */
 export const themeColorMeta: Readonly<Record<ColorScheme, string>> = {
   light: colors.light.canvas,
