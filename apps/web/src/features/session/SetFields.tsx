@@ -8,7 +8,7 @@ import {
   type SelectOption,
 } from '../../components/index';
 import { cx } from '../../lib/cx';
-import { formatRpe } from '../../lib/format';
+import { formatRpe, PER_ARM } from '../../lib/format';
 import styles from './SetFields.module.css';
 
 /** Los valores de RPE que se anotan de verdad: por debajo de 6 la serie no dice nada. */
@@ -55,6 +55,8 @@ export interface SetFieldsProps {
   readonly values: SetValues;
   readonly onChange: (values: SetValues) => void;
   readonly locale: Locale;
+  /** A un brazo: se teclea el peso de un brazo, y la etiqueta lo dice para que no se sumen los dos. */
+  readonly unilateral: boolean;
   /** Lo que se explica bajo el peso: de dónde sale el que viene puesto. */
   readonly weightHint: string;
   /** Lo que se explica bajo las repeticiones: el objetivo de la rutina, si la sesión sigue una. */
@@ -66,11 +68,18 @@ export interface SetFieldsProps {
  * el mismo dato, y tener dos formularios parecidos acabaría con uno de los dos aceptando
  * algo que el otro no.
  */
-export function SetFields({ values, onChange, locale, weightHint, repsHint }: SetFieldsProps) {
+export function SetFields({
+  values,
+  onChange,
+  locale,
+  unilateral,
+  weightHint,
+  repsHint,
+}: SetFieldsProps) {
   return (
     <>
       <WeightField
-        label="Peso"
+        label={unilateral ? `Peso ${PER_ARM}` : 'Peso'}
         valueGrams={values.weightGrams}
         onChange={(weightGrams) => {
           onChange({ ...values, weightGrams });

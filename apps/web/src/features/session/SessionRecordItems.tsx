@@ -16,11 +16,14 @@ export interface SessionRecordItemsProps {
  * seguidos sin nombre volverían a parecer la misma repetida.
  */
 export function SessionRecordItems({ records, exercises, locale }: SessionRecordItemsProps) {
-  const names = new Map(exercises.map((exercise) => [exercise.id, exercise.name]));
+  const byId = new Map(exercises.map((exercise) => [exercise.id, exercise]));
 
   return records.map((record) => {
-    const name = names.get(record.trackedExerciseId);
-    const value = `${RECORD_LABELS[record.kind]}: ${formatRecordValueLabel(record, locale)}`;
-    return <li key={record.id}>{name === undefined ? value : `${name} · ${value}`}</li>;
+    const exercise = byId.get(record.trackedExerciseId);
+    const valueLabel = formatRecordValueLabel(record, locale, exercise?.unilateral ?? false);
+    const value = `${RECORD_LABELS[record.kind]}: ${valueLabel}`;
+    return (
+      <li key={record.id}>{exercise === undefined ? value : `${exercise.name} · ${value}`}</li>
+    );
   });
 }

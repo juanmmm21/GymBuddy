@@ -59,7 +59,7 @@ import {
 } from './session-routine-store';
 import { groupSetsByExercise, latestSetCompletedAt, type SessionExerciseGroup } from './summary';
 import styles from './SessionScreen.module.css';
-import { usesOlympicBar } from '../exercises/equipment';
+import { drawsPlates } from '../exercises/equipment';
 
 const BACK_TO_HOME: BackLink = { to: '/', label: 'Hoy' };
 
@@ -480,7 +480,8 @@ function ActiveSession({
                   <SetRow
                     key={set.id}
                     set={set}
-                    plates={usesOlympicBar(group.equipment)}
+                    plates={drawsPlates(group)}
+                    unilateral={group.unilateral}
                     pending={pendingSetIds.has(set.id)}
                     position={index + 1}
                     locale={locale}
@@ -529,7 +530,8 @@ function ActiveSession({
       <EditSetSheet
         sessionId={session.id}
         set={editing}
-        exerciseName={editing === null ? '' : exerciseNameOf(editing, groups)}
+        exerciseName={groupOf(editing, groups)?.name ?? ''}
+        unilateral={groupOf(editing, groups)?.unilateral ?? false}
         locale={locale}
         onClose={onCloseEdit}
         onUpdated={onCorrected}
@@ -583,8 +585,10 @@ function SessionClock({ session, locale }: SessionClockProps) {
 
 interface SetRowProps {
   readonly set: SetEntry;
-  /** Si se dibujan los discos: solo en ejercicios con barra olímpica. */
+  /** Si se dibujan los discos: solo en ejercicios con barra olímpica y no a un brazo. */
   readonly plates: boolean;
+  /** A un brazo: el peso se lee «por brazo». */
+  readonly unilateral: boolean;
   readonly pending: boolean;
   readonly position: number;
   readonly locale: Locale;
@@ -592,7 +596,7 @@ interface SetRowProps {
 }
 
 /** La fila entera abre la corrección, también la de cardio: en el gimnasio se toca con el pulgar y sin mirar. */
-function SetRow({ set, plates, pending, position, locale, onEdit }: SetRowProps) {
+function SetRow({ set, plates, unilateral, pending, position, locale, onEdit }: SetRowProps) {
   return (
     <li>
       <button
@@ -604,7 +608,7 @@ function SetRow({ set, plates, pending, position, locale, onEdit }: SetRowProps)
       >
         <span className={styles.setPosition}>{position}</span>
         {plates && set.kind === 'strength' && <PlateStack weight={set.weight} locale={locale} />}
-        <span className={styles.setValue}>{formatSetValueLabel(set, locale)}</span>
+        <span className={styles.setValue}>{formatSetValueLabel(set, locale, unilateral)}</span>
         <span className={styles.setMeta}>
           {pending && <Badge tone="warning">Sin sincronizar</Badge>}
           {set.isWarmup && <Badge>Calentamiento</Badge>}
@@ -616,9 +620,13 @@ function SetRow({ set, plates, pending, position, locale, onEdit }: SetRowProps)
 }
 
 /**
- * El nombre del ejercicio de una serie sale de los grupos que ya pinta la pantalla: el
- * título de la hoja tiene que decir qué se está corrigiendo, y ese dato ya está resuelto.
+ * El ejercicio de una serie sale de los grupos que ya pinta la pantalla: el título de la hoja
+ * tiene que decir qué se está corrigiendo, y el peso si es de un brazo, y ese dato ya está resuelto.
  */
-function exerciseNameOf(set: SetEntry, groups: readonly SessionExerciseGroup[]): string {
-  return groups.find((group) => group.trackedExerciseId === set.trackedExerciseId)?.name ?? '';
+function groupOf(
+  set: SetEntry | null,
+  groups: readonly SessionExerciseGroup[],
+): SessionExerciseGroup | undefined {
+  if (set === null) return undefined;
+  return groups.find((group) => group.trackedExerciseId === set.trackedExerciseId);
 }

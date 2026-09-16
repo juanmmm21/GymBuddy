@@ -26,6 +26,8 @@ export interface EditSetSheetProps {
   /** La serie que se corrige, o `null` cuando no hay ninguna abierta. */
   readonly set: SetEntry | null;
   readonly exerciseName: string;
+  /** Si el ejercicio de la serie es a un brazo: el peso que se corrige es el de un brazo. */
+  readonly unilateral: boolean;
   readonly locale: Locale;
   readonly onClose: () => void;
   readonly onUpdated: (records: readonly PersonalRecord[]) => void;
@@ -41,6 +43,7 @@ export function EditSetSheet({
   sessionId,
   set,
   exerciseName,
+  unilateral,
   locale,
   onClose,
   onUpdated,
@@ -52,6 +55,7 @@ export function EditSetSheet({
         <EditSetForm
           sessionId={sessionId}
           set={set}
+          unilateral={unilateral}
           locale={locale}
           onUpdated={onUpdated}
           onRemoved={onRemoved}
@@ -64,12 +68,20 @@ export function EditSetSheet({
 interface EditSetFormProps {
   readonly sessionId: ResourceId;
   readonly set: SetEntry;
+  readonly unilateral: boolean;
   readonly locale: Locale;
   readonly onUpdated: (records: readonly PersonalRecord[]) => void;
   readonly onRemoved: () => void;
 }
 
-function EditSetForm({ sessionId, set, locale, onUpdated, onRemoved }: EditSetFormProps) {
+function EditSetForm({
+  sessionId,
+  set,
+  unilateral,
+  locale,
+  onUpdated,
+  onRemoved,
+}: EditSetFormProps) {
   const [values, setValues] = useState<SetValues>(() => strengthValuesOf(set));
   const [cardioValues, setCardioValues] = useState<CardioSetValues>(() => cardioValuesOf(set));
   const update = useUpdateSet();
@@ -127,6 +139,7 @@ function EditSetForm({ sessionId, set, locale, onUpdated, onRemoved }: EditSetFo
           values={values}
           onChange={setValues}
           locale={locale}
+          unilateral={unilateral}
           weightHint="Lo que registraste. Cámbialo y se recalculan tus marcas."
         />
       ) : (

@@ -1,6 +1,7 @@
 import {
   NO_DEVICE_SIGNALS,
   type Locale,
+  type PersonalRecord,
   type TrainingSignals,
   type WorkoutSessionDetail,
 } from '@gymbuddy/shared';
@@ -21,7 +22,7 @@ import {
   pluralize,
 } from '../../lib/format';
 import { elapsedSecondsSince } from '../../lib/time';
-import { usesOlympicBar } from '../exercises/equipment';
+import { drawsPlates } from '../exercises/equipment';
 import { RECORD_LABELS } from '../exercises/labels';
 import { LiveMascot } from '../mascot/LiveMascot';
 import { useOpenSession } from '../../offline/use-open-session';
@@ -98,13 +99,7 @@ function SignalsSummary({ signals, locale }: SignalsSummaryProps) {
         {signals.latestRecord === null ? (
           <Metric label="Último récord" value="—" />
         ) : (
-          <div className={styles.metric}>
-            <span className={styles.metricLabel}>Último récord</span>
-            <span className={styles.recordValue}>
-              {formatRecordValueLabel(signals.latestRecord, locale)}
-            </span>
-            <Badge tone="record">{RECORD_LABELS[signals.latestRecord.kind]}</Badge>
-          </div>
+          <LatestRecordMetric record={signals.latestRecord} locale={locale} />
         )}
       </section>
 
@@ -118,6 +113,32 @@ function SignalsSummary({ signals, locale }: SignalsSummaryProps) {
           Mismo peso durante varias sesiones sin perder repeticiones: toca subir.
         </Notice>
       )}
+    </div>
+  );
+}
+
+interface LatestRecordMetricProps {
+  readonly record: PersonalRecord;
+  readonly locale: Locale;
+}
+
+/**
+ * El último récord necesita su ejercicio para decir si es de un brazo. Mientras la lista no ha
+ * llegado se lee sin «por brazo»: el número ya es el correcto y esperar dejaría la casilla vacía.
+ */
+function LatestRecordMetric({ record, locale }: LatestRecordMetricProps) {
+  const exercises = useTrackedExercises({ includeArchived: true });
+  const unilateral =
+    exercises.data?.find((exercise) => exercise.id === record.trackedExerciseId)?.unilateral ??
+    false;
+
+  return (
+    <div className={styles.metric}>
+      <span className={styles.metricLabel}>Último récord</span>
+      <span className={styles.recordValue}>
+        {formatRecordValueLabel(record, locale, unilateral)}
+      </span>
+      <Badge tone="record">{RECORD_LABELS[record.kind]}</Badge>
     </div>
   );
 }
@@ -157,7 +178,7 @@ function LiveSessionCard({ startedAt, session, locale }: LiveSessionCardProps) {
       )}
       {lastSet !== null && (
         <span className={styles.lastSet}>
-          {usesOlympicBar(lastSet.equipment) && lastSet.set.kind === 'strength' && (
+          {drawsPlates(lastSet) && lastSet.set.kind === 'strength' && (
             <PlateStack
               weight={lastSet.set.weight}
               locale={locale}
@@ -168,7 +189,9 @@ function LiveSessionCard({ startedAt, session, locale }: LiveSessionCardProps) {
             <span className={styles.lastSetName}>{lastSet.exerciseName}</span>
             <span className={styles.lastSetWhen}>Última serie</span>
           </span>
-          <span className={styles.lastSetValue}>{formatSetValueLabel(lastSet.set, locale)}</span>
+          <span className={styles.lastSetValue}>
+            {formatSetValueLabel(lastSet.set, locale, lastSet.unilateral)}
+          </span>
         </span>
       )}
       <span className={styles.liveAction} aria-hidden="true">

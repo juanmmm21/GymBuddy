@@ -28,7 +28,7 @@ import { groupSetsByExercise, summarizeSession } from '../session/summary';
 import { DeleteSessionPanel } from './DeleteSessionPanel';
 import { HISTORY_PATH } from './paths';
 import styles from './SessionDetailScreen.module.css';
-import { usesOlympicBar } from '../exercises/equipment';
+import { drawsPlates } from '../exercises/equipment';
 
 const BACK_TO_HISTORY: BackLink = { to: HISTORY_PATH, label: 'Historial' };
 
@@ -144,7 +144,8 @@ function SessionBody({ session, exercises, locale }: SessionBodyProps) {
                   <SetRow
                     key={set.id}
                     set={set}
-                    plates={usesOlympicBar(group.equipment)}
+                    plates={drawsPlates(group)}
+                    unilateral={group.unilateral}
                     position={index + 1}
                     locale={locale}
                   />
@@ -175,17 +176,18 @@ function Metric({ label, value }: { readonly label: string; readonly value: stri
 interface SetRowProps {
   readonly set: SetEntry;
   readonly plates: boolean;
+  readonly unilateral: boolean;
   readonly position: number;
   readonly locale: Locale;
 }
 
 /** Una serie ya cerrada: se lee, no se toca. Corregirla solo se puede con la sesión abierta. */
-function SetRow({ set, plates, position, locale }: SetRowProps) {
+function SetRow({ set, plates, unilateral, position, locale }: SetRowProps) {
   return (
     <li className={styles.set}>
       <span className={styles.setPosition}>{position}</span>
       {plates && set.kind === 'strength' && <PlateStack weight={set.weight} locale={locale} />}
-      <span className={styles.setValue}>{formatSetValueLabel(set, locale)}</span>
+      <span className={styles.setValue}>{formatSetValueLabel(set, locale, unilateral)}</span>
       <span className={styles.setMeta}>
         {set.isWarmup && <Badge>Calentamiento</Badge>}
         {set.rpe !== null && <span>{formatRpe(set.rpe, locale)}</span>}

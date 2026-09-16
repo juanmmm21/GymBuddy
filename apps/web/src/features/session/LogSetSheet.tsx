@@ -217,6 +217,7 @@ function LogSetForm({
           values={values}
           onChange={setValues}
           locale={locale}
+          unilateral={exercise.unilateral}
           weightHint={describeProposal(proposal.source)}
           repsHint={routineLine === null ? undefined : describeNextSet(routineLine)}
         />
