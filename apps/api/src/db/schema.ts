@@ -369,6 +369,27 @@ export const personalRecord = sqliteTable(
   ],
 );
 
+/**
+ * La suscripción push de un navegador, para avisar al acabar el descanso con la app cerrada (ADR
+ * 0009). La clave es el `endpoint`: lo da el servicio de push y es único por navegador y
+ * aplicación, así que suscribirse otra vez desde el mismo móvil pisa la fila en vez de sumar otra.
+ */
+export const pushSubscription = sqliteTable(
+  'push_subscription',
+  {
+    endpoint: text('endpoint').primaryKey(),
+    userId: rowId('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    // Las dos piezas con las que se cifra cada aviso (RFC 8291), en base64url.
+    p256dh: text('p256dh').notNull(),
+    auth: text('auth').notNull(),
+    // La última vez que el navegador la mandó. Con el tope por cuenta se retiran las más viejas.
+    subscribedAt: isoTimestamp('subscribed_at').notNull(),
+  },
+  (table) => [index('push_subscription_user_idx').on(table.userId, table.subscribedAt)],
+);
+
 export type UserRow = typeof user.$inferSelect;
 export type NewUserRow = typeof user.$inferInsert;
 export type InvitationRow = typeof invitation.$inferSelect;
@@ -395,3 +416,5 @@ export type RoutineItemRow = typeof routineItem.$inferSelect;
 export type NewRoutineItemRow = typeof routineItem.$inferInsert;
 export type PersonalRecordRow = typeof personalRecord.$inferSelect;
 export type NewPersonalRecordRow = typeof personalRecord.$inferInsert;
+export type PushSubscriptionRow = typeof pushSubscription.$inferSelect;
+export type NewPushSubscriptionRow = typeof pushSubscription.$inferInsert;
