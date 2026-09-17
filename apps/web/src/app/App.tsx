@@ -30,6 +30,9 @@ import {
   persistDeviceSnapshot,
   restoreDeviceSnapshot,
 } from '../offline/device-snapshot';
+import { clearMediaFiles } from '../offline/media-file-cache';
+import { createBrowserMediaFileStore, type MediaFileStore } from '../offline/media-file-store';
+import { MediaFileCacheProvider, useMediaFileCache } from '../offline/MediaFileCacheProvider';
 import { WriteQueue } from '../offline/write-queue';
 import { createBrowserWriteQueueStore, type WriteQueueStore } from '../offline/write-queue-store';
 import { useQueueDrainer, WriteQueueProvider } from '../offline/WriteQueueProvider';
@@ -46,6 +49,8 @@ export interface AppProps {
   readonly authenticator?: PasskeyAuthenticator;
   /** Y con la cola offline: los tests la guardan en memoria para leer lo que se encoló. */
   readonly writeQueueStore?: WriteQueueStore;
+  /** Y con las fotos y los vídeos guardados para verlos sin red. */
+  readonly mediaFileStore?: MediaFileStore;
   /** El entorno del navegador y el diálogo de instalación; los tests simulan un iPhone o un chat. */
   readonly install?: InstallSupport;
   /** El push del navegador; `null` simula uno sin push. Sin pasarlo, el del navegador real. */
@@ -77,6 +82,7 @@ export function App({
   fetchImpl,
   authenticator = browserPasskeyAuthenticator,
   writeQueueStore,
+  mediaFileStore,
   install,
   pushBrowser,
   photoCodec,
@@ -113,25 +119,30 @@ export function App({
   const [writeQueue] = useState(
     () => new WriteQueue({ store: writeQueueStore ?? createBrowserWriteQueueStore() }),
   );
+  const [deviceMediaFiles] = useState<MediaFileStore>(
+    () => mediaFileStore ?? createBrowserMediaFileStore(),
+  );
 
   return (
     <QueryClientProvider client={queryClient}>
       <StorageProvider storage={storage}>
         <SessionProvider storage={storage}>
           <WriteQueueProvider queue={writeQueue}>
-            <ApiBoundary apiBaseUrl={apiBaseUrl} fetchImpl={fetchImpl} queryClient={queryClient}>
-              <AuthenticatorProvider authenticator={authenticator}>
-                <InstallProvider support={installSupport}>
-                  <PushBrowserProvider browser={devicePush}>
-                    <PhotoCodecProvider codec={devicePhotoCodec}>
-                      <VideoConverterProvider converter={deviceVideoConverter}>
-                        <RouterProvider router={appRouter} flushSync={flushRouterUpdate} />
-                      </VideoConverterProvider>
-                    </PhotoCodecProvider>
-                  </PushBrowserProvider>
-                </InstallProvider>
-              </AuthenticatorProvider>
-            </ApiBoundary>
+            <MediaFileCacheProvider store={deviceMediaFiles}>
+              <ApiBoundary apiBaseUrl={apiBaseUrl} fetchImpl={fetchImpl} queryClient={queryClient}>
+                <AuthenticatorProvider authenticator={authenticator}>
+                  <InstallProvider support={installSupport}>
+                    <PushBrowserProvider browser={devicePush}>
+                      <PhotoCodecProvider codec={devicePhotoCodec}>
+                        <VideoConverterProvider converter={deviceVideoConverter}>
+                          <RouterProvider router={appRouter} flushSync={flushRouterUpdate} />
+                        </VideoConverterProvider>
+                      </PhotoCodecProvider>
+                    </PushBrowserProvider>
+                  </InstallProvider>
+                </AuthenticatorProvider>
+              </ApiBoundary>
+            </MediaFileCacheProvider>
           </WriteQueueProvider>
         </SessionProvider>
       </StorageProvider>
@@ -155,6 +166,7 @@ interface ApiBoundaryProps {
 function ApiBoundary({ apiBaseUrl, fetchImpl, queryClient, children }: ApiBoundaryProps) {
   const { session, signOut, renew } = useSession();
   const storage = useStorage();
+  const mediaCache = useMediaFileCache();
   const token = session?.token ?? null;
   const userId = session?.user.id ?? null;
 
@@ -176,7 +188,8 @@ function ApiBoundary({ apiBaseUrl, fetchImpl, queryClient, children }: ApiBounda
     if (token !== null) return;
     queryClient.clear();
     clearDeviceSnapshot(storage);
-  }, [queryClient, storage, token]);
+    void clearMediaFiles(mediaCache);
+  }, [mediaCache, queryClient, storage, token]);
 
   useEffect(
     () => (userId === null ? undefined : persistDeviceSnapshot(queryClient, storage, userId)),

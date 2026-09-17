@@ -48,6 +48,8 @@ import {
   updateTrackedExercise,
   uploadExerciseMedia,
 } from './endpoints';
+import { forgetMediaFile, saveMediaFile } from '../offline/media-file-cache';
+import { useMediaFileCache } from '../offline/MediaFileCacheProvider';
 import type { SubmitOutcome } from '../offline/write-queue';
 import { useWriteQueue } from '../offline/WriteQueueProvider';
 import { useStorage } from '../app/StorageProvider';
@@ -97,12 +99,17 @@ export interface UploadExerciseMediaVariables {
    * original de la cámara.
    */
   readonly file: Blob;
+  /** El medio que había antes y que la subida sustituye; se retira del dispositivo. */
+  readonly replacedMediaId: string | null;
 }
 
 /**
  * Pone o sustituye la foto o el vídeo de la técnica. Directo al Worker y fuera de la cola offline:
  * un fichero no cabe en la cola de IndexedDB junto a las series, y sin red se dice en vez de guardarlo
  * a medias.
+ *
+ * Lo subido se guarda ya en el dispositivo y en la caché con el id que le dio el Worker: es el mismo
+ * fichero, así que ni se vuelve a bajar ni hace falta red para verlo después.
  */
 export function useUploadExerciseMedia(): UseMutationResult<
   TrackedExercise,
@@ -111,22 +118,50 @@ export function useUploadExerciseMedia(): UseMutationResult<
 > {
   const client = useApiClient();
   const queryClient = useQueryClient();
+  const mediaCache = useMediaFileCache();
 
   return useMutation({
     mutationFn: ({ exerciseId, file }: UploadExerciseMediaVariables) =>
       uploadExerciseMedia(client, exerciseId, file),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.exercises.all }),
+    onSuccess: async (exercise, { file, replacedMediaId }) => {
+      const media = exercise.media;
+      if (media !== null) {
+        queryClient.setQueryData(queryKeys.exerciseMedia(media.id), file);
+        await saveMediaFile(mediaCache, media.id, file);
+      }
+      if (replacedMediaId !== null && replacedMediaId !== media?.id) {
+        await forgetMediaFile(mediaCache, replacedMediaId);
+      }
+      await queryClient.invalidateQueries({ queryKey: queryKeys.exercises.all });
+    },
   });
 }
 
+export interface RemoveExerciseMediaVariables {
+  readonly exerciseId: ResourceId;
+  /** El medio que se quita, para retirarlo también del dispositivo. */
+  readonly mediaId: string;
+}
+
 /** Quita la foto o el vídeo de la técnica; igual que subirlo, directo y fuera de la cola offline. */
-export function useRemoveExerciseMedia(): UseMutationResult<TrackedExercise, Error, ResourceId> {
+export function useRemoveExerciseMedia(): UseMutationResult<
+  TrackedExercise,
+  Error,
+  RemoveExerciseMediaVariables
+> {
   const client = useApiClient();
   const queryClient = useQueryClient();
+  const mediaCache = useMediaFileCache();
 
   return useMutation({
-    mutationFn: (exerciseId: ResourceId) => removeExerciseMedia(client, exerciseId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.exercises.all }),
+    mutationFn: ({ exerciseId }: RemoveExerciseMediaVariables) =>
+      removeExerciseMedia(client, exerciseId),
+    onSuccess: async (_exercise, { mediaId }) => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.exercises.all });
+      // La consulta del fichero se queda en la caché de memoria hasta que se recoja sola: quitarla
+      // aquí haría que la ficha, aún montada un instante, volviera a pedirlo y a guardarlo.
+      await forgetMediaFile(mediaCache, mediaId);
+    },
   });
 }
 

@@ -69,7 +69,7 @@ export function ExerciseMediaSection({ exercise }: ExerciseMediaSectionProps) {
     startPreparing({ kind: 'photo' });
     try {
       const photo = await compressPhoto(file, codec);
-      upload.mutate({ exerciseId: exercise.id, file: photo });
+      upload.mutate({ exerciseId: exercise.id, file: photo, replacedMediaId: media?.id ?? null });
     } catch (error) {
       console.error('No se pudo preparar la foto', error);
       setPrepareError(describePhotoError(error));
@@ -108,7 +108,10 @@ export function ExerciseMediaSection({ exercise }: ExerciseMediaSectionProps) {
 
     setPreparing(null);
     // La pantalla sigue encendida mientras sube: con poca cobertura, unos MB tardan.
-    upload.mutate({ exerciseId: exercise.id, file: converted }, { onSettled: releaseScreen });
+    upload.mutate(
+      { exerciseId: exercise.id, file: converted, replacedMediaId: media?.id ?? null },
+      { onSettled: releaseScreen },
+    );
   };
 
   const error = prepareError ?? (upload.isError ? describeError(upload.error) : null);
@@ -203,11 +206,14 @@ export function ExerciseMediaSection({ exercise }: ExerciseMediaSectionProps) {
                   loading={remove.isPending}
                   onClick={() => {
                     upload.reset();
-                    remove.mutate(exercise.id, {
-                      onSuccess: () => {
-                        setConfirmingRemoval(false);
+                    remove.mutate(
+                      { exerciseId: exercise.id, mediaId: media.id },
+                      {
+                        onSuccess: () => {
+                          setConfirmingRemoval(false);
+                        },
                       },
-                    });
+                    );
                   }}
                 >
                   {media.kind === 'video' ? 'Sí, quitarlo' : 'Sí, quitarla'}

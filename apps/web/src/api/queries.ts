@@ -32,6 +32,8 @@ import type {
   WorkoutSessionPage,
 } from '@gymbuddy/shared';
 import { nextPageOffset } from '../lib/paging';
+import { loadMediaFile } from '../offline/media-file-cache';
+import { useMediaFileCache } from '../offline/MediaFileCacheProvider';
 import { ApiRequestError } from './client';
 import {
   downloadExerciseMedia,
@@ -144,17 +146,20 @@ export function useCurrentUser(): UseQueryResult<User> {
  * nombrar uno estancado, y desactivada la consulta no pide nada.
  */
 /**
- * El fichero de la foto de un ejercicio. Se descarga con la sesión puesta (una etiqueta `<img>` no
- * la llevaría) y no caduca: un id de foto nunca cambia de contenido.
+ * El fichero de la foto o el vídeo de un ejercicio. Se descarga con la sesión puesta (una etiqueta
+ * `<img>` no la llevaría) y no caduca: un id de medio nunca cambia de contenido. Lo ya visto sale del
+ * dispositivo, sin red y sin volver a bajar megas (ADR 0010).
  */
 export function useExerciseMediaFile(
   exerciseId: ResourceId,
   mediaId: string,
 ): UseQueryResult<Blob> {
   const client = useApiClient();
+  const mediaCache = useMediaFileCache();
   return useQuery({
     queryKey: queryKeys.exerciseMedia(mediaId),
-    queryFn: () => downloadExerciseMedia(client, exerciseId, mediaId),
+    queryFn: () =>
+      loadMediaFile(mediaCache, mediaId, () => downloadExerciseMedia(client, exerciseId, mediaId)),
     staleTime: Number.POSITIVE_INFINITY,
     retry: shouldRetryRequest,
   });
