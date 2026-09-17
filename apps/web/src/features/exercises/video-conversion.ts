@@ -1,4 +1,6 @@
 import {
+  EXERCISE_MEDIA_CONTENT_TYPES,
+  EXERCISE_MEDIA_MAX_BYTES,
   EXERCISE_VIDEO_BITRATE_BPS,
   EXERCISE_VIDEO_MAX_DURATION_SECONDS,
   EXERCISE_VIDEO_MAX_LONG_EDGE_PIXELS,
@@ -31,7 +33,8 @@ export interface VideoConverter {
   convert(file: Blob, plan: VideoEncodePlan, onProgress: (fraction: number) => void): Promise<Blob>;
 }
 
-export type VideoConversionFailure = 'unreadable' | 'no_video' | 'too_long' | 'failed';
+export type VideoConversionFailure =
+  'unreadable' | 'no_video' | 'too_long' | 'too_large' | 'failed';
 
 export class VideoConversionError extends Error {
   readonly reason: VideoConversionFailure;
@@ -43,7 +46,7 @@ export class VideoConversionError extends Error {
   }
 }
 
-/** El resultado con sus medidas: la prueba en el iPhone las enseña para decidir si el vídeo vale. */
+/** El vídeo convertido con sus medidas. */
 export interface VideoConversionResult {
   readonly video: Blob;
   readonly source: VideoProbe;
@@ -83,8 +86,9 @@ function evenPixels(value: number): number {
 
 /**
  * Re-codifica en el móvil el vídeo elegido a 720p, H.264 y sin sonido. Falla con
- * `VideoConversionError` si el navegador no sabe leerlo, si no lleva vídeo, si pasa del minuto o si la
- * conversión se rompe a medias; en ningún caso se devuelve el original.
+ * `VideoConversionError` si el navegador no sabe leerlo, si no lleva vídeo, si pasa del minuto, si la
+ * conversión se rompe a medias o si lo convertido sigue pasando del tope del Worker; en ningún caso se
+ * devuelve el original.
  */
 export async function convertVideo(
   file: Blob,
@@ -123,5 +127,15 @@ export async function convertVideo(
     });
   }
 
-  return { video, source, target, elapsedMs: Math.max(0, now() - startedAt) };
+  if (video.size > EXERCISE_MEDIA_MAX_BYTES.video) {
+    throw new VideoConversionError('too_large', 'El vídeo convertido sigue pesando demasiado');
+  }
+
+  // El tipo se fija aquí y no se fía del conversor: el Worker decide por `Content-Type`.
+  const typed =
+    video.type === EXERCISE_MEDIA_CONTENT_TYPES.video
+      ? video
+      : new Blob([video], { type: EXERCISE_MEDIA_CONTENT_TYPES.video });
+
+  return { video: typed, source, target, elapsedMs: Math.max(0, now() - startedAt) };
 }

@@ -56,6 +56,7 @@ function fakeConverter(options: {
   readonly probeError?: Error;
   readonly convertError?: Error;
   readonly progress?: readonly number[];
+  readonly output?: Blob;
 }): FakeConverter {
   const plans: VideoEncodePlan[] = [];
   const converter: VideoConverter = {
@@ -67,7 +68,7 @@ function fakeConverter(options: {
       plans.push(plan);
       for (const fraction of options.progress ?? []) onProgress(fraction);
       return options.convertError === undefined
-        ? Promise.resolve(new Blob(['mp4'], { type: 'video/mp4' }))
+        ? Promise.resolve(options.output ?? new Blob(['mp4'], { type: 'video/mp4' }))
         : Promise.reject(options.convertError);
     },
   };
@@ -112,6 +113,23 @@ describe('convertVideo', () => {
       reason: 'too_long',
     });
     expect(long.plans).toHaveLength(0);
+  });
+
+  it('rechaza lo convertido si sigue pasando del tope del Worker, para no subirlo en balde', async () => {
+    const heavy = new Blob([new Uint8Array(40 * 1024 * 1024 + 1)], { type: 'video/mp4' });
+
+    await expect(
+      convertVideo(original, fakeConverter({ output: heavy }).converter),
+    ).rejects.toMatchObject({ name: 'VideoConversionError', reason: 'too_large' });
+  });
+
+  it('entrega siempre un video/mp4 aunque el conversor no diga el tipo', async () => {
+    const untyped = new Blob(['mp4']);
+
+    const result = await convertVideo(original, fakeConverter({ output: untyped }).converter);
+
+    expect(result.video.type).toBe('video/mp4');
+    expect(result.video.size).toBe(3);
   });
 
   it('un fichero sin vídeo, uno ilegible y una conversión rota fallan cada uno con su motivo', async () => {
