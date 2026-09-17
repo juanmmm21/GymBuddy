@@ -55,7 +55,7 @@ export function acceptMediaUpload(headers: MediaUploadHeaders): AcceptedMediaUpl
   const kind =
     headers.contentType === undefined ? null : exerciseMediaKindForContentType(headers.contentType);
   if (kind === null) {
-    throw new ApiException('validation_failed', 'Solo se admiten fotos en JPEG', {
+    throw new ApiException('validation_failed', 'Solo se admiten fotos en JPEG y vídeos en MP4', {
       contentType: headers.contentType ?? null,
     });
   }
@@ -101,7 +101,7 @@ async function findMediaTarget(
 }
 
 /**
- * Se niega antes de escribir nada en R2 si la subida sacaría la cuenta del gratuito. La foto que se
+ * Se niega antes de escribir nada en R2 si la subida sacaría la cuenta del gratuito. El medio que se
  * sustituye no cuenta: se borra en cuanto la nueva queda guardada.
  */
 async function assertWithinFreeTier(
@@ -120,12 +120,12 @@ async function assertWithinFreeTier(
 
   const stored = (storage?.total ?? 0) - replacedBytes;
   if (stored + accepted.bytes > MEDIA_STORAGE_BUDGET_BYTES) {
-    throw new ApiException('media_quota_exceeded', 'No queda espacio para más fotos', {
+    throw new ApiException('media_quota_exceeded', 'No queda espacio para más fotos ni vídeos', {
       reason: 'storage',
     });
   }
   if ((month?.uploads ?? 0) >= MEDIA_MONTHLY_UPLOAD_LIMIT) {
-    throw new ApiException('media_quota_exceeded', 'Se han subido demasiadas fotos este mes', {
+    throw new ApiException('media_quota_exceeded', 'Se han subido demasiadas fotos y vídeos este mes', {
       reason: 'monthly_uploads',
     });
   }
@@ -146,7 +146,7 @@ export interface PutExerciseMediaInput {
 }
 
 /**
- * Pone o sustituye la foto de un ejercicio propio. El fichero pasa a R2 en streaming, sin cargarlo
+ * Pone o sustituye la foto o el vídeo de un ejercicio propio. El fichero pasa a R2 en streaming, sin cargarlo
  * en memoria ni gastar CPU en él, y solo cuando está guardado se apunta en D1: una fila nunca
  * señala un fichero que no existe. Si D1 falla después, el fichero nuevo se retira.
  */
@@ -163,7 +163,7 @@ export async function putExerciseMedia(
   if (target.catalogId !== null) {
     throw new ApiException(
       'media_not_allowed',
-      'Solo los ejercicios propios llevan foto: los del catálogo ya tienen su animación',
+      'Solo los ejercicios propios llevan foto o vídeo: los del catálogo ya tienen su animación',
     );
   }
 
@@ -261,7 +261,7 @@ async function storeExactly(
   if (stored.status === 'rejected') throw stored.reason;
 }
 
-/** Quita la foto. Idempotente: sin foto, devuelve el ejercicio tal cual. */
+/** Quita la foto o el vídeo. Idempotente: sin medio, devuelve el ejercicio tal cual. */
 export async function removeExerciseMedia(
   db: Database,
   bucket: R2Bucket,
@@ -274,7 +274,7 @@ export async function removeExerciseMedia(
     .where(and(eq(exerciseMedia.trackedExerciseId, exerciseId), eq(exerciseMedia.userId, userId)))
     .returning({ mediaId: exerciseMedia.mediaId });
 
-  // La fila va primero: si R2 falla después, la ficha ya no enseña una foto a medio borrar.
+  // La fila va primero: si R2 falla después, la ficha ya no enseña un medio a medio borrar.
   if (removed !== undefined) {
     await deleteObjectQuietly(bucket, mediaObjectKey(userId, removed.mediaId));
   }
@@ -283,8 +283,8 @@ export async function removeExerciseMedia(
 }
 
 /**
- * El fichero de la foto vigente de un ejercicio de esta cuenta. Una foto ya sustituida responde 404
- * aunque su fichero siguiera en R2: solo se sirve lo que la ficha enseña.
+ * El fichero del medio vigente de un ejercicio de esta cuenta. Uno ya sustituido responde 404 aunque
+ * su fichero siguiera en R2: solo se sirve lo que la ficha enseña.
  */
 export async function readExerciseMedia(
   db: Database,
@@ -293,7 +293,7 @@ export async function readExerciseMedia(
   exerciseId: string,
   mediaId: string,
 ): Promise<R2ObjectBody> {
-  const notFound = new ApiException('not_found', 'Esa foto no existe', { exerciseId, mediaId });
+  const notFound = new ApiException('not_found', 'Ese fichero no existe', { exerciseId, mediaId });
 
   const [row] = await db
     .select({ mediaId: exerciseMedia.mediaId })
@@ -310,7 +310,7 @@ export async function readExerciseMedia(
 
   const object = await bucket.get(mediaObjectKey(userId, mediaId));
   if (object === null) {
-    console.error(`La foto ${mediaId} está en D1 pero no en R2`);
+    console.error(`El medio ${mediaId} está en D1 pero no en R2`);
     throw notFound;
   }
 

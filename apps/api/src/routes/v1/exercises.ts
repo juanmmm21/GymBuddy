@@ -82,8 +82,8 @@ export const exercisesRoute = new Hono<AuthenticatedEnv>()
   })
 
   /**
-   * Pone o sustituye la foto de la técnica. El cuerpo es el fichero tal cual (ya re-codificado en el
-   * móvil), no JSON: así pasa a R2 en streaming. Responde el ejercicio con su foto nueva.
+   * Pone o sustituye la foto o el vídeo de la técnica. El cuerpo es el fichero tal cual (ya
+   * re-codificado en el móvil), no JSON: así pasa a R2 en streaming. Responde el ejercicio con su medio nuevo.
    */
   .put('/exercises/:id/media', async (c) => {
     const user = c.get('user');
@@ -107,7 +107,7 @@ export const exercisesRoute = new Hono<AuthenticatedEnv>()
     );
   })
 
-  /** Quita la foto y devuelve el ejercicio sin ella. Repetirlo no falla. */
+  /** Quita la foto o el vídeo y devuelve el ejercicio sin él. Repetirlo no falla. */
   .delete('/exercises/:id/media', async (c) => {
     const user = c.get('user');
 
