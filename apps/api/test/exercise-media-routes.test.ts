@@ -352,9 +352,9 @@ describe('acceptMediaUpload', () => {
   });
 
   it('acepta un MP4 como vídeo con su propio tope, más alto que el de una foto', () => {
-    expect(acceptMediaUpload({ contentType: 'video/mp4', contentLength: '11000000' })).toStrictEqual(
-      { kind: 'video', contentType: 'video/mp4', bytes: 11_000_000 },
-    );
+    expect(
+      acceptMediaUpload({ contentType: 'video/mp4', contentLength: '11000000' }),
+    ).toStrictEqual({ kind: 'video', contentType: 'video/mp4', bytes: 11_000_000 });
     expect(() =>
       acceptMediaUpload({ contentType: 'video/mp4', contentLength: String(40 * 1024 * 1024 + 1) }),
     ).toThrow('El fichero pesa demasiado');

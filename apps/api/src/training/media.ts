@@ -125,9 +125,13 @@ async function assertWithinFreeTier(
     });
   }
   if ((month?.uploads ?? 0) >= MEDIA_MONTHLY_UPLOAD_LIMIT) {
-    throw new ApiException('media_quota_exceeded', 'Se han subido demasiadas fotos y vídeos este mes', {
-      reason: 'monthly_uploads',
-    });
+    throw new ApiException(
+      'media_quota_exceeded',
+      'Se han subido demasiadas fotos y vídeos este mes',
+      {
+        reason: 'monthly_uploads',
+      },
+    );
   }
 }
 
