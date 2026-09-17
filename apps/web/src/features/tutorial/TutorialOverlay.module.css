@@ -1,0 +1,147 @@
+/*
+ * A diferencia de las hojas, la tarjeta va centrada y no pegada abajo: no es una acción que se
+ * confirma con el pulgar, es algo que se lee. Los botones sí quedan al alcance, dentro de la caja.
+ */
+.dialog {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  max-height: 100%;
+  margin: 0;
+  padding: var(--gb-space-lg);
+  border: 0;
+  background: transparent;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.dialog[open] {
+  display: flex;
+}
+
+.dialog::backdrop {
+  background: var(--gb-color-overlay);
+}
+
+.panel {
+  width: 100%;
+  max-width: var(--gb-size-content-max-width);
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-lg);
+  padding: var(--gb-space-lg);
+  background: var(--gb-color-surface-raised);
+  border-radius: var(--gb-radius-lg);
+  box-shadow: var(--gb-shadow-sheet);
+  animation: appear var(--gb-duration-base) var(--gb-ease-enter);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gb-space-md);
+}
+
+.counter {
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-label-size);
+  font-weight: var(--gb-type-label-weight);
+  line-height: var(--gb-type-label-line);
+  letter-spacing: var(--gb-type-label-tracking);
+  text-transform: uppercase;
+}
+
+.skip {
+  min-height: var(--gb-size-touch-target);
+  padding: 0 var(--gb-space-sm);
+  margin: 0 calc(var(--gb-space-sm) * -1);
+  border: 0;
+  background: transparent;
+  color: var(--gb-color-text-secondary);
+  font-size: var(--gb-type-body-size);
+  line-height: var(--gb-type-body-line);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--gb-space-md);
+  overflow-y: auto;
+}
+
+.badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--gb-space-xxxl);
+  height: var(--gb-space-xxxl);
+  border-radius: var(--gb-radius-pill);
+  background: var(--gb-color-accent-soft);
+  color: var(--gb-color-accent);
+}
+
+.icon {
+  width: var(--gb-space-xl);
+  height: var(--gb-space-xl);
+}
+
+.title {
+  font-family: var(--gb-font-display);
+  font-stretch: var(--gb-font-width-condensed);
+  font-size: var(--gb-type-headline-size);
+  font-weight: var(--gb-type-headline-weight);
+  line-height: var(--gb-type-headline-line);
+  letter-spacing: var(--gb-type-headline-tracking);
+}
+
+.text {
+  color: var(--gb-color-text-secondary);
+  font-size: var(--gb-type-body-size);
+  line-height: var(--gb-type-body-line);
+}
+
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: var(--gb-space-sm);
+}
+
+.dot {
+  width: var(--gb-space-sm);
+  height: var(--gb-space-sm);
+  border-radius: var(--gb-radius-pill);
+  background: var(--gb-color-border-strong);
+  transition: background-color var(--gb-duration-fast) var(--gb-ease-standard);
+}
+
+.dotCurrent {
+  background: var(--gb-color-accent);
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: var(--gb-space-sm);
+}
+
+/* Avanzar es lo que se hace casi siempre: se lleva el ancho que sobra y cae a la derecha. */
+.next {
+  flex: 1;
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(var(--gb-space-md));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
