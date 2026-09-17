@@ -8,7 +8,6 @@ import { useInstallGuide } from '../install/InstallProvider';
 import { INSTALL_PATH } from '../install/paths';
 import { INVITE_PATH } from '../invitations/paths';
 import { IphoneTimerSettings } from './IphoneTimerSettings';
-import { VIDEO_TEST_PATH } from './paths';
 import { ProfileNameForm } from './ProfileNameForm';
 import { RestPushSettings } from './RestPushSettings';
 import styles from './SettingsScreen.module.css';
@@ -38,12 +37,6 @@ const ACCOUNT_ENTRIES: readonly SettingsEntry[] = [
     description: 'Descarga todo lo que has entrenado o recupéralo desde un fichero.',
   },
 ];
-
-const VIDEO_TEST_ENTRY: SettingsEntry = {
-  to: VIDEO_TEST_PATH,
-  title: 'Prueba de vídeo',
-  description: 'Mira si este móvil convierte un vídeo de la cámara y cuánto tarda.',
-};
 
 const INSTALL_ENTRY: SettingsEntry = {
   to: INSTALL_PATH,
@@ -89,12 +82,6 @@ export function SettingsScreen() {
             Tu cuenta
           </h2>
           <EntryList entries={entries} />
-        </Surface>
-        <Surface as="section" padding="none" aria-labelledby="settings-lab">
-          <h2 id="settings-lab" className={styles.sectionTitle}>
-            Pruebas
-          </h2>
-          <EntryList entries={[VIDEO_TEST_ENTRY]} />
         </Surface>
         <Button variant="danger" fullWidth onClick={signOut}>
           Salir
