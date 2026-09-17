@@ -9,6 +9,7 @@ import type {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PhotoCodec } from '../../src/features/exercises/photo-compression';
 import type { VideoConverter } from '../../src/features/exercises/video-conversion';
+import { createMemoryMediaFileStore } from '../../src/offline/media-file-store';
 import { errorResponse, jsonResponse, type FakeFetch } from '../fake-fetch';
 import { benchPress, benchPressHistory, benchPressStats, customCurl, session } from '../fixtures';
 import { renderApp } from './render-app';
@@ -91,7 +92,7 @@ describe('foto de la técnica en la ficha', () => {
   it('prepara la foto elegida en el móvil, la sube como JPEG y la enseña', async () => {
     const user = userEvent.setup();
     let state: { current: TrackedExercise } = { current: customCurl };
-    const { fake } = renderApp({
+    const { fake, mediaStore } = renderApp({
       path: CUSTOM_PATH,
       session,
       photoCodec: fakeCodec,
@@ -119,9 +120,11 @@ describe('foto de la técnica en la ficha', () => {
 
     const put = fake.requests.find((request) => request.method === 'PUT');
     expect(put?.headers.get('Content-Type')).toBe('image/jpeg');
+    // Lo subido es el mismo fichero que guardó el Worker: no se vuelve a bajar y queda en el móvil.
     expect(fake.requests.some((request) => request.path.includes(`/media/${photoMedia.id}`))).toBe(
-      true,
+      false,
     );
+    expect(mediaStore.mediaIds()).toEqual([photoMedia.id]);
     expect(within(section).getByRole('button', { name: 'Cambiar foto' })).toBeInTheDocument();
   });
 
@@ -398,5 +401,115 @@ describe('vídeo de la técnica en la ficha', () => {
     expect(within(section).getByText(/no puede convertir vídeos/)).toBeInTheDocument();
     expect(within(section).queryByRole('button', { name: 'Añadir vídeo' })).not.toBeInTheDocument();
     expect(within(section).getByRole('button', { name: 'Añadir foto' })).toBeInTheDocument();
+  });
+});
+
+describe('fotos y vídeos guardados para verlos sin red', () => {
+  it('lo ya visto se enseña desde el dispositivo, sin pedírselo al Worker', async () => {
+    const mediaStore = createMemoryMediaFileStore();
+    await mediaStore.write(videoMedia.id, new Blob(['mp4-guardado'], { type: 'video/mp4' }), 1_000);
+    const { fake } = renderApp({
+      path: CUSTOM_PATH,
+      session,
+      mediaStore,
+      setup: (fake) => {
+        serveCustomExercise(fake, { ...customCurl, media: videoMedia });
+      },
+    });
+
+    await screen.findByLabelText(`Vídeo de la técnica de ${customCurl.name}`);
+
+    expect(fake.requests.some((request) => request.path.includes('/media/'))).toBe(false);
+  });
+
+  it('lo que se ve por primera vez se baja una vez y se guarda en el dispositivo', async () => {
+    const { fake, mediaStore } = renderApp({
+      path: CUSTOM_PATH,
+      session,
+      setup: (fake) => {
+        serveCustomExercise(fake, { ...customCurl, media: photoMedia });
+      },
+    });
+
+    await screen.findByRole('img', { name: `Foto de la técnica de ${customCurl.name}` });
+
+    await waitFor(() => {
+      expect(mediaStore.mediaIds()).toEqual([photoMedia.id]);
+    });
+    expect(
+      fake.requests.filter((request) => request.path.includes(`/media/${photoMedia.id}`)),
+    ).toHaveLength(1);
+  });
+
+  it('cambiar el medio retira del dispositivo el que sustituye', async () => {
+    const user = userEvent.setup();
+    const mediaStore = createMemoryMediaFileStore();
+    await mediaStore.write(photoMedia.id, new Blob(['jpeg-viejo'], { type: 'image/jpeg' }), 1_000);
+    renderApp({
+      path: CUSTOM_PATH,
+      session,
+      mediaStore,
+      photoCodec: fakeCodec,
+      videoConverter: fakeConverter,
+      setup: (fake) => {
+        const state = serveCustomExercise(fake, { ...customCurl, media: photoMedia });
+        fake.on('PUT', `/exercises/${customCurl.id}/media`, () => {
+          state.current = { ...customCurl, media: videoMedia };
+          return jsonResponse(state.current);
+        });
+      },
+    });
+
+    const section = await screen.findByRole('region', { name: 'Foto o vídeo de la técnica' });
+    await user.upload(
+      within(section).getByLabelText('Elegir vídeo de la técnica'),
+      new File(['video'], 'IMG_0004.MOV', { type: 'video/quicktime' }),
+    );
+
+    await screen.findByLabelText(`Vídeo de la técnica de ${customCurl.name}`);
+    await waitFor(() => {
+      expect(mediaStore.mediaIds()).toEqual([videoMedia.id]);
+    });
+  });
+
+  it('quitar el medio también lo borra del dispositivo', async () => {
+    const user = userEvent.setup();
+    const mediaStore = createMemoryMediaFileStore();
+    await mediaStore.write(videoMedia.id, new Blob(['mp4-guardado'], { type: 'video/mp4' }), 1_000);
+    renderApp({
+      path: CUSTOM_PATH,
+      session,
+      mediaStore,
+      photoCodec: fakeCodec,
+      videoConverter: fakeConverter,
+      setup: (fake) => {
+        const state = serveCustomExercise(fake, { ...customCurl, media: videoMedia });
+        fake.on('DELETE', `/exercises/${customCurl.id}/media`, () => {
+          state.current = { ...customCurl, media: null };
+          return jsonResponse(state.current);
+        });
+      },
+    });
+
+    await screen.findByLabelText(`Vídeo de la técnica de ${customCurl.name}`);
+    await user.click(screen.getByRole('button', { name: 'Quitar vídeo' }));
+    await user.click(screen.getByRole('button', { name: 'Sí, quitarlo' }));
+
+    await screen.findByRole('button', { name: 'Añadir vídeo' });
+    await waitFor(() => {
+      expect(mediaStore.mediaIds()).toEqual([]);
+    });
+  });
+
+  it('sin sesión no queda en el móvil nada de la cuenta anterior', async () => {
+    const mediaStore = createMemoryMediaFileStore();
+    await mediaStore.write(videoMedia.id, new Blob(['mp4-guardado'], { type: 'video/mp4' }), 1_000);
+
+    renderApp({ path: CUSTOM_PATH, mediaStore });
+
+    await screen.findByRole('button', { name: 'Entrar' });
+    await waitFor(() => {
+      expect(mediaStore.mediaIds()).toEqual([]);
+    });
   });
 });

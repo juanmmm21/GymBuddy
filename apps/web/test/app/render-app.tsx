@@ -13,6 +13,10 @@ import type { InstallSupport } from '../../src/features/install/InstallProvider'
 import type { PushBrowser } from '../../src/features/settings/push-notices';
 import type { StorageLike } from '../../src/lib/storage';
 import {
+  createMemoryMediaFileStore,
+  type MemoryMediaFileStore,
+} from '../../src/offline/media-file-store';
+import {
   createMemoryWriteQueueStore,
   type MemoryWriteQueueStore,
 } from '../../src/offline/write-queue-store';
@@ -23,6 +27,8 @@ export interface RenderedApp {
   readonly storage: StorageLike & { readonly data: Map<string, string> };
   /** La cola offline guardada en el dispositivo, para ver qué se encoló y qué se retiró. */
   readonly queueStore: MemoryWriteQueueStore;
+  /** Las fotos y los vídeos guardados en el dispositivo para verlos sin red. */
+  readonly mediaStore: MemoryMediaFileStore;
 }
 
 /**
@@ -44,6 +50,8 @@ export function renderApp(options: {
   readonly authenticator?: PasskeyAuthenticator;
   /** Escrituras que quedaron en la cola la última vez que se abrió la app. */
   readonly queued?: readonly unknown[];
+  /** Las fotos y los vídeos que ya estaban guardados en el dispositivo. */
+  readonly mediaStore?: MemoryMediaFileStore;
   /** El navegador en el que se abre: por defecto, el de jsdom, que pasa por uno de escritorio. */
   readonly install?: InstallSupport;
   /** El push del navegador; por defecto, ninguno, como jsdom. */
@@ -67,6 +75,7 @@ export function renderApp(options: {
   };
 
   const queueStore = createMemoryWriteQueueStore(options.queued);
+  const mediaStore = options.mediaStore ?? createMemoryMediaFileStore();
 
   render(
     <App
@@ -76,6 +85,7 @@ export function renderApp(options: {
       fetchImpl={fake.fetch}
       authenticator={options.authenticator ?? noPasskeys}
       writeQueueStore={queueStore}
+      mediaFileStore={mediaStore}
       pushBrowser={options.pushBrowser ?? null}
       photoCodec={options.photoCodec ?? null}
       videoConverter={options.videoConverter ?? null}
@@ -83,5 +93,5 @@ export function renderApp(options: {
     />,
   );
 
-  return { fake, storage, queueStore };
+  return { fake, storage, queueStore, mediaStore };
 }
