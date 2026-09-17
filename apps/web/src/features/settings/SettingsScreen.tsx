@@ -2,11 +2,13 @@ import { Link } from 'react-router';
 import { ScreenHeader, type BackLink } from '../../app/ScreenHeader';
 import { useSession } from '../../auth/SessionProvider';
 import { Button, Surface } from '../../components/index';
+import { cx } from '../../lib/cx';
 import { BACKUP_PATH } from '../backup/paths';
 import { DEVICES_PATH } from '../devices/paths';
 import { useInstallGuide } from '../install/InstallProvider';
 import { INSTALL_PATH } from '../install/paths';
 import { INVITE_PATH } from '../invitations/paths';
+import { useTutorial } from '../tutorial/TutorialProvider';
 import { IphoneTimerSettings } from './IphoneTimerSettings';
 import { ProfileNameForm } from './ProfileNameForm';
 import { RestPushSettings } from './RestPushSettings';
@@ -51,8 +53,8 @@ const INSTALL_ENTRY: SettingsEntry = {
 export function SettingsScreen() {
   const { session, signOut } = useSession();
   const { situation, platform } = useInstallGuide();
-  const entries =
-    situation.kind === 'installed' ? ACCOUNT_ENTRIES : [...ACCOUNT_ENTRIES, INSTALL_ENTRY];
+  const { show: showTutorial } = useTutorial();
+  const appEntries = situation.kind === 'installed' ? [] : [INSTALL_ENTRY];
 
   return (
     <>
@@ -81,7 +83,34 @@ export function SettingsScreen() {
           <h2 id="settings-account" className={styles.sectionTitle}>
             Tu cuenta
           </h2>
-          <EntryList entries={entries} />
+          <EntryList entries={ACCOUNT_ENTRIES} />
+        </Surface>
+        <Surface as="section" padding="none" aria-labelledby="settings-app">
+          <h2 id="settings-app" className={styles.sectionTitle}>
+            La app
+          </h2>
+          <ul className={styles.list}>
+            <li>
+              <button
+                type="button"
+                className={cx(styles.row, styles.rowButton)}
+                onClick={showTutorial}
+              >
+                <span className={styles.rowText}>
+                  <span className={styles.rowTitle}>Ver el tutorial</span>
+                  <span className={styles.rowDescription}>
+                    Lo que hace cada pantalla, otra vez y desde el principio.
+                  </span>
+                </span>
+                <span className={styles.chevron} aria-hidden="true">
+                  ›
+                </span>
+              </button>
+            </li>
+            {appEntries.map((entry) => (
+              <EntryRow key={entry.to} entry={entry} />
+            ))}
+          </ul>
         </Surface>
         <Button variant="danger" fullWidth onClick={signOut}>
           Salir
@@ -95,18 +124,24 @@ function EntryList({ entries }: { readonly entries: readonly SettingsEntry[] }) 
   return (
     <ul className={styles.list}>
       {entries.map((entry) => (
-        <li key={entry.to}>
-          <Link to={entry.to} className={styles.row}>
-            <span className={styles.rowText}>
-              <span className={styles.rowTitle}>{entry.title}</span>
-              <span className={styles.rowDescription}>{entry.description}</span>
-            </span>
-            <span className={styles.chevron} aria-hidden="true">
-              ›
-            </span>
-          </Link>
-        </li>
+        <EntryRow key={entry.to} entry={entry} />
       ))}
     </ul>
+  );
+}
+
+function EntryRow({ entry }: { readonly entry: SettingsEntry }) {
+  return (
+    <li>
+      <Link to={entry.to} className={styles.row}>
+        <span className={styles.rowText}>
+          <span className={styles.rowTitle}>{entry.title}</span>
+          <span className={styles.rowDescription}>{entry.description}</span>
+        </span>
+        <span className={styles.chevron} aria-hidden="true">
+          ›
+        </span>
+      </Link>
+    </li>
   );
 }

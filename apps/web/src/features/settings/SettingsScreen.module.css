@@ -64,3 +64,12 @@
   color: var(--gb-color-text-muted);
   font-size: var(--gb-type-title-size);
 }
+
+/* Una fila que no navega, sino que abre el tutorial: se ve igual que las demás. */
+.rowButton {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+}
