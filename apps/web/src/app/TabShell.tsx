@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { NavLink, Outlet } from 'react-router';
 import { SESSION_PATH } from '../features/session/paths';
+import { TutorialProvider } from '../features/tutorial/TutorialProvider';
 import { useNow } from '../hooks/use-now';
 import { cx } from '../lib/cx';
 import { formatStopwatch } from '../lib/format';
@@ -29,24 +30,30 @@ const TRAILING_TABS: readonly Tab[] = [
   { to: '/history', label: 'Historial', icon: 'history' },
 ];
 
-/** Columna de contenido con la barra de pestañas fija abajo, al alcance del pulgar. */
+/**
+ * Columna de contenido con la barra de pestañas fija abajo, al alcance del pulgar. El tutorial de
+ * la primera vez envuelve el shell entero: sale sobre cualquier pestaña, y desde Ajustes se puede
+ * volver a pedir.
+ */
 export function TabShell() {
   return (
-    <div className={styles.shell}>
-      <main className={styles.content}>
-        <SyncStatus />
-        <Outlet />
-      </main>
-      <nav className={styles.tabBar} aria-label="Secciones">
-        {LEADING_TABS.map((tab) => (
-          <TabLink key={tab.to} tab={tab} />
-        ))}
-        <SessionShortcutSlot />
-        {TRAILING_TABS.map((tab) => (
-          <TabLink key={tab.to} tab={tab} />
-        ))}
-      </nav>
-    </div>
+    <TutorialProvider>
+      <div className={styles.shell}>
+        <main className={styles.content}>
+          <SyncStatus />
+          <Outlet />
+        </main>
+        <nav className={styles.tabBar} aria-label="Secciones">
+          {LEADING_TABS.map((tab) => (
+            <TabLink key={tab.to} tab={tab} />
+          ))}
+          <SessionShortcutSlot />
+          {TRAILING_TABS.map((tab) => (
+            <TabLink key={tab.to} tab={tab} />
+          ))}
+        </nav>
+      </div>
+    </TutorialProvider>
   );
 }
 
