@@ -6,6 +6,7 @@ import {
   fontWidths,
   motionDuration,
   motionEasing,
+  motionShift,
   radius,
   sizes,
   spacing,
@@ -58,6 +59,9 @@ export function cssVariablesFor(scheme: ColorScheme): CssVariables {
   }
   for (const [name, value] of Object.entries(motionEasing)) {
     variables[variableName('ease', name)] = value;
+  }
+  for (const [name, value] of Object.entries(motionShift)) {
+    variables[variableName('shift', name)] = pixels(value);
   }
   for (const [name, value] of Object.entries(bodyMapOpacity)) {
     variables[variableName('opacity-body-map', kebabCase(name))] = String(value);

@@ -228,6 +228,14 @@ export const motionEasing = {
   exit: 'cubic-bezier(0.4, 0, 1, 1)',
 } as const;
 
+/**
+ * Cuánto recorre algo que entra en pantalla, en píxeles. Lo justo para que se lea de dónde viene:
+ * con más recorrido la navegación se siente lenta, y entre serie y serie eso es esperar.
+ */
+export const motionShift = {
+  screen: 16,
+} as const;
+
 export const elevation: Readonly<Record<ColorScheme, ElevationTokens>> = {
   light: {
     raised: '0 1px 2px rgba(18, 24, 38, 0.06), 0 4px 12px rgba(18, 24, 38, 0.08)',

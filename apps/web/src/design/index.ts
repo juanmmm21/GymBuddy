@@ -5,6 +5,7 @@ export {
   fontWidths,
   motionDuration,
   motionEasing,
+  motionShift,
   radius,
   sizes,
   spacing,
