@@ -40,3 +40,16 @@ Antes de construir el vídeo había que comprobar en un iPhone real lo que la in
 *   **Mediabunny va fijado a una versión exacta** que ya ha pasado la espera mínima de publicación que exige pnpm: no se abre una excepción a esa política por una dependencia recién publicada.
 *   **Si la prueba sale mal** (el iPhone no decodifica el HEVC, tarda demasiado o se queda sin memoria), no se construye el vídeo así: se vuelve a decidir con Juan.
 
+
+## Revisión: el vídeo de la técnica (2026-09-17)
+
+**La prueba falló la primera vez por un fallo nuestro, no del iPhone.** Safari descartaba la pista con `no_encodable_target_codec` porque la tasa de bits se pasaba como `new Quality(2000000)`, y en Mediabunny un número suelto es un nivel cualitativo (de 0 a 1): calculaba una tasa y un nivel de H.264 imposibles y el codificador rechazaba la configuración. Con `new Quality({ bitrate })` pide H.264 High 3.1 a 2 Mbps. Se comprobó primero en el Safari de macOS (mismo WebKit y VideoToolbox) con un HEVC 4K girado, y después Juan repitió la prueba en su iPhone: un vídeo vertical de 48,8 s en 4K (65,3 MB) quedó en 720 × 1280 y 11,0 MB, y tardó 85,9 s.
+
+Con eso se construye el vídeo:
+
+*   **Contrato:** `video` entra en la clase del medio, con `video/mp4` como único tipo y **40 MB** de tope (un minuto a 2 Mbps ronda los 15; un minuto en 4K de la cámara, unos 80, no pasa). La columna `kind` no tenía CHECK a propósito, así que no hay migración. Un ejercicio sigue llevando **un solo medio**: un vídeo sustituye a la foto y al revés.
+*   **El Worker no cambia de forma:** el mismo `PUT` en streaming, los mismos topes del gratuito contando fotos y vídeos juntos, y el mismo `GET` inmutable.
+*   **Sin peticiones de rango.** La PWA baja el vídeo entero con `fetch` y la sesión, porque un `<video>` no manda la cabecera `Authorization`, y lo reproduce desde una dirección `blob:`. Poner el token en la URL filtraría la sesión, y la porción sin red (11c) tendrá que guardar el fichero entero de todas formas. Un vídeo de la técnica pesa unos 10–15 MB, así que no compensa la complejidad.
+*   **La conversión tarda casi el doble de lo que dura el vídeo** y iOS la suspende si se sale de la app o se bloquea el móvil (el bloqueo automático viene a 30 s). La ficha lo avisa con el avance en pantalla y pide **Screen Wake Lock** mientras convierte y sube. Si el navegador no lo ofrece, se sigue sin él.
+*   **Lo convertido que aún pase del tope se rechaza en el móvil**, antes de gastar cobertura subiéndolo.
+*   **La pantalla de prueba se quita**: la conversión ya vive en la ficha.
