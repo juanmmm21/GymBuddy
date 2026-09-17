@@ -46,7 +46,7 @@ import {
   updateSet,
   updateCurrentUser,
   updateTrackedExercise,
-  uploadExercisePhoto,
+  uploadExerciseMedia,
 } from './endpoints';
 import type { SubmitOutcome } from '../offline/write-queue';
 import { useWriteQueue } from '../offline/WriteQueueProvider';
@@ -90,32 +90,36 @@ export function useUpdateTrackedExercise(): UseMutationResult<
   });
 }
 
-export interface UploadExercisePhotoVariables {
+export interface UploadExerciseMediaVariables {
   readonly exerciseId: ResourceId;
-  /** Ya re-codificada en el móvil (`compressPhoto`): el Worker no acepta el original. */
-  readonly photo: Blob;
+  /**
+   * Ya re-codificado en el móvil (`compressPhoto` o `convertVideo`): el Worker no acepta el
+   * original de la cámara.
+   */
+  readonly file: Blob;
 }
 
 /**
- * Pone o sustituye la foto de la técnica. Directo al Worker y fuera de la cola offline: un fichero
- * no cabe en la cola de IndexedDB junto a las series, y sin red se dice en vez de guardarlo a medias.
+ * Pone o sustituye la foto o el vídeo de la técnica. Directo al Worker y fuera de la cola offline:
+ * un fichero no cabe en la cola de IndexedDB junto a las series, y sin red se dice en vez de guardarlo
+ * a medias.
  */
-export function useUploadExercisePhoto(): UseMutationResult<
+export function useUploadExerciseMedia(): UseMutationResult<
   TrackedExercise,
   Error,
-  UploadExercisePhotoVariables
+  UploadExerciseMediaVariables
 > {
   const client = useApiClient();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ exerciseId, photo }: UploadExercisePhotoVariables) =>
-      uploadExercisePhoto(client, exerciseId, photo),
+    mutationFn: ({ exerciseId, file }: UploadExerciseMediaVariables) =>
+      uploadExerciseMedia(client, exerciseId, file),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.exercises.all }),
   });
 }
 
-/** Quita la foto de la técnica; igual que subirla, directo y fuera de la cola offline. */
+/** Quita la foto o el vídeo de la técnica; igual que subirlo, directo y fuera de la cola offline. */
 export function useRemoveExerciseMedia(): UseMutationResult<TrackedExercise, Error, ResourceId> {
   const client = useApiClient();
   const queryClient = useQueryClient();

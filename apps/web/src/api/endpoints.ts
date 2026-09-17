@@ -284,17 +284,20 @@ export function updateTrackedExercise(
   });
 }
 
-/** Pone o sustituye la foto de la técnica de un ejercicio propio; `photo` va ya re-codificada. */
-export function uploadExercisePhoto(
+/**
+ * Pone o sustituye la foto o el vídeo de la técnica de un ejercicio propio. `file` va ya
+ * re-codificado en el móvil y con su tipo (`image/jpeg` o `video/mp4`), que es lo que mira el Worker.
+ */
+export function uploadExerciseMedia(
   client: ApiClient,
   exerciseId: string,
-  photo: Blob,
+  file: Blob,
 ): Promise<TrackedExercise> {
   return client.upload({
     method: 'PUT',
     path: `/exercises/${encodeURIComponent(exerciseId)}/media`,
     schema: trackedExerciseSchema,
-    file: photo,
+    file,
   });
 }
 

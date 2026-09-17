@@ -15,9 +15,9 @@ export function describeError(error: unknown): string {
       case 'catalog_unavailable':
         return 'El catálogo de ejercicios no está disponible ahora mismo.';
       case 'media_too_large':
-        return 'La foto pesa demasiado. Prueba con otra.';
+        return 'El fichero pesa demasiado. Prueba con otro.';
       case 'media_quota_exceeded':
-        return 'Se ha llegado al tope gratuito de fotos (espacio o subidas del mes). No se ha guardado.';
+        return 'Se ha llegado al tope gratuito de fotos y vídeos (espacio o subidas del mes). No se ha guardado.';
       default:
         return error.message;
     }

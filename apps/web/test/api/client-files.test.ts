@@ -3,7 +3,7 @@ import { ApiClient, ApiRequestError, ApiTransportError } from '../../src/api/cli
 import {
   downloadExerciseMedia,
   removeExerciseMedia,
-  uploadExercisePhoto,
+  uploadExerciseMedia,
 } from '../../src/api/endpoints';
 import { errorResponse, jsonResponse } from '../fake-fetch';
 import { customCurl } from '../fixtures';
@@ -46,7 +46,7 @@ describe('ApiClient: ficheros', () => {
     const captured = capturingFetch(() => jsonResponse(withPhoto));
     const photo = new Blob([new Uint8Array([1, 2, 3])], { type: 'image/jpeg' });
 
-    const exercise = await uploadExercisePhoto(clientWith(captured.fetch), customCurl.id, photo);
+    const exercise = await uploadExerciseMedia(clientWith(captured.fetch), customCurl.id, photo);
 
     expect(exercise.media?.id).toBe(MEDIA_ID);
     const [call] = captured.calls;
@@ -96,7 +96,7 @@ describe('ApiClient: ficheros', () => {
     const failing = vi.fn<typeof fetch>().mockRejectedValue(new TypeError('Load failed'));
 
     await expect(
-      uploadExercisePhoto(
+      uploadExerciseMedia(
         clientWith(failing),
         customCurl.id,
         new Blob(['x'], { type: 'image/jpeg' }),
