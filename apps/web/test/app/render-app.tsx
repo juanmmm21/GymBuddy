@@ -11,6 +11,7 @@ import type { PhotoCodec } from '../../src/features/exercises/photo-compression'
 import type { VideoConverter } from '../../src/features/exercises/video-conversion';
 import type { InstallSupport } from '../../src/features/install/InstallProvider';
 import type { PushBrowser } from '../../src/features/settings/push-notices';
+import { TUTORIAL_STORAGE_KEY, saveTutorialSeen } from '../../src/features/tutorial/tutorial';
 import type { StorageLike } from '../../src/lib/storage';
 import {
   createMemoryMediaFileStore,
@@ -73,6 +74,9 @@ export function renderApp(options: {
     setItem: (key: string, value: string) => void data.set(key, value),
     removeItem: (key: string) => void data.delete(key),
   };
+  // El tutorial de la primera vez se pone delante de cualquier pantalla: salvo que el test lo pida
+  // sin ver (`stored`), se da por visto para que no tape lo que cada test viene a comprobar.
+  if (!data.has(TUTORIAL_STORAGE_KEY)) saveTutorialSeen(storage);
 
   const queueStore = createMemoryWriteQueueStore(options.queued);
   const mediaStore = options.mediaStore ?? createMemoryMediaFileStore();
