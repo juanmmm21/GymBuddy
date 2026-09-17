@@ -2,10 +2,10 @@ import { z } from 'zod';
 import { isoDatetimeSchema, resourceIdSchema } from './common';
 
 /**
- * Qué clase de medio lleva un ejercicio propio. De momento solo fotos: el vídeo necesita
- * re-codificarse en el móvil antes de subirlo y llega en una porción aparte.
+ * Qué clase de medio lleva un ejercicio propio: una foto o un vídeo de la técnica, los dos
+ * re-codificados en el móvil antes de subirlos.
  */
-export const exerciseMediaKindSchema = z.enum(['photo']);
+export const exerciseMediaKindSchema = z.enum(['photo', 'video']);
 
 export type ExerciseMediaKind = z.infer<typeof exerciseMediaKindSchema>;
 
@@ -15,14 +15,18 @@ export type ExerciseMediaKind = z.infer<typeof exerciseMediaKindSchema>;
  */
 export const EXERCISE_MEDIA_CONTENT_TYPES = {
   photo: 'image/jpeg',
+  video: 'video/mp4',
 } as const satisfies Record<ExerciseMediaKind, string>;
 
 /**
  * El tope por fichero que acepta el Worker. Una foto re-codificada a 1600 px ronda los 300–500 KB;
- * el margen cubre una foto con mucho detalle sin dejar pasar un original del iPhone.
+ * el margen cubre una foto con mucho detalle sin dejar pasar un original del iPhone. Un minuto de
+ * vídeo a 2 Mbps ronda los 15 MB (en el iPhone de Juan, 48,8 s pesaron 11 MB): la tasa es variable y
+ * se deja margen, pero un minuto en 4K de la cámara (unos 80 MB) no pasa.
  */
 export const EXERCISE_MEDIA_MAX_BYTES = {
   photo: 3 * 1024 * 1024,
+  video: 40 * 1024 * 1024,
 } as const satisfies Record<ExerciseMediaKind, number>;
 
 /** El lado largo de una foto al re-codificarla en el móvil: nítida en pantalla y ligera de subir. */
@@ -46,7 +50,7 @@ export const EXERCISE_VIDEO_BITRATE_BPS = 2_000_000;
 export const EXERCISE_VIDEO_MAX_DURATION_SECONDS = 60;
 
 /**
- * La foto de la técnica de un ejercicio propio. El `id` cambia con cada subida: la dirección del
+ * La foto o el vídeo de la técnica de un ejercicio propio. El `id` cambia con cada subida: la dirección del
  * fichero no se reutiliza nunca, así que se puede cachear para siempre.
  */
 export const exerciseMediaSchema = z.object({

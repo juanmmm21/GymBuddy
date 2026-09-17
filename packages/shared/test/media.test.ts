@@ -24,6 +24,11 @@ describe('exerciseMediaKindForContentType', () => {
     expect(exerciseMediaKindForContentType('Image/JPEG; charset=binary')).toBe('photo');
   });
 
+  it('reconoce el MP4 como vídeo', () => {
+    expect(exerciseMediaKindForContentType('video/mp4')).toBe('video');
+    expect(exerciseMediaKindForContentType('VIDEO/MP4; codecs="avc1.64001f"')).toBe('video');
+  });
+
   it('rechaza lo que la PWA no produce: HEIC, PNG o un vídeo sin re-codificar', () => {
     expect(exerciseMediaKindForContentType('image/heic')).toBeNull();
     expect(exerciseMediaKindForContentType('image/png')).toBeNull();
@@ -42,8 +47,15 @@ describe('exerciseMediaSchema', () => {
     expect(exerciseMediaSchema.safeParse({ ...photo, kind: 'audio' }).success).toBe(false);
   });
 
-  it('deja el tope de una foto muy por debajo del original de un iPhone', () => {
+  it('admite un vídeo', () => {
+    const video = { ...photo, kind: 'video', contentType: 'video/mp4', bytes: 11_000_000 };
+    expect(exerciseMediaSchema.parse(video)).toStrictEqual(video);
+  });
+
+  it('deja los topes muy por debajo de los originales de un iPhone', () => {
     expect(EXERCISE_MEDIA_MAX_BYTES.photo).toBe(3 * 1024 * 1024);
+    // Un minuto en 4K de la cámara ronda los 80 MB; re-codificado a 720p, unos 15.
+    expect(EXERCISE_MEDIA_MAX_BYTES.video).toBe(40 * 1024 * 1024);
   });
 });
 
