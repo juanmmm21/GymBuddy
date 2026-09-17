@@ -1,4 +1,15 @@
+import type { QuantitativeQualityOptions } from 'mediabunny';
+
 import type { VideoConverter, VideoEncodePlan, VideoProbe } from './video-conversion';
+
+/**
+ * La calidad con la que se re-codifica: una tasa de bits EXPLÍCITA. En Mediabunny `new Quality(n)` con
+ * un número suelto es un nivel cualitativo (0–1), no bits por segundo: con 2.000.000 calculaba una tasa
+ * y un nivel H.264 imposibles, y Safari descartaba la pista con `no_encodable_target_codec`.
+ */
+export function videoQualityOptions(bitrate: number): QuantitativeQualityOptions {
+  return { bitrate };
+}
 
 /**
  * El conversor de vídeo del navegador: Mediabunny sobre WebCodecs, en TypeScript puro y sin wasm.
@@ -62,7 +73,7 @@ export function createBrowserVideoConverter(): VideoConverter | null {
             height: plan.height,
             fit: 'contain',
             codec: 'avc',
-            quality: new Quality(plan.bitrate),
+            quality: new Quality(videoQualityOptions(plan.bitrate)),
             forceTranscode: true,
             // El giro se hornea en los fotogramas: un reproductor que ignore la metadata no lo tuerce.
             allowRotationMetadata: false,
