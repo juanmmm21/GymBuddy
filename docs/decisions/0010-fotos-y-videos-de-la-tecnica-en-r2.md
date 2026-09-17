@@ -53,3 +53,14 @@ Con eso se construye el vídeo:
 *   **La conversión tarda casi el doble de lo que dura el vídeo** y iOS la suspende si se sale de la app o se bloquea el móvil (el bloqueo automático viene a 30 s). La ficha lo avisa con el avance en pantalla y pide **Screen Wake Lock** mientras convierte y sube. Si el navegador no lo ofrece, se sigue sin él.
 *   **Lo convertido que aún pase del tope se rechaza en el móvil**, antes de gastar cobertura subiéndolo.
 *   **La pantalla de prueba se quita**: la conversión ya vive en la ficha.
+
+## Revisión: las fotos y los vídeos ya vistos, sin red (2026-09-17)
+
+Juan pidió que las fotos **y** los vídeos ya vistos se pudieran ver sin cobertura, igual que los GIFs del catálogo (ADR 0007). Aquí no sirve el mismo mecanismo: los GIFs los pide una `<img>` y los guarda el service worker, pero un medio de la técnica se descarga con `fetch` y la cabecera de la sesión, y el service worker solo sabe limitar su caché **por número de entradas**, no por megas. Ciento cincuenta entradas de hasta 40 MB serían seis gigas en el móvil.
+
+*   **Se guardan en IndexedDB, con un presupuesto en bytes** (`MEDIA_FILE_BUDGET_BYTES`, 200 MB) y retirando primero **lo que más tiempo lleva sin mirarse**. El reparto es una función pura y testeada (`mediaFilesToEvict`), fuera del almacén: decidir qué sobra no depende de IndexedDB. Un fichero que no cabría ni vaciándolo todo no se guarda y no retira nada.
+*   **El almacén va detrás de una interfaz** (`MediaFileStore`, con una versión en memoria para los tests, como la cola de escrituras) y guarda los **bytes** (`ArrayBuffer`), no el `Blob`: Safari ha fallado en varias versiones al guardar un `Blob` en IndexedDB. Lo que ocupa cada fichero va en un almacén aparte del fichero mismo, para poder repartir el sitio sin cargar vídeos en memoria.
+*   **El almacén nunca tumba la pantalla.** Si no se puede leer, se descarga; si no se puede guardar (cuota, modo privado), el medio se ve igual y sin red no estará. Todo fallo se registra.
+*   **Lo que se acaba de subir se guarda ya con el id que le dio el Worker**, sin volver a bajarlo: es exactamente el fichero que el Worker guardó. Así, con la poca cobertura del gimnasio, subir un vídeo de 11 MB no obliga a bajárselo otra vez para verlo.
+*   **Al quitar o sustituir un medio se retira del dispositivo**, y al cerrar sesión se vacía todo: lo de una cuenta no puede quedarse para la siguiente, igual que la instantánea del dispositivo. Lo que **no** se borra de la caché de TanStack Query es la consulta del fichero: quitarla mientras la ficha sigue montada un instante la hacía pedir el fichero otra vez y volver a guardarlo.
+*   **No hace falta atar lo guardado a la cuenta**: el id de un medio solo se conoce leyendo los ejercicios de su dueño, y al cerrar sesión se vacía.
