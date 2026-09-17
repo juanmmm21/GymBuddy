@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import { NavLink, Outlet } from 'react-router';
-import { SESSION_PATH } from '../features/session/paths';
 import { TutorialProvider } from '../features/tutorial/TutorialProvider';
 import { useNow } from '../hooks/use-now';
 import { cx } from '../lib/cx';
@@ -8,6 +7,8 @@ import { formatStopwatch } from '../lib/format';
 import { elapsedSecondsSince } from '../lib/time';
 import { SyncStatus } from '../offline/SyncStatus';
 import { useOpenSession } from '../offline/use-open-session';
+import { TAB_PATHS } from './screen-transition';
+import { ScreenTransition } from './ScreenTransition';
 import { sessionShortcutFor } from './session-shortcut';
 import styles from './TabShell.module.css';
 
@@ -21,13 +22,13 @@ type TabIcon = 'home' | 'exercises' | 'catalog' | 'history';
 
 // Dos a cada lado: con una sesión abierta, su botón cae justo en el centro, bajo el pulgar.
 const LEADING_TABS: readonly Tab[] = [
-  { to: '/', label: 'Hoy', icon: 'home' },
-  { to: '/exercises', label: 'Ejercicios', icon: 'exercises' },
+  { to: TAB_PATHS.home, label: 'Hoy', icon: 'home' },
+  { to: TAB_PATHS.exercises, label: 'Ejercicios', icon: 'exercises' },
 ];
 
 const TRAILING_TABS: readonly Tab[] = [
-  { to: '/catalog', label: 'Catálogo', icon: 'catalog' },
-  { to: '/history', label: 'Historial', icon: 'history' },
+  { to: TAB_PATHS.catalog, label: 'Catálogo', icon: 'catalog' },
+  { to: TAB_PATHS.history, label: 'Historial', icon: 'history' },
 ];
 
 /**
@@ -41,7 +42,9 @@ export function TabShell() {
       <div className={styles.shell}>
         <main className={styles.content}>
           <SyncStatus />
-          <Outlet />
+          <ScreenTransition>
+            <Outlet />
+          </ScreenTransition>
         </main>
         <nav className={styles.tabBar} aria-label="Secciones">
           {LEADING_TABS.map((tab) => (
@@ -88,7 +91,7 @@ function SessionShortcutButton({ startedAt }: { readonly startedAt: string }) {
   return (
     // El nombre accesible es fijo: un cronómetro dentro del nombre se anunciaría cada segundo.
     <NavLink
-      to={SESSION_PATH}
+      to={TAB_PATHS.session}
       aria-label="Sesión en curso"
       className={({ isActive }) => cx(styles.sessionTab, isActive && styles.sessionTabActive)}
     >

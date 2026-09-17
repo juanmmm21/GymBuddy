@@ -14,6 +14,9 @@
   padding-bottom: calc(
     var(--gb-size-tab-bar-height) + var(--gb-space-xl) + env(safe-area-inset-bottom)
   );
+  /* La pantalla que entra viene desplazada de lado: `clip` la recorta sin crear una caja de
+     desplazamiento, que rompería los elementos pegados de dentro. */
+  overflow-x: clip;
 }
 
 .tabBar {

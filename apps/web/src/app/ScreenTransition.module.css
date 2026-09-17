@@ -1,0 +1,53 @@
+.screen {
+  animation-duration: var(--gb-duration-base);
+  animation-timing-function: var(--gb-ease-enter);
+  /* `both` deja la pantalla en su sitio antes del primer fotograma y al terminar: sin él se ve un
+     salto entre que se monta y que el navegador arranca la animación. */
+  animation-fill-mode: both;
+}
+
+.forward {
+  animation-name: enter-forward;
+}
+
+.backward {
+  animation-name: enter-backward;
+}
+
+.fade {
+  animation-name: enter-fade;
+}
+
+@keyframes enter-forward {
+  from {
+    opacity: 0;
+    transform: translate3d(var(--gb-shift-screen), 0, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes enter-backward {
+  from {
+    opacity: 0;
+    transform: translate3d(calc(-1 * var(--gb-shift-screen)), 0, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes enter-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
