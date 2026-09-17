@@ -30,6 +30,14 @@ function fakeJpeg(size: number, fill = 7): Uint8Array {
   return bytes;
 }
 
+/** Bytes sintéticos que empiezan como un MP4 (`ftyp`): tampoco se miran por dentro. */
+function fakeMp4(size: number): Uint8Array {
+  const bytes = new Uint8Array(size).fill(3);
+  bytes.set([0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70], 0);
+
+  return bytes;
+}
+
 async function bearer(userId: string): Promise<string> {
   const { token } = await issueSessionToken(userId, JWT_SECRET, new Date());
 
@@ -44,7 +52,7 @@ async function errorCode(response: Response): Promise<string> {
   return apiErrorSchema.parse(await response.json()).error.code;
 }
 
-describe('foto de la técnica de un ejercicio propio', () => {
+describe('foto o vídeo de la técnica de un ejercicio propio', () => {
   let db: Database;
   let userId: string;
   let token: string;
@@ -286,6 +294,46 @@ describe('foto de la técnica de un ejercicio propio', () => {
     expect(await errorCode(response)).toBe('media_quota_exceeded');
   });
 
+  it('sube un vídeo MP4, lo sirve tal cual y sustituye a la foto (y la foto al vídeo)', async () => {
+    const exerciseId = await createCustom();
+    const withPhoto = await uploadOk(exerciseId, fakeJpeg(800));
+    const video = fakeMp4(4096);
+
+    const response = await upload(exerciseId, video, { 'content-type': 'video/mp4' });
+    expect(response.status).toBe(200);
+    const withVideo = trackedExerciseSchema.parse(await response.json());
+    expect(withVideo.media).toMatchObject({ kind: 'video', contentType: 'video/mp4', bytes: 4096 });
+    expect(withVideo.media?.id).not.toBe(withPhoto.media?.id);
+
+    const file = await request(`/exercises/${exerciseId}/media/${withVideo.media?.id ?? ''}`, {
+      headers: { authorization: token },
+    });
+    expect(file.status).toBe(200);
+    expect(file.headers.get('content-type')).toBe('video/mp4');
+    expect(new Uint8Array(await file.arrayBuffer())).toStrictEqual(video);
+    // La foto sustituida ya no está en R2: un medio por ejercicio, sea de la clase que sea.
+    expect(await storedKeys()).toStrictEqual([mediaObjectKey(userId, withVideo.media?.id ?? '')]);
+
+    const back = await uploadOk(exerciseId, fakeJpeg(900));
+    expect(back.media?.kind).toBe('photo');
+    expect(await storedKeys()).toStrictEqual([mediaObjectKey(userId, back.media?.id ?? '')]);
+  });
+
+  it('rechaza el vídeo original de la cámara y uno re-codificado que pasa del tope', async () => {
+    const exerciseId = await createCustom();
+
+    const original = await upload(exerciseId, fakeMp4(500), { 'content-type': 'video/quicktime' });
+    expect(original.status).toBe(400);
+
+    const tooLarge = await upload(exerciseId, fakeMp4(40 * 1024 * 1024 + 1), {
+      'content-type': 'video/mp4',
+    });
+    expect(tooLarge.status).toBe(413);
+    expect(await errorCode(tooLarge)).toBe('media_too_large');
+
+    expect(await storedKeys()).toStrictEqual([]);
+  });
+
   it('borrar la cuenta de un ejercicio se lleva su fila de foto', async () => {
     const exerciseId = await createCustom();
     await uploadOk(exerciseId, fakeJpeg(300));
@@ -303,6 +351,15 @@ describe('acceptMediaUpload', () => {
     ).toStrictEqual({ kind: 'photo', contentType: 'image/jpeg', bytes: 1234 });
   });
 
+  it('acepta un MP4 como vídeo con su propio tope, más alto que el de una foto', () => {
+    expect(acceptMediaUpload({ contentType: 'video/mp4', contentLength: '11000000' })).toStrictEqual(
+      { kind: 'video', contentType: 'video/mp4', bytes: 11_000_000 },
+    );
+    expect(() =>
+      acceptMediaUpload({ contentType: 'video/mp4', contentLength: String(40 * 1024 * 1024 + 1) }),
+    ).toThrow('El fichero pesa demasiado');
+  });
+
   it('exige un tamaño entero y positivo', () => {
     for (const contentLength of [undefined, '', '0', '-3', '12.5', 'mucho']) {
       expect(() => acceptMediaUpload({ contentType: 'image/jpeg', contentLength })).toThrow(
@@ -313,7 +370,7 @@ describe('acceptMediaUpload', () => {
 
   it('mira el tipo antes que el tamaño', () => {
     expect(() => acceptMediaUpload({ contentType: undefined, contentLength: '10' })).toThrow(
-      'Solo se admiten fotos en JPEG',
+      'Solo se admiten fotos en JPEG y vídeos en MP4',
     );
   });
 });
