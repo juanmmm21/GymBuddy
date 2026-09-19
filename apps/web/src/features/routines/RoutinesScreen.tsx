@@ -4,7 +4,14 @@ import { Link } from 'react-router';
 import { useRoutines } from '../../api/queries';
 import { ScreenHeader, type BackLink } from '../../app/ScreenHeader';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
-import { Badge, Button, Notice, Surface } from '../../components/index';
+import {
+  Badge,
+  Button,
+  Notice,
+  SkeletonList,
+  Surface,
+  listEntranceProps,
+} from '../../components/index';
 import { EXERCISES_PATH } from '../exercises/paths';
 import { CreateRoutineSheet } from './CreateRoutineSheet';
 import { describeRoutineSize } from './items';
@@ -36,7 +43,7 @@ export function RoutinesScreen() {
           </Button>
         }
       />
-      <AsyncContent query={routines}>
+      <AsyncContent query={routines} skeleton={<SkeletonList rows={4} />}>
         {(items) => {
           const active = items.filter((routine) => routine.archivedAt === null);
           const archived = items.filter((routine) => routine.archivedAt !== null);
@@ -57,8 +64,8 @@ export function RoutinesScreen() {
                 </Notice>
               ) : (
                 <ul className={styles.list} aria-label="Tus rutinas">
-                  {active.map((routine) => (
-                    <RoutineRow key={routine.id} routine={routine} />
+                  {active.map((routine, index) => (
+                    <RoutineRow key={routine.id} routine={routine} index={index} />
                   ))}
                 </ul>
               )}
@@ -88,8 +95,8 @@ function ArchivedSection({ routines }: { readonly routines: readonly Routine[] }
         Archivadas
       </h2>
       <ul className={styles.list}>
-        {routines.map((routine) => (
-          <RoutineRow key={routine.id} routine={routine} />
+        {routines.map((routine, index) => (
+          <RoutineRow key={routine.id} routine={routine} index={index} />
         ))}
       </ul>
     </section>
@@ -97,9 +104,16 @@ function ArchivedSection({ routines }: { readonly routines: readonly Routine[] }
 }
 
 /** Una fila es un enlace al editor: ahí se ordenan los ejercicios y se archiva. */
-function RoutineRow({ routine }: { readonly routine: Routine }) {
+function RoutineRow({
+  routine,
+  index,
+}: {
+  readonly routine: Routine;
+  /** Su sitio dentro de su lista: las archivadas caen por su cuenta, detrás de su título. */
+  readonly index: number;
+}) {
   return (
-    <Surface as="li" padding="none">
+    <Surface as="li" padding="none" {...listEntranceProps(index)}>
       <Link to={routinePath(routine.id)} className={styles.row}>
         <span className={styles.text}>
           <span className={styles.name}>{routine.name}</span>

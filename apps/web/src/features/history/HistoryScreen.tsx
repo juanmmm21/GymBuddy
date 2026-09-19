@@ -4,7 +4,14 @@ import { useSessionHistory } from '../../api/queries';
 import { useSession } from '../../auth/SessionProvider';
 import { ScreenHeader } from '../../app/ScreenHeader';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
-import { Badge, Button, Notice, Surface } from '../../components/index';
+import {
+  Badge,
+  Button,
+  Notice,
+  SkeletonList,
+  Surface,
+  listEntranceProps,
+} from '../../components/index';
 import { formatSessionDate, formatTime, pluralize } from '../../lib/format';
 import { sessionDetailPath } from './paths';
 import styles from './HistoryScreen.module.css';
@@ -25,7 +32,7 @@ export function HistoryScreen() {
         title="Historial"
         subtitle={total === undefined ? undefined : pluralize(total, 'sesión', 'sesiones')}
       />
-      <AsyncContent query={history}>
+      <AsyncContent query={history} skeleton={<SkeletonList rows={6} />}>
         {(data) => {
           const items = data.pages.flatMap((page) => page.items);
           if (items.length === 0) {
@@ -39,8 +46,8 @@ export function HistoryScreen() {
           return (
             <div className={styles.stack}>
               <ul className={styles.list}>
-                {items.map((item) => (
-                  <SessionRow key={item.id} session={item} locale={locale} />
+                {items.map((item, index) => (
+                  <SessionRow key={item.id} session={item} locale={locale} index={index} />
                 ))}
               </ul>
               {history.hasNextPage && (
@@ -66,12 +73,14 @@ export function HistoryScreen() {
 interface SessionRowProps {
   readonly session: WorkoutSessionSummary;
   readonly locale: Locale;
+  /** Su sitio en la lista: es lo que decide en qué turno entra (ver `listEntranceProps`). */
+  readonly index: number;
 }
 
 /** La fila entera abre el detalle: es lo único que se puede hacer con una sesión pasada. */
-function SessionRow({ session, locale }: SessionRowProps) {
+function SessionRow({ session, locale, index }: SessionRowProps) {
   return (
-    <Surface as="li" padding="none">
+    <Surface as="li" padding="none" {...listEntranceProps(index)}>
       <Link to={sessionDetailPath(session.id)} className={styles.row}>
         <span className={styles.text}>
           <span className={styles.date}>{formatSessionDate(session.startedAt, locale)}</span>

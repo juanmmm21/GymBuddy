@@ -4,7 +4,7 @@ import { useCatalogExercises } from '../../api/queries';
 import { useSession } from '../../auth/SessionProvider';
 import { ScreenHeader, type BackLink } from '../../app/ScreenHeader';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
-import { Button, Notice } from '../../components/index';
+import { Button, Notice, SkeletonList } from '../../components/index';
 import { pluralize } from '../../lib/format';
 import { CatalogExerciseList } from './CatalogExerciseList';
 import { CatalogFilterBar } from './CatalogFilterBar';
@@ -64,7 +64,7 @@ function BodyPartExercises({ bodyPart }: { readonly bodyPart: BodyPart }) {
       <div className={styles.filters}>
         <CatalogFilterBar filters={filters} bodyPart={bodyPart} onChange={changeFilters} />
       </div>
-      <AsyncContent query={query}>
+      <AsyncContent query={query} skeleton={<SkeletonList rows={6} thumb />}>
         {(data) => {
           const items = data.pages.flatMap((page) => page.items);
           if (items.length === 0 && hasCatalogFilters(filters)) {

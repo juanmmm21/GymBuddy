@@ -5,7 +5,14 @@ import { useTrackedExercises } from '../../api/queries';
 import { useSession } from '../../auth/SessionProvider';
 import { ScreenHeader } from '../../app/ScreenHeader';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
-import { Badge, Button, Notice, Surface } from '../../components/index';
+import {
+  Badge,
+  Button,
+  Notice,
+  SkeletonList,
+  Surface,
+  listEntranceProps,
+} from '../../components/index';
 import { formatExerciseWeightLabel } from '../../lib/format';
 import { MUSCLE_LABELS } from '../catalog/labels';
 import { CATALOG_PATH } from '../catalog/paths';
@@ -43,7 +50,7 @@ export function ExercisesScreen() {
           </Link>
         }
       />
-      <AsyncContent query={exercises}>
+      <AsyncContent query={exercises} skeleton={<SkeletonList rows={6} />}>
         {(items) =>
           items.length === 0 ? (
             <div className={styles.groups}>
@@ -89,8 +96,8 @@ function GroupSection({ group, locale }: GroupSectionProps) {
         {group.label}
       </h2>
       <ul className={styles.list}>
-        {group.items.map((exercise) => (
-          <ExerciseRow key={exercise.id} exercise={exercise} locale={locale} />
+        {group.items.map((exercise, index) => (
+          <ExerciseRow key={exercise.id} exercise={exercise} locale={locale} index={index} />
         ))}
       </ul>
     </section>
@@ -100,12 +107,17 @@ function GroupSection({ group, locale }: GroupSectionProps) {
 interface ExerciseRowProps {
   readonly exercise: TrackedExercise;
   readonly locale: Locale;
+  /**
+   * Su sitio dentro de su parte del cuerpo, no en la pantalla entera: cada grupo cae por su
+   * cuenta, que es como se leen los títulos que los separan.
+   */
+  readonly index: number;
 }
 
 /** Una fila es un enlace a la ficha: ahí están el historial y la edición. */
-function ExerciseRow({ exercise, locale }: ExerciseRowProps) {
+function ExerciseRow({ exercise, locale, index }: ExerciseRowProps) {
   return (
-    <Surface as="li" padding="none">
+    <Surface as="li" padding="none" {...listEntranceProps(index)}>
       <Link to={trackedExercisePath(exercise.id)} className={styles.row}>
         <span className={styles.text}>
           <span className={styles.name}>{exercise.name}</span>

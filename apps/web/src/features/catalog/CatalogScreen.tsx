@@ -5,7 +5,15 @@ import { MIN_SEARCH_LENGTH, useBodyParts, useCatalogSearch } from '../../api/que
 import { useSession } from '../../auth/SessionProvider';
 import { ScreenHeader } from '../../app/ScreenHeader';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
-import { Badge, Button, Notice, SearchField, Surface } from '../../components/index';
+import {
+  Badge,
+  Button,
+  Notice,
+  SearchField,
+  SkeletonList,
+  Surface,
+  listEntranceProps,
+} from '../../components/index';
 import { useDebouncedValue } from '../../hooks/use-debounced-value';
 import { pluralize } from '../../lib/format';
 import { CreateExerciseSheet } from '../exercises/CreateExerciseSheet';
@@ -105,7 +113,7 @@ function SearchResults({ term, locale, filters, onClearFilters }: SearchResultsP
 
   return (
     <>
-      <AsyncContent query={results}>
+      <AsyncContent query={results} skeleton={<SkeletonList rows={4} thumb />}>
         {(items) =>
           items.length === 0 && filtered ? (
             <Notice
@@ -165,7 +173,7 @@ function BodyPartList({ locale }: { readonly locale: Locale | undefined }) {
   const bodyParts = useBodyParts(locale);
 
   return (
-    <AsyncContent query={bodyParts}>
+    <AsyncContent query={bodyParts} skeleton={<SkeletonList rows={BODY_PART_ORDER.length} />}>
       {(items) =>
         items.length === 0 ? (
           <Notice title="El catálogo todavía se está preparando">
@@ -173,8 +181,8 @@ function BodyPartList({ locale }: { readonly locale: Locale | undefined }) {
           </Notice>
         ) : (
           <ul className={styles.list}>
-            {sortByBodyPart(items).map((item) => (
-              <Surface as="li" key={item.bodyPart} padding="none">
+            {sortByBodyPart(items).map((item, index) => (
+              <Surface as="li" key={item.bodyPart} padding="none" {...listEntranceProps(index)}>
                 <Link to={bodyPartPath(item.bodyPart)} className={styles.row}>
                   <span className={styles.name}>{BODY_PART_LABELS[item.bodyPart]}</span>
                   <Badge>{pluralize(item.exerciseCount, 'ejercicio', 'ejercicios')}</Badge>
