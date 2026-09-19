@@ -1,6 +1,7 @@
 import { MAX_ROUTINE_TARGET_SETS, type TrackedExercise } from '@gymbuddy/shared';
 import { useState, type FormEvent } from 'react';
 import { Button, Notice, NumberField, Select, Sheet } from '../../components/index';
+import { useLastPresent } from '../../hooks/use-last-present';
 import { exerciseSelectOptions } from '../exercises/grouping';
 import { formatTarget } from '../routines/items';
 import type { LineChoice } from './routine-adjustments';
@@ -29,17 +30,21 @@ export function AdjustLineSheet({
   onChoose,
   onRestore,
 }: AdjustLineSheetProps) {
+  // La hoja tarda en bajarse lo que dure su animación, y en ese rato ya no hay línea: sin recordar
+  // la última, se iría en blanco.
+  const shown = useLastPresent(line);
+
   return (
     <Sheet open={line !== null} onClose={onClose} title="Cambiar solo para hoy">
-      {line !== null && (
+      {shown !== null && (
         <AdjustLineForm
-          line={line}
+          line={shown}
           exercises={exercises}
           onChoose={(choice) => {
-            onChoose(line, choice);
+            onChoose(shown, choice);
           }}
           onRestore={() => {
-            onRestore(line);
+            onRestore(shown);
           }}
         />
       )}

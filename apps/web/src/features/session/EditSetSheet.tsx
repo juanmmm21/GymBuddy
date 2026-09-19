@@ -10,6 +10,7 @@ import {
 import { useState, type FormEvent } from 'react';
 import { freshRecords, useRemoveSet, useUpdateSet } from '../../api/mutations';
 import { Button, Notice, Sheet } from '../../components/index';
+import { useLastPresent } from '../../hooks/use-last-present';
 import { describeError } from '../../lib/errors';
 import styles from './EditSetSheet.module.css';
 import {
@@ -49,13 +50,19 @@ export function EditSetSheet({
   onUpdated,
   onRemoved,
 }: EditSetSheetProps) {
+  // Lo que la hoja enseña sobrevive a que se pida cerrarla: tarda en bajarse lo que dure su
+  // animación, y en ese rato ya no hay serie ni ejercicio de los que tirar.
+  const shownSet = useLastPresent(set);
+  const shownName = useLastPresent(set === null ? null : exerciseName) ?? '';
+  const shownUnilateral = useLastPresent(set === null ? null : unilateral) ?? false;
+
   return (
-    <Sheet open={set !== null} onClose={onClose} title={`Corregir serie · ${exerciseName}`}>
-      {set !== null && (
+    <Sheet open={set !== null} onClose={onClose} title={`Corregir serie · ${shownName}`}>
+      {shownSet !== null && (
         <EditSetForm
           sessionId={sessionId}
-          set={set}
-          unilateral={unilateral}
+          set={shownSet}
+          unilateral={shownUnilateral}
           locale={locale}
           onUpdated={onUpdated}
           onRemoved={onRemoved}
