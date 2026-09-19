@@ -1,0 +1,44 @@
+/*
+ * El hueco de lo que todavía no ha llegado. Late despacio a propósito: es una espera, no algo que
+ * pida atención mientras se busca el móvil entre series.
+ */
+.block {
+  display: block;
+  flex-shrink: 0;
+  border-radius: var(--gb-radius-sm);
+  background-color: var(--gb-color-surface-sunken);
+  animation: skeleton-pulse var(--gb-duration-ambient) var(--gb-ease-standard) infinite;
+}
+
+.title {
+  width: 60%;
+  height: var(--gb-type-body-line);
+}
+
+.line {
+  width: 100%;
+  height: var(--gb-type-caption-line);
+}
+
+.lineShort {
+  width: 35%;
+  height: var(--gb-type-caption-line);
+}
+
+.badge {
+  width: var(--gb-space-xxxl);
+  height: var(--gb-space-xl);
+  border-radius: var(--gb-radius-pill);
+}
+
+/* El mismo cuadrado que reserva la miniatura del catálogo, para que la lista no salte al llegar. */
+.thumb {
+  width: var(--gb-space-xxxl);
+  height: var(--gb-space-xxxl);
+}
+
+@keyframes skeleton-pulse {
+  50% {
+    background-color: var(--gb-color-border-strong);
+  }
+}
