@@ -33,11 +33,23 @@
   letter-spacing: var(--gb-type-display-tracking);
 }
 
+/*
+ * Las marcas de la sesión, dentro del aviso rojo de la mascota. Entran subiendo un poco: una marca
+ * es la única cosa de la pantalla que merece que el ojo vaya a buscarla.
+ */
 .records {
   display: flex;
   flex-direction: column;
   gap: var(--gb-space-xxs);
   margin-top: var(--gb-space-xs);
+  animation: records-enter var(--gb-duration-base) var(--gb-ease-enter) backwards;
+}
+
+@keyframes records-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, var(--gb-shift-nudge), 0);
+  }
 }
 
 .recordsCount {

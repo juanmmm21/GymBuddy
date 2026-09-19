@@ -389,7 +389,9 @@ function ActiveSession({
 
       <LiveMascot signals={mascotSignals} device={mascotDevice} locale={locale} spot="session">
         {records.length > 0 && (
-          <div className={styles.records}>
+          // Con la cuenta por clave: la segunda marca de la sesión vuelve a entrar en vez de
+          // aparecer de golpe bajo la primera, que es cuando se mira este aviso.
+          <div key={bestRecords.length} className={styles.records}>
             <p className={styles.recordsCount}>
               {pluralize(bestRecords.length, 'marca nueva', 'marcas nuevas')}
             </p>

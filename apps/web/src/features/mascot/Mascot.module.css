@@ -19,6 +19,15 @@
   background: var(--gb-color-record);
   color: var(--gb-color-on-record);
   box-shadow: var(--gb-shadow-raised);
+  /* Llega subiendo, no aparece: es lo único de la sesión que interrumpe para decir algo. */
+  animation: toast-enter var(--gb-duration-base) var(--gb-ease-enter) backwards;
+}
+
+@keyframes toast-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, var(--gb-shift-nudge), 0);
+  }
 }
 
 .toast .line,
