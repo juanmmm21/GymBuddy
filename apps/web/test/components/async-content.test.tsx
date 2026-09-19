@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import { ApiTransportError } from '../../src/api/client';
 import { AsyncContent } from '../../src/components/async-content/AsyncContent';
+import { SkeletonList } from '../../src/components/skeleton/SkeletonList';
 
 const clients: QueryClient[] = [];
 
@@ -18,7 +19,15 @@ interface Harness {
   value: string;
 }
 
-function Reading({ harness, quiet }: { readonly harness: Harness; readonly quiet: boolean }) {
+function Reading({
+  harness,
+  quiet,
+  skeleton,
+}: {
+  readonly harness: Harness;
+  readonly quiet: boolean;
+  readonly skeleton: boolean;
+}) {
   const query = useQuery({
     queryKey: ['lectura'],
     queryFn: () =>
@@ -30,7 +39,11 @@ function Reading({ harness, quiet }: { readonly harness: Harness; readonly quiet
     <>
       {/* Fuera de AsyncContent: deja al test esperar al fallo de la relectura. */}
       {query.isRefetchError && <span>relectura fallida</span>}
-      <AsyncContent query={query} quietRefetchError={quiet}>
+      <AsyncContent
+        query={query}
+        quietRefetchError={quiet}
+        {...(skeleton ? { skeleton: <SkeletonList rows={2} /> } : {})}
+      >
         {(data) => <p>{data}</p>}
       </AsyncContent>
     </>
@@ -39,16 +52,20 @@ function Reading({ harness, quiet }: { readonly harness: Harness; readonly quiet
 
 function renderReading(
   harness: Harness,
-  { quiet = false, cached }: { quiet?: boolean; cached?: string } = {},
+  {
+    quiet = false,
+    skeleton = false,
+    cached,
+  }: { quiet?: boolean; skeleton?: boolean; cached?: string } = {},
 ) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, networkMode: 'always' } },
   });
   clients.push(client);
   if (cached !== undefined) client.setQueryData(['lectura'], cached, { updatedAt: 0 });
-  render(
+  return render(
     <QueryClientProvider client={client}>
-      <Reading harness={harness} quiet={quiet} />
+      <Reading harness={harness} quiet={quiet} skeleton={skeleton} />
     </QueryClientProvider>,
   );
 }
@@ -80,6 +97,24 @@ describe('AsyncContent', () => {
     expect(await screen.findByText('relectura fallida')).toBeInTheDocument();
     expect(screen.getByText('lo guardado')).toBeInTheDocument();
     expect(screen.queryByText(/Sin actualizar/)).not.toBeInTheDocument();
+  });
+
+  it('sin esqueleto, la espera es el spinner de siempre', async () => {
+    const harness: Harness = { online: true, value: 'lo nuevo' };
+    renderReading(harness);
+
+    expect(screen.getByRole('status')).toHaveAccessibleName('Cargando');
+    expect(await screen.findByText('lo nuevo')).toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('con esqueleto, la espera tiene ya la forma de lo que viene', async () => {
+    const harness: Harness = { online: true, value: 'lo nuevo' };
+    const { container } = renderReading(harness, { skeleton: true });
+
+    expect(container.querySelectorAll('[role="status"] > *')).toHaveLength(2);
+    expect(await screen.findByText('lo nuevo')).toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
   it('sin datos, el fallo sigue siendo un error con reintento', async () => {

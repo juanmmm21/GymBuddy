@@ -14,6 +14,12 @@ export interface AsyncContentProps<T> {
    * en la sesión sin red, dos avisos iguales seguidos no cuentan nada más que uno.
    */
   readonly quietRefetchError?: boolean;
+  /**
+   * Lo que se pinta mientras carga, con la forma de lo que viene (ver `SkeletonList`). Sin él, el
+   * spinner de siempre: vale para un bloque suelto, pero delante de una lista salta demasiado.
+   * Quien lo pase se encarga de anunciar la espera; el spinner ya lo hace por su cuenta.
+   */
+  readonly skeleton?: ReactNode;
 }
 
 /**
@@ -28,6 +34,7 @@ export function AsyncContent<T>({
   query,
   children,
   quietRefetchError = false,
+  skeleton,
 }: AsyncContentProps<T>) {
   if (query.data !== undefined) {
     return (
@@ -49,6 +56,7 @@ export function AsyncContent<T>({
   }
 
   if (query.isPending) {
+    if (skeleton !== undefined) return <>{skeleton}</>;
     return (
       <div className={styles.loading}>
         <Spinner />
