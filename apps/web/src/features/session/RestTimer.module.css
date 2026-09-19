@@ -120,7 +120,13 @@
   font-weight: var(--gb-type-body-strong-weight);
   transition:
     background-color var(--gb-duration-fast) var(--gb-ease-standard),
-    color var(--gb-duration-fast) var(--gb-ease-standard);
+    color var(--gb-duration-fast) var(--gb-ease-standard),
+    transform var(--gb-duration-fast) var(--gb-ease-standard);
+}
+
+/* Se hunde bajo el dedo como los botones: en el gimnasio se toca sin mirar y hay que notar que entró. */
+.target:active {
+  transform: scale(0.97);
 }
 
 .targetActive {
@@ -142,6 +148,11 @@
   font-weight: var(--gb-type-body-strong-weight);
   line-height: var(--gb-type-body-strong-line);
   text-decoration: none;
+  transition: transform var(--gb-duration-fast) var(--gb-ease-standard);
+}
+
+.iphoneTimer:active {
+  transform: scale(0.97);
 }
 
 .iphoneTimer:focus-visible {

@@ -16,7 +16,13 @@
   font-weight: var(--gb-type-body-strong-weight);
   transition:
     background-color var(--gb-duration-fast) var(--gb-ease-standard),
-    color var(--gb-duration-fast) var(--gb-ease-standard);
+    color var(--gb-duration-fast) var(--gb-ease-standard),
+    transform var(--gb-duration-fast) var(--gb-ease-standard);
+}
+
+/* Se hunde bajo el dedo como el botón de guardar: con guantes no siempre se ve si entró el toque. */
+.warmup:active {
+  transform: scale(0.97);
 }
 
 .warmupActive {
