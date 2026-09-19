@@ -2,7 +2,13 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { cssVariablesFor, installTheme, watchColorScheme } from '../../src/design/theme';
-import { colors, type ColorScheme, type ColorTokens } from '../../src/design/tokens';
+import {
+  colors,
+  motionDuration,
+  type ColorScheme,
+  type ColorTokens,
+} from '../../src/design/tokens';
+import { TICK_INTERVAL_MS } from '../../src/hooks/use-now';
 
 // Ruta relativa a la raíz del paquete: vitest arranca ahí, y bajo jsdom `import.meta.url` no es un fichero.
 const SRC_DIR = join(process.cwd(), 'src');
@@ -28,6 +34,11 @@ describe('tokens de diseño', () => {
     expect(variables['--gb-font-width-condensed']).toBe('78%');
     expect(variables['--gb-color-on-record']).toBe(colors.light.onRecord);
     expect(variables['--gb-opacity-body-map-level1']).toBe('0.45');
+  });
+
+  it('un paso de la barra del descanso dura lo que un paso del cronómetro', () => {
+    // Si dejan de coincidir, la barra se vacía a saltos o se adelanta a la cifra.
+    expect(motionDuration.tick).toBe(TICK_INTERVAL_MS);
   });
 });
 

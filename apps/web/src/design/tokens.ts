@@ -213,6 +213,18 @@ export const motionDuration = {
   base: 200,
   slow: 320,
   /**
+   * Un paso del cronómetro, el mismo que `TICK_INTERVAL_MS` (un test lo vigila). La barra del
+   * descanso recorre un segundo en exactamente esto, así que se vacía de forma continua aunque la
+   * cifra de al lado solo cambie una vez por segundo.
+   */
+  tick: 1000,
+  /**
+   * Lo que se queda encendido un resalte que se apaga solo, como la serie recién apuntada. No es un
+   * movimiento sino tiempo para encontrar con el ojo lo que acaba de cambiar, y por eso dura más
+   * que los 120-200 ms de lo que se mueve.
+   */
+  linger: 1200,
+  /**
    * Un ciclo de algo que se mueve solo y sin fin, como respirar: más rápido se lee como
    * nervio y distrae del cronómetro que tiene al lado.
    */
@@ -234,6 +246,12 @@ export const motionEasing = {
  */
 export const motionShift = {
   screen: 16,
+  /**
+   * Lo que recorre algo pequeño que aparece dentro de una pantalla que ya está puesta: la serie
+   * recién apuntada o el aviso de una marca. La mitad que una pantalla entera: nace donde va a
+   * quedarse, solo hace falta que se note que no estaba.
+   */
+  nudge: 8,
 } as const;
 
 export const elevation: Readonly<Record<ColorScheme, ElevationTokens>> = {
