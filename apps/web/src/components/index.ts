@@ -8,6 +8,11 @@ export { DistanceField } from './distance-field/DistanceField';
 export type { DistanceFieldProps } from './distance-field/DistanceField';
 export { DurationField } from './duration-field/DurationField';
 export type { DurationFieldProps } from './duration-field/DurationField';
+export {
+  listEntranceDelayMs,
+  listEntranceProps,
+  LIST_ENTRANCE_MAX_STEP,
+} from './list-entrance/list-entrance';
 export { Notice } from './notice/Notice';
 export type { NoticeProps, NoticeTone } from './notice/Notice';
 export { NumberField } from './number-field/NumberField';

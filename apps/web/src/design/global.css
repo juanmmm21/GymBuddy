@@ -66,6 +66,9 @@ a {
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    /* Sin esto, una lista escalonada tardaría en verse lo que suman sus retrasos: quien pide menos
+       movimiento no está pidiendo esperar. */
+    animation-delay: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
 }

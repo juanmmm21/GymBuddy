@@ -1,0 +1,18 @@
+/*
+ * La tarjeta nace donde va a quedarse y solo sube lo justo para que se note que no estaba. Los
+ * fotogramas llevan SOLO el `from` y `backwards`: al terminar no queda ninguna `transform` puesta,
+ * que si no le ganaría al `:active` de la fila y la tarjeta dejaría de hundirse al tocarla.
+ */
+.item {
+  animation-name: card-enter;
+  animation-duration: var(--gb-duration-fast);
+  animation-timing-function: var(--gb-ease-enter);
+  animation-fill-mode: backwards;
+}
+
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, var(--gb-shift-nudge), 0);
+  }
+}
