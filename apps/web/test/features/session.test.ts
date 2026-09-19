@@ -160,7 +160,8 @@ describe('restStateAt', () => {
 
     expect(rest.elapsedSeconds).toBe(30);
     expect(rest.remainingSeconds).toBe(90);
-    expect(rest.progress).toBeCloseTo(0.25);
+    // Lo que queda, que es lo que se ve vaciarse: tres cuartos del objetivo.
+    expect(rest.remaining).toBeCloseTo(0.75);
     expect(rest.done).toBe(false);
   });
 
@@ -169,7 +170,7 @@ describe('restStateAt', () => {
 
     expect(rest.elapsedSeconds).toBe(300);
     expect(rest.remainingSeconds).toBe(0);
-    expect(rest.progress).toBe(1);
+    expect(rest.remaining).toBe(0);
     expect(rest.done).toBe(true);
   });
 
@@ -177,7 +178,7 @@ describe('restStateAt', () => {
     const rest = restStateAt(lastSetAt, at(-45), 120);
 
     expect(rest.elapsedSeconds).toBe(0);
-    expect(rest.progress).toBe(0);
+    expect(rest.remaining).toBe(1);
   });
 
   it('los objetivos por defecto son de los ofrecidos, y cambiar de ejercicio descansa más', () => {

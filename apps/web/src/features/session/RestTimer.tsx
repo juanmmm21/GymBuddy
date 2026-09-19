@@ -59,7 +59,13 @@ export function RestTimer({
         aria-valuemax={target}
         aria-valuenow={Math.min(target, rest.elapsedSeconds)}
       >
-        <div className={styles.fill} style={{ width: `${String(rest.progress * 100)}%` }} />
+        <div
+          // Se remonta al empezar otro descanso o al cambiar el objetivo: la barra vuelve a estar
+          // llena en el acto en vez de deslizarse hacia atrás desde donde se había quedado.
+          key={`${lastSetAt}:${String(target)}`}
+          className={styles.fill}
+          style={{ transform: `scaleX(${String(rest.remaining)})` }}
+        />
       </div>
 
       <p className={styles.status}>

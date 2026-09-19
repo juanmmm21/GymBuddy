@@ -41,6 +41,21 @@
   letter-spacing: var(--gb-type-headline-tracking);
 }
 
+/*
+ * El 0:00 entra grande y asienta en un movimiento corto: es el aviso de que toca la siguiente
+ * serie, y tiene que verse de refilón desde la máquina sin que nadie espere a que termine nada.
+ */
+.timerDone .value {
+  color: var(--gb-color-success);
+  animation: rest-value-done var(--gb-duration-base) var(--gb-ease-standard) backwards;
+}
+
+@keyframes rest-value-done {
+  from {
+    transform: scale(1.12);
+  }
+}
+
 .track {
   overflow: hidden;
   height: var(--gb-space-sm);
@@ -48,15 +63,36 @@
   background: var(--gb-color-surface-sunken);
 }
 
+/*
+ * La cuenta atrás, en barra: se vacía de izquierda a derecha. Recorre un tic del cronómetro
+ * exacto y a velocidad constante, así que baja de forma continua aunque la cifra de arriba solo
+ * cambie una vez por segundo. Va en `transform` y no en `width` para que el navegador la mueva
+ * sin rehacer la caja en cada fotograma.
+ */
 .fill {
+  width: 100%;
   height: 100%;
   border-radius: var(--gb-radius-pill);
   background: var(--gb-color-accent);
-  transition: width var(--gb-duration-base) var(--gb-ease-standard);
+  transform-origin: left center;
+  transition:
+    transform var(--gb-duration-tick) linear,
+    background-color var(--gb-duration-base) var(--gb-ease-standard);
 }
 
 .timerDone .fill {
   background: var(--gb-color-success);
+}
+
+/* El remate: el canal vacío da un destello verde en cuanto se cumple el objetivo. */
+.timerDone .track {
+  animation: rest-track-done var(--gb-duration-slow) var(--gb-ease-standard);
+}
+
+@keyframes rest-track-done {
+  from {
+    background-color: var(--gb-color-success);
+  }
 }
 
 .status {

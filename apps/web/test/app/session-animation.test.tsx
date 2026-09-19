@@ -79,3 +79,34 @@ describe('la serie recién apuntada', () => {
     });
   });
 });
+
+describe('la barra del descanso', () => {
+  it('enseña lo que queda y se vacía del todo al cumplirse el objetivo', async () => {
+    const oneMinuteAgo = new Date(Date.now() - 60_000).toISOString();
+    const [first] = activeSession.sets;
+    if (first === undefined) throw new Error('la sesión de prueba necesita una serie');
+    const resting: WorkoutSessionDetail = {
+      ...activeSession,
+      sets: [{ ...first, completedAt: oneMinuteAgo }],
+    };
+    renderApp({
+      path: '/session',
+      session,
+      setup: (fake) => {
+        serveSession(fake, resting);
+      },
+    });
+
+    const rest = within(await screen.findByRole('region', { name: 'Descanso' }));
+    // Un minuto descansado de los dos de objetivo: media barra sin gastar.
+    expect(rest.getByRole('timer')).toHaveTextContent('1:00');
+    expect(restBarScale()).toBe('scaleX(0.5)');
+
+    // Con el objetivo más corto ya está cumplido, y no queda barra.
+    await userEvent.setup().click(rest.getByRole('button', { name: '1:00' }));
+    await waitFor(() => {
+      expect(restBarScale()).toBe('scaleX(0)');
+    });
+    expect(rest.getByText(/Descanso cumplido/)).toBeInTheDocument();
+  });
+});

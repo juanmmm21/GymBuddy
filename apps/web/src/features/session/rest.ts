@@ -60,8 +60,11 @@ export interface RestState {
   readonly elapsedSeconds: number;
   /** Lo que falta para el objetivo; cero una vez cumplido, nunca negativo. Es lo que se enseña. */
   readonly remainingSeconds: number;
-  /** Entre 0 y 1: lo que lleva del objetivo, para pintar la barra. */
-  readonly progress: number;
+  /**
+   * Entre 1 y 0: lo que queda del objetivo. Es lo que se ve vaciarse, porque lo que importa entre
+   * serie y serie es cuánto falta, no cuánto llevas.
+   */
+  readonly remaining: number;
   readonly done: boolean;
 }
 
@@ -77,7 +80,7 @@ export function restStateAt(lastSetAt: string, now: number, targetSeconds: numbe
   return {
     elapsedSeconds,
     remainingSeconds,
-    progress: targetSeconds <= 0 ? 1 : Math.min(1, elapsedSeconds / targetSeconds),
+    remaining: targetSeconds <= 0 ? 0 : remainingSeconds / targetSeconds,
     done: elapsedSeconds >= targetSeconds,
   };
 }
