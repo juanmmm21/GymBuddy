@@ -32,9 +32,48 @@
   border-top: var(--gb-size-border-width) solid var(--gb-color-border);
 }
 
+/*
+ * La fila de huecos. Cada columna mide lo mismo que medía cuando solo había cuatro: al abrirse una
+ * sesión la barra se ensancha para hacerle sitio al botón, en vez de estrechar las pestañas. De ahí
+ * que la marca pueda colocarse con cuentas de porcentajes, sin medir nada del DOM.
+ */
+.tabs {
+  position: relative;
+  flex: 1;
+  display: flex;
+  max-width: calc(var(--gb-size-content-max-width) * var(--tab-columns) / 4);
+}
+
+.indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  width: calc(100% / var(--tab-columns));
+  height: var(--gb-space-xxs);
+  transform: translate3d(calc(var(--tab-index) * 100%), 0, 0);
+  transition:
+    transform var(--gb-duration-base) var(--gb-ease-standard),
+    opacity var(--gb-duration-fast) var(--gb-ease-standard);
+}
+
+/* La raya no ocupa el hueco entero: se para sobre el icono, que es lo que se está mirando. */
+.indicator::after {
+  content: '';
+  display: block;
+  width: var(--gb-space-xxl);
+  height: 100%;
+  margin: 0 auto;
+  border-radius: 0 0 var(--gb-radius-pill) var(--gb-radius-pill);
+  background: var(--gb-color-accent);
+}
+
+.indicatorHidden {
+  opacity: 0;
+}
+
 .tab {
   flex: 1;
-  max-width: calc(var(--gb-size-content-max-width) / 4);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -67,11 +106,13 @@
  */
 .sessionTab {
   flex: 1;
-  max-width: calc(var(--gb-size-content-max-width) / 4);
   display: flex;
   justify-content: center;
   align-items: flex-start;
   text-decoration: none;
+  /* Por encima de la marca, que le pasa por debajo al ir de una pestaña a la otra. */
+  position: relative;
+  z-index: 1;
 }
 
 .sessionButton {
@@ -92,10 +133,35 @@
   transition:
     transform var(--gb-duration-fast) var(--gb-ease-standard),
     background-color var(--gb-duration-fast) var(--gb-ease-standard);
+  /*
+   * Crece desde la barra al abrirse la sesión. Los fotogramas llevan solo el `from` y `backwards`:
+   * con `forwards` la transform final le ganaría al `:active` y el botón dejaría de hundirse al
+   * tocarlo, que es justo lo que se busca entre serie y serie.
+   */
+  animation: session-button-enter var(--gb-duration-base) var(--gb-ease-enter) backwards;
 }
 
 .sessionTab:active .sessionButton {
   transform: scale(0.94);
+}
+
+/* Al terminar la sesión se recoge por donde vino, más deprisa: lo que se va no se mira. */
+.sessionTabGone .sessionButton {
+  animation: session-button-exit var(--gb-duration-fast) var(--gb-ease-exit) forwards;
+}
+
+@keyframes session-button-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, var(--gb-shift-nudge), 0) scale(0.8);
+  }
+}
+
+@keyframes session-button-exit {
+  to {
+    opacity: 0;
+    transform: translate3d(0, var(--gb-shift-nudge), 0) scale(0.8);
+  }
 }
 
 .sessionTabActive .sessionButton {
