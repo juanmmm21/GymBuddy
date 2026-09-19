@@ -229,6 +229,13 @@ export const motionDuration = {
    * nervio y distrae del cronómetro que tiene al lado.
    */
   ambient: 2400,
+  /**
+   * Lo que separa la entrada de una tarjeta de la siguiente en una lista. Lo justo para que se lea
+   * que la lista cae en orden; con más, las últimas de la pantalla llegan tarde y la lista parece
+   * pesada. Va con tope de escalones (ver `listEntranceDelayMs`): una lista larga no puede tardar
+   * en pintarse lo que tarde en contar hasta cincuenta.
+   */
+  stagger: 40,
 } as const;
 
 export const motionEasing = {
