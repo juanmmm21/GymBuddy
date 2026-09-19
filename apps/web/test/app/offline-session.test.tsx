@@ -101,6 +101,14 @@ function setRequests(fake: FakeFetch): RecordedRequest[] {
   );
 }
 
+/** Si cada fila de serie entró resaltada, en el orden en que se pintan. */
+function freshRows(): string[] {
+  return screen
+    .getAllByRole('button')
+    .filter((button) => button.hasAttribute('data-fresh'))
+    .map((button) => button.getAttribute('data-fresh') ?? '');
+}
+
 async function logDefaultSet(user: ReturnType<typeof userEvent.setup>): Promise<void> {
   await user.click(screen.getByRole('button', { name: 'Registrar serie' }));
   await user.click(screen.getAllByRole('button', { name: 'Registrar serie' })[1] as HTMLElement);
@@ -149,6 +157,27 @@ describe('sesión sin cobertura', () => {
     });
     expect(worker.session?.sets).toHaveLength(2);
     expect(queueStore.entries()).toEqual([]);
+  });
+
+  it('la serie encolada entra resaltada igual que una enviada', async () => {
+    const actor = userEvent.setup();
+    const worker: FakeWorker = { online: true, session: activeSession };
+    renderApp({
+      path: '/session',
+      session,
+      setup: (fake) => {
+        serveWorker(fake, worker);
+      },
+    });
+    await screen.findByRole('heading', { name: 'Press de banca' });
+    worker.online = false;
+
+    await logDefaultSet(actor);
+
+    // Sin respuesta del Worker que esperar: la fila sale de la lista, que ya lleva la cola encima.
+    await waitFor(() => {
+      expect(freshRows()).toEqual(['false', 'true']);
+    });
   });
 
   it('empezar sin red abre la sesión en el móvil y al volver la red se manda todo en orden', async () => {

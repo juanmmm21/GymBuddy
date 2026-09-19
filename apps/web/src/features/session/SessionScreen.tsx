@@ -18,6 +18,7 @@ import { useSession } from '../../auth/SessionProvider';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
 import { Badge, Button, Notice, PlateStack, Surface } from '../../components/index';
 import { useNow } from '../../hooks/use-now';
+import { cx } from '../../lib/cx';
 import { describeError } from '../../lib/errors';
 import {
   formatRpe,
@@ -37,6 +38,7 @@ import { EditSetSheet } from './EditSetSheet';
 import { EndSessionSheet } from './EndSessionSheet';
 import { CardioInProgressCard } from './CardioInProgressCard';
 import { finalCardioOffer, suggestedCardioExerciseId } from './final-cardio';
+import { useFreshSetIds } from './fresh-sets';
 import { SessionRecordItems } from './SessionRecordItems';
 import { LogSetSheet } from './LogSetSheet';
 import { logExerciseIdFor } from './log-target';
@@ -330,6 +332,8 @@ function ActiveSession({
     routine === null ? null : routineProgress(routine.items, session.sets, adjustments);
 
   const groups = groupSetsByExercise(session.sets, exercises);
+  // Lo que acaba de aparecer en la lista, para que entre resaltado una vez.
+  const freshSetIds = useFreshSetIds(session.sets.map((set) => set.id));
   const lastSetAt = latestSetCompletedAt(session.sets);
   const restKind = restKindAfter(progress, session.sets);
   const restTarget = restTargetFor(restPreferences, restKind);
@@ -496,6 +500,7 @@ function ActiveSession({
                     set={set}
                     plates={drawsPlates(group)}
                     unilateral={group.unilateral}
+                    fresh={freshSetIds.has(set.id)}
                     pending={pendingSetIds.has(set.id)}
                     position={index + 1}
                     locale={locale}
@@ -604,6 +609,8 @@ interface SetRowProps {
   readonly plates: boolean;
   /** A un brazo: el peso se lee «por brazo». */
   readonly unilateral: boolean;
+  /** Recién apuntada: entra resaltada una vez, esté enviada o esperando en la cola. */
+  readonly fresh: boolean;
   readonly pending: boolean;
   readonly position: number;
   readonly locale: Locale;
@@ -611,12 +618,22 @@ interface SetRowProps {
 }
 
 /** La fila entera abre la corrección, también la de cardio: en el gimnasio se toca con el pulgar y sin mirar. */
-function SetRow({ set, plates, unilateral, pending, position, locale, onEdit }: SetRowProps) {
+function SetRow({
+  set,
+  plates,
+  unilateral,
+  fresh,
+  pending,
+  position,
+  locale,
+  onEdit,
+}: SetRowProps) {
   return (
     <li>
       <button
         type="button"
-        className={styles.set}
+        className={cx(styles.set, fresh && styles.setFresh)}
+        data-fresh={fresh}
         onClick={() => {
           onEdit(set);
         }}

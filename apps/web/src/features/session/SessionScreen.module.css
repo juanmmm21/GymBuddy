@@ -110,6 +110,36 @@
   transform: scale(0.99);
 }
 
+/*
+ * La serie recién apuntada: entra en su sitio y se queda un momento encendida en vez de aparecer
+ * de golpe. Se resalta igual esté enviada o esperando en la cola (`useFreshSetIds`).
+ *
+ * Los dos fotogramas son solo el `from`: el final de cada uno es el estilo normal de la fila, así
+ * que al acabar no queda ninguna `transform` puesta que anule el hundido de `:active`.
+ */
+.setFresh {
+  animation:
+    set-enter var(--gb-duration-base) var(--gb-ease-enter) backwards,
+    set-highlight var(--gb-duration-linger) var(--gb-ease-standard) backwards;
+}
+
+@keyframes set-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, var(--gb-shift-nudge), 0);
+  }
+}
+
+@keyframes set-highlight {
+  from {
+    background-color: var(--gb-color-accent-soft);
+  }
+
+  50% {
+    background-color: var(--gb-color-accent-soft);
+  }
+}
+
 .setPosition {
   min-width: var(--gb-space-xl);
   color: var(--gb-color-text-muted);
