@@ -20,8 +20,18 @@
 
 .dialog::backdrop {
   background: var(--gb-color-overlay);
+  animation: fade-in var(--gb-duration-base) var(--gb-ease-enter);
 }
 
+.dialog[data-sheet='leaving']::backdrop {
+  animation: fade-out var(--gb-duration-base) var(--gb-ease-exit) forwards;
+}
+
+/*
+ * La hoja acompaña al dedo con `--sheet-drag`, que fija el gesto. La transición devuelve la hoja a
+ * su sitio cuando el gesto se queda corto; mientras el dedo está encima se apaga, o la hoja iría
+ * siempre un poco por detrás.
+ */
 .panel {
   width: 100%;
   max-width: var(--gb-size-content-max-width);
@@ -32,7 +42,31 @@
   border-radius: var(--gb-radius-lg) var(--gb-radius-lg) 0 0;
   box-shadow: var(--gb-shadow-sheet);
   padding-bottom: env(safe-area-inset-bottom);
-  animation: rise var(--gb-duration-slow) var(--gb-ease-enter);
+  transform: translate3d(0, var(--sheet-drag, 0), 0);
+  transition: transform var(--gb-duration-fast) var(--gb-ease-standard);
+  /* `backwards` deja la hoja abajo desde que se monta: sin él se ve un fotograma ya en su sitio
+     antes de que el navegador arranque la animación. Al terminar no deja ninguna `transform`. */
+  animation: rise var(--gb-duration-base) var(--gb-ease-enter) backwards;
+}
+
+.panel[data-dragging='true'] {
+  transition: none;
+}
+
+/*
+ * Los fotogramas de la salida llevan solo el `to`: el `from` es donde esté la hoja en ese momento,
+ * así que soltarla a medio camino la deja irse desde ahí en vez de saltar arriba para bajar otra vez.
+ */
+.dialog[data-sheet='leaving'] .panel {
+  animation: sink var(--gb-duration-base) var(--gb-ease-exit) forwards;
+}
+
+/* La zona por la que se agarra la hoja. `touch-action: none` para que el gesto sea suyo y el
+   navegador no lo confunda con un desplazamiento de la página. */
+.handle {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .grabber {
@@ -76,9 +110,29 @@
 
 @keyframes rise {
   from {
-    transform: translateY(100%);
+    transform: translate3d(0, 100%, 0);
   }
+
   to {
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes sink {
+  to {
+    transform: translate3d(0, 100%, 0);
+    opacity: 0;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
   }
 }

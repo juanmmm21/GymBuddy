@@ -1,4 +1,15 @@
-import { useEffect, useId, useRef, type MouseEvent, type ReactNode } from 'react';
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type CSSProperties,
+  type MouseEvent,
+  type PointerEvent,
+  type ReactNode,
+} from 'react';
+import { useExitAnimation } from '../../hooks/use-exit-animation';
+import { sheetDragOffset, sheetDragOutcome } from './sheet-drag';
 import styles from './Sheet.module.css';
 
 export interface SheetProps {
@@ -8,25 +19,44 @@ export interface SheetProps {
   readonly children: ReactNode;
 }
 
+/** El dedo sobre la cabecera: dónde empezó, cuándo, y cuánto lleva bajada la hoja. */
+interface SheetDrag {
+  readonly startY: number;
+  readonly startedAt: number;
+  readonly offset: number;
+  /** Con el dedo levantado para cerrar se queda `false`: la hoja se va desde donde la dejó. */
+  readonly active: boolean;
+}
+
 /**
  * Hoja modal que sube desde abajo, sobre un `<dialog>` nativo: el foco, la tecla Escape
  * y el bloqueo del fondo los resuelve el navegador. El contenido solo se monta mientras
  * está abierta, así que un formulario dentro arranca limpio cada vez.
+ *
+ * Se cierra con el botón, con Escape, tocando fuera o arrastrándola hacia abajo desde su cabecera,
+ * que es el gesto que se hace sin mirar. En los cuatro casos quien manda es el padre: la hoja
+ * avisa, y lo que hace por su cuenta es quedarse el tiempo justo de bajarse.
  */
 export function Sheet({ open, onClose, title, children }: SheetProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const exit = useExitAnimation(open, panelRef);
   const titleId = useId();
+  const [drag, setDrag] = useState<SheetDrag | null>(null);
+
+  // Al volver a abrirse no puede acordarse de por dónde iba el dedo la última vez.
+  if (open && drag !== null && !drag.active) setDrag(null);
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (dialog === null) return;
 
-    if (open && !dialog.open) {
+    if (exit.mounted && !dialog.open) {
       openDialog(dialog);
-    } else if (!open && dialog.open) {
+    } else if (!exit.mounted && dialog.open) {
       closeDialog(dialog);
     }
-  }, [open]);
+  }, [exit.mounted]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -48,29 +78,95 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
     if (event.target === event.currentTarget) onClose();
   };
 
+  const handlePointerDown = (event: PointerEvent<HTMLDivElement>): void => {
+    if (!event.isPrimary) return;
+    // El botón de cerrar está dentro de la zona de agarre y no se arrastra: capturar el puntero
+    // ahí le robaría su propio clic, porque los eventos de ratón compatibles irían al capturador.
+    if (event.target instanceof Element && event.target.closest('button') !== null) return;
+    // Con el puntero capturado el gesto sigue llegando aunque el dedo se salga de la cabecera.
+    if (typeof event.currentTarget.setPointerCapture === 'function') {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    }
+    setDrag({ startY: event.clientY, startedAt: event.timeStamp, offset: 0, active: true });
+  };
+
+  const handlePointerMove = (event: PointerEvent<HTMLDivElement>): void => {
+    if (drag === null || !drag.active) return;
+    setDrag({ ...drag, offset: sheetDragOffset(event.clientY - drag.startY) });
+  };
+
+  const handlePointerUp = (event: PointerEvent<HTMLDivElement>): void => {
+    if (drag === null || !drag.active) return;
+
+    const outcome = sheetDragOutcome({
+      distance: drag.offset,
+      elapsedMs: event.timeStamp - drag.startedAt,
+    });
+    if (outcome === 'close') {
+      setDrag({ ...drag, active: false });
+      onClose();
+    } else {
+      setDrag(null);
+    }
+  };
+
+  const handlePointerCancel = (): void => {
+    // Una llamada, una notificación: el gesto se queda a medias y la hoja vuelve a su sitio.
+    if (drag !== null && drag.active) setDrag(null);
+  };
+
   return (
     <dialog
       ref={dialogRef}
       className={styles.dialog}
       aria-labelledby={titleId}
+      data-sheet={sheetState(exit.mounted, exit.leaving)}
       onClick={handleBackdropClick}
     >
-      {open && (
-        <div className={styles.panel}>
-          <div className={styles.grabber} aria-hidden="true" />
-          <header className={styles.header}>
-            <h2 id={titleId} className={styles.title}>
-              {title}
-            </h2>
-            <button type="button" className={styles.close} onClick={onClose} aria-label="Cerrar">
-              ×
-            </button>
-          </header>
+      {exit.mounted && (
+        <div
+          ref={panelRef}
+          className={styles.panel}
+          data-dragging={drag?.active === true ? 'true' : undefined}
+          style={dragStyle(drag?.offset ?? 0)}
+        >
+          <div
+            className={styles.handle}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerCancel}
+          >
+            <div className={styles.grabber} aria-hidden="true" />
+            <header className={styles.header}>
+              <h2 id={titleId} className={styles.title}>
+                {title}
+              </h2>
+              <button type="button" className={styles.close} onClick={onClose} aria-label="Cerrar">
+                ×
+              </button>
+            </header>
+          </div>
           <div className={styles.body}>{children}</div>
         </div>
       )}
     </dialog>
   );
+}
+
+/** En qué punto está la hoja, para el CSS y para los tests. */
+function sheetState(mounted: boolean, leaving: boolean): 'open' | 'leaving' | 'closed' {
+  if (!mounted) return 'closed';
+  return leaving ? 'leaving' : 'open';
+}
+
+/**
+ * Lo que el dedo lleva bajada la hoja. Va en una variable propia y no en un `transform` escrito a
+ * mano porque los fotogramas de la salida la leen: así la hoja se va desde donde la soltaste, en
+ * vez de saltar a su sitio para irse desde allí.
+ */
+function dragStyle(offset: number): CSSProperties {
+  return { '--sheet-drag': `${String(offset)}px` } as CSSProperties;
 }
 
 /**

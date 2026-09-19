@@ -25,6 +25,14 @@ export { SearchField } from './search-field/SearchField';
 export type { SearchFieldProps } from './search-field/SearchField';
 export { Sheet } from './sheet/Sheet';
 export type { SheetProps } from './sheet/Sheet';
+export {
+  sheetDragOffset,
+  sheetDragOutcome,
+  SHEET_DRAG_CLOSE_DISTANCE,
+  SHEET_FLICK_DISTANCE,
+  SHEET_FLICK_VELOCITY,
+} from './sheet/sheet-drag';
+export type { SheetDragGesture, SheetDragOutcome } from './sheet/sheet-drag';
 export { Skeleton } from './skeleton/Skeleton';
 export type { SkeletonProps, SkeletonShape } from './skeleton/Skeleton';
 export { SkeletonList } from './skeleton/SkeletonList';
