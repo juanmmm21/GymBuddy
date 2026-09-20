@@ -4,6 +4,8 @@ export { Badge } from './badge/Badge';
 export type { BadgeProps, BadgeTone } from './badge/Badge';
 export { Button } from './button/Button';
 export type { ButtonProps, ButtonSize, ButtonVariant } from './button/Button';
+export { CountUp } from './count-up/CountUp';
+export type { CountUpProps } from './count-up/CountUp';
 export { DistanceField } from './distance-field/DistanceField';
 export type { DistanceFieldProps } from './distance-field/DistanceField';
 export { DurationField } from './duration-field/DurationField';
