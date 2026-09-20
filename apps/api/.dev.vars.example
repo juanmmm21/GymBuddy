@@ -1,6 +1,7 @@
 # Copia este fichero a `.dev.vars` y rellena los valores para desarrollo local.
 # `.dev.vars` está en .gitignore y nunca se versiona. En producción estos valores
-# se cargan con `wrangler secret put <NOMBRE>`, jamás desde wrangler.toml.
+# se cargan con `wrangler secret put <NOMBRE> --env production`, jamás desde wrangler.toml.
+# Cómo se generan y cómo se ponen en producción: docs/operations/despliegue.md.
 
 # Clave para firmar los JWT de sesión de la PWA. Cadena aleatoria larga.
 JWT_SECRET=""
@@ -9,3 +10,11 @@ JWT_SECRET=""
 # invitaciones (así se registra la primera cuenta). Sin él configurado esas rutas responden
 # 404: abiertas al mundo permitirían agotar las 100.000 escrituras diarias de D1.
 ADMIN_TOKEN=""
+
+# Las dos mitades de la clave VAPID con la que el Worker firma el aviso de descanso (ADR 0009).
+# La pública es un punto P-256 sin comprimir (65 bytes) y la privada su escalar (32 bytes), las dos
+# en base64url. Van juntas por el mismo camino aunque la pública no sea secreta: desplegar una con
+# la pareja de otra dejaría el aviso roto sin que nada lo avisara. Sin las dos, la PWA no ofrece el
+# aviso de descanso y el resto de la app funciona igual.
+VAPID_PUBLIC_KEY=""
+VAPID_PRIVATE_KEY=""
