@@ -10,6 +10,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 migrations apply gymbuddy --local",
     "db:migrate:remote": "wrangler d1 migrations apply gymbuddy --remote --env production",
+    "db:export:remote": "bash scripts/backup-d1.sh",
+    "db:restore:remote": "bash scripts/restore-d1.sh",
     "typecheck": "wrangler types && tsc --noEmit",
     "test": "vitest run",
     "build": "wrangler deploy --dry-run --outdir dist"
