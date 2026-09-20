@@ -66,6 +66,23 @@ describe('catálogo: navegación por parte del cuerpo', () => {
     expect(queryOf(pageRequest!).get('offset')).toBe('0');
   });
 
+  it('acredita el catálogo externo al pie de la entrada', async () => {
+    // El repositorio de origen no tiene licencia y sus GIFs son de terceros: el crédito visible
+    // es parte del trato (ADR 0001), así que un test lo sujeta.
+    renderApp({
+      path: '/catalog',
+      session,
+      setup: (fake) => {
+        fake.on('GET', '/catalog/bodyparts', () => jsonResponse(bodyParts));
+      },
+    });
+
+    const credit = await screen.findByRole('link', { name: /catálogo de ejercicios en GitHub/ });
+    expect(credit).toHaveAttribute('href', 'https://github.com/JahelCuadrado/ExerciseGymGifsDB');
+    expect(credit).toHaveTextContent('JahelCuadrado/ExerciseGymGifsDB');
+    expect(screen.getByText(/servidos por jsDelivr/)).toBeInTheDocument();
+  });
+
   it('"Cargar más" pide la página siguiente y la añade debajo', async () => {
     const user = userEvent.setup();
     const { fake } = renderApp({

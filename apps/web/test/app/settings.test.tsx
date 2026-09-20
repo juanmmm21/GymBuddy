@@ -52,6 +52,22 @@ describe('ajustes', () => {
     expect(await screen.findByRole('link', { name: 'Ajustes' })).toBeInTheDocument();
   });
 
+  it('acredita el catálogo externo en su propia sección', async () => {
+    renderApp({
+      path: '/settings',
+      session,
+      setup: (fake) => {
+        fake.on('GET', '/stats/signals', () => jsonResponse(signals));
+      },
+    });
+
+    expect(await screen.findByRole('heading', { name: 'Créditos' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /catálogo de ejercicios en GitHub/ })).toHaveAttribute(
+      'href',
+      'https://github.com/JahelCuadrado/ExerciseGymGifsDB',
+    );
+  });
+
   it('las pantallas de la cuenta vuelven a Ajustes, no a Hoy', async () => {
     const user = userEvent.setup();
     renderApp({
