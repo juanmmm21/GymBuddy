@@ -22,6 +22,8 @@ export type {
 } from './common';
 export {
   CATALOG_BASE_URL,
+  CATALOG_SOURCE_REPOSITORY,
+  CATALOG_SOURCE_URL,
   CATALOG_VERSION,
   bodyPartSchema,
   bodyPartSummarySchema,

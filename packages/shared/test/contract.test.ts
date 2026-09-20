@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   CATALOG_BASE_URL,
+  CATALOG_SOURCE_REPOSITORY,
+  CATALOG_SOURCE_URL,
   CATALOG_VERSION,
   apiError,
   apiErrorCodeSchema,
@@ -91,5 +93,13 @@ describe('origen del catálogo', () => {
       `https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@${CATALOG_VERSION}`,
     );
     expect(CATALOG_BASE_URL).not.toContain('@main');
+  });
+
+  it('el crédito apunta al repositorio del que sale el CDN', () => {
+    // Si el crédito y el CDN dejaran de nombrar el mismo repositorio, la app estaría
+    // acreditando a quien no es (ADR 0001).
+    expect(CATALOG_SOURCE_REPOSITORY).toBe('JahelCuadrado/ExerciseGymGifsDB');
+    expect(CATALOG_SOURCE_URL).toBe(`https://github.com/${CATALOG_SOURCE_REPOSITORY}`);
+    expect(CATALOG_BASE_URL).toContain(CATALOG_SOURCE_REPOSITORY);
   });
 });

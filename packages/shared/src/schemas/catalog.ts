@@ -11,7 +11,17 @@ import { isoDatetimeSchema } from './common';
  */
 export const CATALOG_VERSION = 'v1.1.0';
 
-export const CATALOG_BASE_URL = `https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@${CATALOG_VERSION}`;
+/**
+ * El repositorio del que salen los ejercicios y sus GIFs. No tiene licencia y sus animaciones
+ * son de terceros (ADR 0001): se consumen por CDN y se acreditan donde se ven, así que el nombre
+ * vive aquí, en una sola constante, y de ella salen tanto la URL del CDN como el crédito de la app.
+ */
+export const CATALOG_SOURCE_REPOSITORY = 'JahelCuadrado/ExerciseGymGifsDB';
+
+/** Adónde lleva el crédito del catálogo dentro de la app. */
+export const CATALOG_SOURCE_URL = `https://github.com/${CATALOG_SOURCE_REPOSITORY}`;
+
+export const CATALOG_BASE_URL = `https://cdn.jsdelivr.net/gh/${CATALOG_SOURCE_REPOSITORY}@${CATALOG_VERSION}`;
 
 /**
  * Las siete partes del cuerpo por las que navega el usuario. No son los músculos:
