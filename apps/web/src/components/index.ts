@@ -4,6 +4,7 @@ export { Badge } from './badge/Badge';
 export type { BadgeProps, BadgeTone } from './badge/Badge';
 export { Button } from './button/Button';
 export type { ButtonProps, ButtonSize, ButtonVariant } from './button/Button';
+export { CatalogCredit } from './catalog-credit/CatalogCredit';
 export { CountUp } from './count-up/CountUp';
 export type { CountUpProps } from './count-up/CountUp';
 export { DistanceField } from './distance-field/DistanceField';

@@ -8,6 +8,7 @@ import { AsyncContent } from '../../components/async-content/AsyncContent';
 import {
   Badge,
   Button,
+  CatalogCredit,
   Notice,
   SearchField,
   SkeletonList,
@@ -180,16 +181,21 @@ function BodyPartList({ locale }: { readonly locale: Locale | undefined }) {
             Se sincroniza por partes en segundo plano. Vuelve en unos minutos.
           </Notice>
         ) : (
-          <ul className={styles.list}>
-            {sortByBodyPart(items).map((item, index) => (
-              <Surface as="li" key={item.bodyPart} padding="none" {...listEntranceProps(index)}>
-                <Link to={bodyPartPath(item.bodyPart)} className={styles.row}>
-                  <span className={styles.name}>{BODY_PART_LABELS[item.bodyPart]}</span>
-                  <Badge>{pluralize(item.exerciseCount, 'ejercicio', 'ejercicios')}</Badge>
-                </Link>
-              </Surface>
-            ))}
-          </ul>
+          // El crédito va al pie de la entrada al catálogo, que es la pantalla desde la que se
+          // llega a todos los GIFs de terceros (ADR 0001). No se repite en cada ficha.
+          <>
+            <ul className={styles.list}>
+              {sortByBodyPart(items).map((item, index) => (
+                <Surface as="li" key={item.bodyPart} padding="none" {...listEntranceProps(index)}>
+                  <Link to={bodyPartPath(item.bodyPart)} className={styles.row}>
+                    <span className={styles.name}>{BODY_PART_LABELS[item.bodyPart]}</span>
+                    <Badge>{pluralize(item.exerciseCount, 'ejercicio', 'ejercicios')}</Badge>
+                  </Link>
+                </Surface>
+              ))}
+            </ul>
+            <CatalogCredit />
+          </>
         )
       }
     </AsyncContent>

@@ -1,7 +1,7 @@
 import { Link } from 'react-router';
 import { ScreenHeader, type BackLink } from '../../app/ScreenHeader';
 import { useSession } from '../../auth/SessionProvider';
-import { Button, Surface } from '../../components/index';
+import { Button, CatalogCredit, Surface } from '../../components/index';
 import { cx } from '../../lib/cx';
 import { BACKUP_PATH } from '../backup/paths';
 import { DEVICES_PATH } from '../devices/paths';
@@ -111,6 +111,14 @@ export function SettingsScreen() {
               <EntryRow key={entry.to} entry={entry} />
             ))}
           </ul>
+        </Surface>
+        {/* El crédito del catálogo también aquí: en Ajustes se busca de dónde sale lo que se ve,
+            y esta pantalla se abre aunque nunca se entre al catálogo. */}
+        <Surface as="section" padding="none" aria-labelledby="settings-credits">
+          <h2 id="settings-credits" className={styles.sectionTitle}>
+            Créditos
+          </h2>
+          <CatalogCredit />
         </Surface>
         <Button variant="danger" fullWidth onClick={signOut}>
           Salir

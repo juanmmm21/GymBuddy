@@ -1,0 +1,14 @@
+.credit {
+  margin: 0;
+  padding: var(--gb-space-lg);
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-caption-size);
+  line-height: var(--gb-type-caption-line);
+  text-align: center;
+  text-wrap: pretty;
+}
+
+.link {
+  color: var(--gb-color-accent);
+  text-decoration: underline;
+}
