@@ -73,6 +73,10 @@ export interface ProgressionChartProps {
  * mano: una librería de gráficas pesa más que el resto de la PWA junta y ninguna respeta
  * los tokens del sistema de diseño. Aquí solo se pinta; la escala y las coordenadas salen
  * de `lib/chart.ts`, que es puro y tiene sus tests.
+ *
+ * Al aparecer, la línea del peso se dibuja de izquierda a derecha —el sentido en que se lee el
+ * tiempo— y el resto entra detrás. El texto accesible es el resumen del `aria-label`, que está
+ * entero desde el primer momento: nada de lo que se mueve hace falta leerlo.
  */
 export function ProgressionChart({ points, records, unilateral, locale }: ProgressionChartProps) {
   const first = points.at(0);
@@ -123,41 +127,59 @@ export function ProgressionChart({ points, records, unilateral, locale }: Progre
           );
         })}
 
-        <path className={styles.oneRepMaxLine} d={chartPath(layout, oneRepMaxValues)} />
-        <path className={styles.weightLine} d={chartPath(layout, weightValues)} />
+        {/*
+          `pathLength` normaliza la longitud del trazo a uno: es lo que deja dibujar la línea con
+          un `stroke-dashoffset` de 1 a 0 sin medir el nodo ya pintado.
+        */}
+        <path
+          className={styles.weightLine}
+          data-chart-line="weight"
+          pathLength={1}
+          d={chartPath(layout, weightValues)}
+        />
 
-        {series.map((entry) => {
-          const dot = projectValue(layout, entry.weight);
-          return (
-            <circle
-              key={entry.point.sessionId}
-              className={styles.dot}
-              cx={dot.x}
-              cy={dot.y}
-              r={DOT_RADIUS}
-            />
-          );
-        })}
+        {/* El 1RM y los puntos llegan cuando la línea ya está entera: primero el recorrido, luego
+            lo que se lee encima. */}
+        <g className={styles.afterLine} data-chart-reveal="true">
+          <path
+            className={styles.oneRepMaxLine}
+            data-chart-line="one-rep-max"
+            d={chartPath(layout, oneRepMaxValues)}
+          />
 
-        {marks.map((mark) => {
-          const spot = projectValue(layout, {
-            x: Date.parse(mark.point.startedAt),
-            y: parseKilogramsToGrams(markValue(mark)),
-          });
-          return (
-            <circle
-              key={mark.record.id}
-              className={styles.mark}
-              cx={spot.x}
-              cy={spot.y}
-              r={MARK_RADIUS}
-            >
-              <title>
-                {`${RECORD_LABELS[mark.record.kind]}: ${formatExerciseWeightLabel(markValue(mark), locale, unilateral)} · ${formatShortDate(mark.point.startedAt, locale)}`}
-              </title>
-            </circle>
-          );
-        })}
+          {series.map((entry) => {
+            const dot = projectValue(layout, entry.weight);
+            return (
+              <circle
+                key={entry.point.sessionId}
+                className={styles.dot}
+                cx={dot.x}
+                cy={dot.y}
+                r={DOT_RADIUS}
+              />
+            );
+          })}
+
+          {marks.map((mark) => {
+            const spot = projectValue(layout, {
+              x: Date.parse(mark.point.startedAt),
+              y: parseKilogramsToGrams(markValue(mark)),
+            });
+            return (
+              <circle
+                key={mark.record.id}
+                className={styles.mark}
+                cx={spot.x}
+                cy={spot.y}
+                r={MARK_RADIUS}
+              >
+                <title>
+                  {`${RECORD_LABELS[mark.record.kind]}: ${formatExerciseWeightLabel(markValue(mark), locale, unilateral)} · ${formatShortDate(mark.point.startedAt, locale)}`}
+                </title>
+              </circle>
+            );
+          })}
+        </g>
 
         <text className={styles.axisLabel} x={AXIS_LEFT} y={AXIS_BASELINE} textAnchor="start">
           {formatShortDate(first.startedAt, locale)}

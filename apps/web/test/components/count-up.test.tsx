@@ -3,8 +3,10 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { CountUp } from '../../src/components/index';
 import { COUNT_UP_DURATION_MS } from '../../src/lib/count-up';
 
-const originalRequest = window.requestAnimationFrame;
-const originalCancel = window.cancelAnimationFrame;
+// Atados a `window` al guardarlos: al devolverlos a su sitio siguen siendo los del navegador y
+// no una función suelta a la que le falta su receptor.
+const originalRequest = window.requestAnimationFrame.bind(window);
+const originalCancel = window.cancelAnimationFrame.bind(window);
 
 /** Los fotogramas los sirve el test con su propio reloj: así la cuenta se mira paso a paso. */
 function stubFrames(): { serve: (timestamp: number) => void; readonly pending: number } {

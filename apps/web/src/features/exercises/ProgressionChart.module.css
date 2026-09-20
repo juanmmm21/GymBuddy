@@ -35,6 +35,29 @@
   stroke-width: var(--gb-space-xxs);
   stroke-linecap: round;
   stroke-linejoin: round;
+  animation-name: line-draw;
+  animation-duration: var(--gb-duration-slow);
+  animation-timing-function: var(--gb-ease-standard);
+  animation-fill-mode: backwards;
+}
+
+/*
+ * La línea se dibuja de izquierda a derecha. Con `pathLength="1"` en el trazo, un guion de
+ * longitud uno tapa la línea entera y el desfase la va destapando, así que no hace falta medir el
+ * nodo con `getTotalLength` ni saber cuántas sesiones hay. Los dos fotogramas llevan el guion y
+ * el relleno es `backwards`: al terminar no queda ningún `stroke-dasharray` puesto y la línea es
+ * continua otra vez.
+ */
+@keyframes line-draw {
+  from {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+  }
+
+  to {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+  }
 }
 
 /* El 1RM es una referencia calculada, no un peso que se haya levantado: va discontinua. */
@@ -55,6 +78,25 @@
   fill: var(--gb-color-success);
   stroke: var(--gb-color-surface);
   stroke-width: var(--gb-size-border-width);
+}
+
+/*
+ * Lo que se lee sobre la línea —el 1RM, los puntos y las marcas— entra cuando ella ya está
+ * entera. La discontinua del 1RM no puede dibujarse como la otra: su `stroke-dasharray` es lo que
+ * la hace discontinua, y `pathLength` se lo reescalaría.
+ */
+.afterLine {
+  animation-name: chart-reveal;
+  animation-duration: var(--gb-duration-base);
+  animation-timing-function: var(--gb-ease-enter);
+  animation-delay: var(--gb-duration-slow);
+  animation-fill-mode: backwards;
+}
+
+@keyframes chart-reveal {
+  from {
+    opacity: 0;
+  }
 }
 
 .legend {
