@@ -1,6 +1,11 @@
 import type { WeeklyCalendarBodyPart } from '@gymbuddy/shared';
 import { describe, expect, it } from 'vitest';
-import { bodyMapLevels, bodyPartBreakdown, bodyPartNames } from '../../src/features/home/body-map';
+import {
+  bodyMapEntranceStep,
+  bodyMapLevels,
+  bodyPartBreakdown,
+  bodyPartNames,
+} from '../../src/features/home/body-map';
 
 const load = (
   bodyPart: WeeklyCalendarBodyPart['bodyPart'],
@@ -28,6 +33,35 @@ describe('bodyMapLevels', () => {
 
   it('una parte repetida se queda con su nivel más alto', () => {
     expect(bodyMapLevels([load('legs', 2), load('legs', 8)]).legs).toBe(3);
+  });
+});
+
+describe('bodyMapEntranceStep', () => {
+  it('las zonas encendidas toman turno de arriba abajo, sin contar las apagadas', () => {
+    const levels = bodyMapLevels([load('legs', 6), load('chest', 4)]);
+
+    expect(bodyMapEntranceStep(levels, 'chest')).toBe(0);
+    expect(bodyMapEntranceStep(levels, 'legs')).toBe(1);
+  });
+
+  it('una zona que ese día no se trabajó no tiene turno: ya está puesta', () => {
+    const levels = bodyMapLevels([load('chest', 4)]);
+
+    expect(bodyMapEntranceStep(levels, 'back')).toBeNull();
+    expect(bodyMapEntranceStep(levels, 'cardio')).toBeNull();
+  });
+
+  it('el corazón del cardio se enciende el último: no es una zona del cuerpo', () => {
+    const levels = bodyMapLevels([load('cardio', 2), load('shoulders', 3)]);
+
+    expect(bodyMapEntranceStep(levels, 'shoulders')).toBe(0);
+    expect(bodyMapEntranceStep(levels, 'cardio')).toBe(1);
+  });
+
+  it('un día sin nada clasificable no enciende nada', () => {
+    const levels = bodyMapLevels([]);
+
+    expect(bodyMapEntranceStep(levels, 'legs')).toBeNull();
   });
 });
 

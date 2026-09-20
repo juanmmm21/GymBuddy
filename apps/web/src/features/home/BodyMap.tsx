@@ -1,7 +1,15 @@
 import type { BodyPart, BodyPartLoadLevel, WeeklyCalendarBodyPart } from '@gymbuddy/shared';
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
+import { listEntranceDelayMs } from '../../components/index';
+import { cx } from '../../lib/cx';
 import styles from './BodyMap.module.css';
-import { bodyMapLevels } from './body-map';
+import {
+  BODY_MAP_ZONES,
+  bodyMapEntranceStep,
+  bodyMapLevels,
+  type BodyMapLevels,
+  type BodyMapZone,
+} from './body-map';
 
 export interface BodyMapProps {
   /** Lo que trabajó cada parte ese día. Vacío es un día sin nada clasificable: el cuerpo en reposo. */
@@ -15,6 +23,9 @@ export interface BodyMapProps {
  * así pecho, espalda y core se encienden a la vez sin darle la vuelta al cuerpo. El cardio no tiene
  * zona y sale como un corazón en la esquina. Es decoración del botón del día, que lleva el nombre
  * en su texto accesible, así que se oculta a los lectores de pantalla.
+ *
+ * Al entrar, las zonas entrenadas se encienden una detrás de otra de arriba abajo; las que ese día
+ * no se tocaron ya están puestas, porque lo que cuenta la animación es lo que se trabajó.
  */
 export function BodyMap({ loads, className }: BodyMapProps) {
   const levels = bodyMapLevels(loads);
@@ -22,21 +33,14 @@ export function BodyMap({ loads, className }: BodyMapProps) {
   return (
     <svg className={className} viewBox="0 0 32 44" aria-hidden="true">
       <circle className={styles.rest} cx="16" cy="4.6" r="3.4" />
-      {ZONES.map((zone) => (
-        <g
-          key={zone}
-          className={zoneClass(levels[zone])}
-          data-zone={zone}
-          data-level={levels[zone] ?? 0}
-        >
+      {BODY_MAP_ZONES.map((zone) => (
+        <g key={zone} {...zoneProps(levels, zone)}>
           {ZONE_SHAPES[zone]}
         </g>
       ))}
       {levels.cardio !== null && (
         <path
-          className={zoneClass(levels.cardio)}
-          data-zone="cardio"
-          data-level={levels.cardio}
+          {...zoneProps(levels, 'cardio')}
           d="M27.5 8.2s-3.6-2.3-4.3-4.5c-.5-1.7.7-3.2 2.2-2.9.9.2 1.6.8 2.1 1.6.5-.8 1.2-1.4 2.1-1.6 1.5-.3 2.7 1.2 2.2 2.9-.7 2.2-4.3 4.5-4.3 4.5z"
         />
       )}
@@ -44,14 +48,9 @@ export function BodyMap({ loads, className }: BodyMapProps) {
   );
 }
 
-type Zone = Exclude<BodyPart, 'cardio'>;
-
-/** De arriba abajo, en el orden del dibujo. */
-const ZONES: readonly Zone[] = ['shoulders', 'chest', 'back', 'core', 'arms', 'legs'];
-
 // Las piezas no se tocan entre sí: con un hueco de aire cada zona se lee sola aunque dos vecinas
 // tengan el mismo nivel.
-const ZONE_SHAPES: Readonly<Record<Zone, ReactNode>> = {
+const ZONE_SHAPES: Readonly<Record<BodyMapZone, ReactNode>> = {
   shoulders: (
     <>
       <ellipse cx="8.2" cy="11.2" rx="2.6" ry="2.3" />
@@ -80,8 +79,30 @@ const ZONE_SHAPES: Readonly<Record<Zone, ReactNode>> = {
   ),
 };
 
-function zoneClass(level: BodyPartLoadLevel | null): string | undefined {
-  return level === null ? styles.rest : LEVEL_CLASSES[level];
+/**
+ * Lo que lleva una zona: su nivel, su turno para encenderse y las marcas que leen los tests. El
+ * retraso va en el `style` porque depende del turno, como en las listas que caen escalonadas.
+ */
+function zoneProps(
+  levels: BodyMapLevels,
+  zone: BodyPart,
+): {
+  readonly className: string;
+  readonly style?: CSSProperties;
+  readonly 'data-zone': BodyPart;
+  readonly 'data-level': number;
+} {
+  const level = levels[zone];
+  const step = bodyMapEntranceStep(levels, zone);
+  const marks = { 'data-zone': zone, 'data-level': level ?? 0 } as const;
+
+  if (level === null || step === null) return { className: cx(styles.rest), ...marks };
+
+  return {
+    className: cx(LEVEL_CLASSES[level], styles.lit),
+    style: { animationDelay: `${String(listEntranceDelayMs(step))}ms` },
+    ...marks,
+  };
 }
 
 const LEVEL_CLASSES: Readonly<Record<BodyPartLoadLevel, string | undefined>> = {

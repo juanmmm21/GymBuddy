@@ -10,6 +10,44 @@ import { BODY_PART_LABELS } from '../catalog/labels';
 /** Cada parte del cuerpo con su nivel del día, o `null` si no se tocó. */
 export type BodyMapLevels = Readonly<Record<BodyPart, BodyPartLoadLevel | null>>;
 
+/** Las zonas que tienen sitio en la silueta, de arriba abajo: el orden en que se dibujan. */
+export type BodyMapZone = Exclude<BodyPart, 'cardio'>;
+
+export const BODY_MAP_ZONES: readonly BodyMapZone[] = [
+  'shoulders',
+  'chest',
+  'back',
+  'core',
+  'arms',
+  'legs',
+];
+
+/**
+ * El orden en que se encienden al entrar: el mismo del dibujo, con el cardio al final porque no
+ * es una zona del cuerpo sino el corazón de la esquina.
+ */
+const ENTRANCE_ORDER: readonly BodyPart[] = [...BODY_MAP_ZONES, 'cardio'];
+
+/**
+ * En qué turno se enciende esa zona, o `null` si ese día no se trabajó (las apagadas ya están
+ * puestas: lo que entra es la luz, no el cuerpo).
+ *
+ * El turno se cuenta **entre las encendidas**, no por la posición anatómica: un día de solo
+ * piernas empieza a encenderse en el acto en vez de esperar a que pasen de largo cinco zonas
+ * que no se van a encender.
+ */
+export function bodyMapEntranceStep(levels: BodyMapLevels, zone: BodyPart): number | null {
+  if (levels[zone] === null) return null;
+
+  let step = 0;
+  for (const candidate of ENTRANCE_ORDER) {
+    if (candidate === zone) return step;
+    if (levels[candidate] !== null) step += 1;
+  }
+
+  return null;
+}
+
 /**
  * Lo que enciende la silueta de un día. Una parte repetida se queda con su nivel más alto: la
  * zona es una sola y no puede pintarse dos veces.

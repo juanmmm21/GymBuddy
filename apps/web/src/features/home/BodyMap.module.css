@@ -27,6 +27,24 @@
   opacity: var(--gb-opacity-body-map-level4);
 }
 
+/*
+ * La luz de una zona entrenada entra sola: el cuerpo ya está puesto y lo que aparece es lo que se
+ * trabajó ese día. Los fotogramas llevan SOLO el `from` y `backwards`, así que al terminar cada
+ * zona se queda con la opacidad de su nivel y no hay ninguna puesta a mano encima de ella.
+ */
+.lit {
+  animation-name: zone-light-up;
+  animation-duration: var(--gb-duration-base);
+  animation-timing-function: var(--gb-ease-enter);
+  animation-fill-mode: backwards;
+}
+
+@keyframes zone-light-up {
+  from {
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .rest,
   .level1,

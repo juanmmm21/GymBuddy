@@ -5,12 +5,13 @@ import {
   type TrainingSignals,
   type WorkoutSessionDetail,
 } from '@gymbuddy/shared';
+import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { useTrackedExercises, useTrainingSignals } from '../../api/queries';
 import { useSession } from '../../auth/SessionProvider';
 import { ScreenHeader } from '../../app/ScreenHeader';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
-import { Badge, Notice, PlateStack, Surface } from '../../components/index';
+import { Badge, CountUp, Notice, PlateStack, Surface } from '../../components/index';
 import { useNow } from '../../hooks/use-now';
 import {
   formatDaysAgo,
@@ -91,10 +92,23 @@ function SignalsSummary({ signals, locale }: SignalsSummaryProps) {
       <LiveMascot signals={signals} device={NO_DEVICE_SIGNALS} locale={locale} spot="home" />
 
       <section className={styles.metrics} aria-label="Cómo vas">
-        <Metric label="Racha" value={pluralize(signals.weeklyStreak, 'semana', 'semanas')} />
+        <Metric
+          label="Racha"
+          value={
+            <CountUp
+              value={signals.weeklyStreak}
+              format={(weeks) => pluralize(weeks, 'semana', 'semanas')}
+            />
+          }
+        />
         <Metric
           label="Esta semana"
-          value={pluralize(signals.sessionsThisWeek, 'sesión', 'sesiones')}
+          value={
+            <CountUp
+              value={signals.sessionsThisWeek}
+              format={(sessions) => pluralize(sessions, 'sesión', 'sesiones')}
+            />
+          }
         />
         {signals.latestRecord === null ? (
           <Metric label="Último récord" value="—" />
@@ -226,7 +240,11 @@ function StartCard({ lastSessionAt, daysSinceLastSession }: StartCardProps) {
   );
 }
 
-function Metric({ label, value }: { readonly label: string; readonly value: string }) {
+/**
+ * Una casilla de «Cómo vas». El valor es un nodo y no un texto porque las cifras cuentan hasta
+ * su número al entrar (`CountUp`), y el guion de una casilla vacía no cuenta nada.
+ */
+function Metric({ label, value }: { readonly label: string; readonly value: ReactNode }) {
   return (
     <div className={styles.metric}>
       <span className={styles.metricLabel}>{label}</span>
