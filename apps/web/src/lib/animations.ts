@@ -27,6 +27,37 @@ export function whenAnimationsEnd(element: Element | null, done: () => void): ()
   };
 }
 
+/**
+ * Avisa cuando el navegador ya haya pintado un fotograma con lo que hay ahora en el DOM. Devuelve la
+ * función que cancela el aviso.
+ *
+ * Son dos `requestAnimationFrame` y no uno: el primero corre **antes** del siguiente pintado, así
+ * que solo el segundo llega con ese fotograma ya en pantalla. Sin `requestAnimationFrame` (jsdom sin
+ * modo visual, un navegador antiguo) el aviso llega en la siguiente microtarea, nunca de forma
+ * síncrona, por lo mismo que en `whenAnimationsEnd`.
+ */
+export function afterNextPaint(done: () => void): () => void {
+  let cancelled = false;
+  const finish = (): void => {
+    if (!cancelled) done();
+  };
+
+  if (typeof requestAnimationFrame !== 'function') {
+    queueMicrotask(finish);
+    return () => {
+      cancelled = true;
+    };
+  }
+
+  let frame = requestAnimationFrame(() => {
+    frame = requestAnimationFrame(finish);
+  });
+  return () => {
+    cancelled = true;
+    cancelAnimationFrame(frame);
+  };
+}
+
 /** Las animaciones del elemento y de sus pseudoelementos, sin bajar a los hijos. */
 function runningAnimations(element: Element | null): readonly Animation[] {
   if (element === null || typeof element.getAnimations !== 'function') return [];
