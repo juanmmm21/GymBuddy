@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useExitAnimation } from '../../hooks/use-exit-animation';
+import { afterNextPaint } from '../../lib/animations';
 import { sheetDragOffset, sheetDragOutcome } from './sheet-drag';
 import styles from './Sheet.module.css';
 
@@ -43,9 +44,12 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
   const exit = useExitAnimation(open, panelRef);
   const titleId = useId();
   const [drag, setDrag] = useState<SheetDrag | null>(null);
+  const [placed, setPlaced] = useState(false);
 
   // Al volver a abrirse no puede acordarse de por dónde iba el dedo la última vez.
   if (open && drag !== null && !drag.active) setDrag(null);
+  // Cerrada del todo, la próxima apertura tiene que volver a colocarse antes de subir.
+  if (!exit.mounted && placed) setPlaced(false);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -57,6 +61,17 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
       closeDialog(dialog);
     }
   }, [exit.mounted]);
+
+  // Safari en iOS arrancaba la subida en el mismo fotograma en que `showModal` metía el diálogo en
+  // la capa superior, con el panel ya desplazado: la hoja subía pegada arriba de la pantalla, se
+  // salía por el borde y tardaba en saltar a su sitio. Con un fotograma pintado antes, la hoja en su
+  // sitio pero invisible, la animación sale ya desde donde de verdad está.
+  useEffect(() => {
+    if (!exit.mounted || placed) return;
+    return afterNextPaint(() => {
+      setPlaced(true);
+    });
+  }, [exit.mounted, placed]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -120,7 +135,7 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
       ref={dialogRef}
       className={styles.dialog}
       aria-labelledby={titleId}
-      data-sheet={sheetState(exit.mounted, exit.leaving)}
+      data-sheet={sheetState(exit.mounted, exit.leaving, placed)}
       onClick={handleBackdropClick}
     >
       {exit.mounted && (
@@ -154,10 +169,18 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
   );
 }
 
-/** En qué punto está la hoja, para el CSS y para los tests. */
-function sheetState(mounted: boolean, leaving: boolean): 'open' | 'leaving' | 'closed' {
+/**
+ * En qué punto está la hoja, para el CSS y para los tests. `placing` es el fotograma en que el
+ * diálogo ya está abierto y la hoja espera en su sitio, invisible, a que el navegador la coloque.
+ */
+function sheetState(
+  mounted: boolean,
+  leaving: boolean,
+  placed: boolean,
+): 'placing' | 'open' | 'leaving' | 'closed' {
   if (!mounted) return 'closed';
-  return leaving ? 'leaving' : 'open';
+  if (leaving) return 'leaving';
+  return placed ? 'open' : 'placing';
 }
 
 /**

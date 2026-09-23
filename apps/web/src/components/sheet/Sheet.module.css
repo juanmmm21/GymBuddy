@@ -44,14 +44,21 @@
   padding-bottom: env(safe-area-inset-bottom);
   transform: translate3d(0, var(--sheet-drag, 0), 0);
   transition: transform var(--gb-duration-fast) var(--gb-ease-standard);
-  /* Safari en iOS pinta la capa de la hoja cuando aún está debajo de la pantalla y, mientras sube,
-     solo repinta lo que ya había pintado: la hoja se quedaba cortada a medias hasta que otro cambio
-     (la miniatura del ejercicio al llegar, lenta con mala cobertura) forzaba a repintarla. Con la
-     capa reservada desde el montaje la hoja se pinta entera antes de empezar a moverse. */
-  will-change: transform;
   /* `backwards` deja la hoja abajo desde que se monta: sin él se ve un fotograma ya en su sitio
      antes de que el navegador arranque la animación. Al terminar no deja ninguna `transform`. */
   animation: rise var(--gb-duration-base) var(--gb-ease-enter) backwards;
+}
+
+/*
+ * El fotograma de espera va invisible y **sin desplazar**. Aparcarla abajo con un `transform` (o con
+ * el `backwards` de `rise`) es justo lo que rompe Safari de iOS: si el panel entra en la capa
+ * superior ya desplazado, lo coloca mal y la hoja sube pegada arriba de la pantalla. Comprobado en
+ * el simulador de iOS 26.5 con las dos variantes.
+ */
+.dialog[data-sheet='placing'] .panel {
+  opacity: 0;
+  transition: none;
+  animation: none;
 }
 
 .panel[data-dragging='true'] {

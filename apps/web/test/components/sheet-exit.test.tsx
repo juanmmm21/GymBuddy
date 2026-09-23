@@ -42,10 +42,42 @@ function renderSheet(open: boolean, onClose: () => void) {
   );
 }
 
+describe('la hoja sube una vez colocada', () => {
+  it('se abre quieta e invisible y empieza a subir tras un fotograma pintado', async () => {
+    // Arrancar la subida en el mismo fotograma que `showModal` es lo que en Safari la hacía subir
+    // pegada arriba de la pantalla y saltar a su sitio al final.
+    renderSheet(true, () => undefined);
+
+    expect(sheet()).toHaveAttribute('open');
+    expect(sheet()).toHaveAttribute('data-sheet', 'placing');
+    await waitFor(() => expect(sheet()).toHaveAttribute('data-sheet', 'open'));
+  });
+
+  it('al reabrirla después de cerrarla vuelve a colocarse antes de subir', async () => {
+    const { rerender } = renderSheet(true, () => undefined);
+    await waitFor(() => expect(sheet()).toHaveAttribute('data-sheet', 'open'));
+
+    rerender(
+      <Sheet open={false} onClose={() => undefined} title="Serie">
+        <p>contenido</p>
+      </Sheet>,
+    );
+    await waitFor(() => expect(sheet()).toHaveAttribute('data-sheet', 'closed'));
+
+    rerender(
+      <Sheet open onClose={() => undefined} title="Serie">
+        <p>contenido</p>
+      </Sheet>,
+    );
+    expect(sheet()).toHaveAttribute('data-sheet', 'placing');
+    await waitFor(() => expect(sheet()).toHaveAttribute('data-sheet', 'open'));
+  });
+});
+
 describe('la hoja se va bajándose', () => {
   it('sigue puesta mientras se recoge y solo después se cierra', async () => {
     const { rerender } = renderSheet(true, () => undefined);
-    expect(sheet()).toHaveAttribute('data-sheet', 'open');
+    await waitFor(() => expect(sheet()).toHaveAttribute('data-sheet', 'open'));
 
     rerender(
       <Sheet open={false} onClose={() => undefined} title="Serie">
