@@ -80,7 +80,8 @@ export async function getExportSnapshot(
         catalogId: exercise.catalogId,
         // El `catalogId` es el último recurso: la clave ajena impide que falte la fila del
         // catálogo, pero un fichero sin nombre legible no le serviría a nadie.
-        name: catalogName ?? exercise.customName ?? exercise.catalogId ?? exercise.id,
+        name: exercise.customName ?? catalogName ?? exercise.catalogId ?? exercise.id,
+        customName: exercise.catalogId === null ? null : exercise.customName,
         muscle: parseNullableMuscle(fromCatalog ? catalog.muscle : exercise.customMuscle),
         bodyPart: parseNullableBodyPart(fromCatalog ? catalog.bodyPart : exercise.customBodyPart),
         notes: exercise.notes,

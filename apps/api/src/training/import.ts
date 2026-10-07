@@ -94,7 +94,9 @@ export async function importExercises(
       id: importedIdOf(importedIds, exercise.id),
       userId,
       catalogId: linked ? exercise.catalogId : null,
-      customName: linked ? null : exercise.name,
+      // Enlazado, solo se guarda el nombre que el usuario le puso; sin enlace, `name` es lo único
+      // legible que queda, y ya es ese nombre si lo tenía.
+      customName: linked ? exercise.customName : exercise.name,
       customMuscle: linked ? null : exercise.muscle,
       customBodyPart: linked ? null : exercise.bodyPart,
       notes: exercise.notes,

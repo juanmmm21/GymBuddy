@@ -10,6 +10,7 @@ import {
   type ExportedSession,
 } from '@gymbuddy/shared';
 import { env } from 'cloudflare:test';
+import { eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { issueSessionToken } from '../src/auth/jwt';
 import {
@@ -199,6 +200,24 @@ describe('exportación de los datos del usuario', () => {
       scenario.benchId,
       pulldownId,
     ]);
+  });
+
+  it('uno del catálogo renombrado sale con el nombre que se ve y con el suyo aparte', async () => {
+    await scenario.db
+      .update(trackedExercise)
+      .set({ customName: 'Lat pulldown' })
+      .where(eq(trackedExercise.id, pulldownId));
+
+    const snapshot = await snapshotOf(token);
+
+    expect(snapshot.exercises[2]).toMatchObject({
+      origin: 'catalog',
+      catalogId: CATALOG_ID,
+      name: 'Lat pulldown',
+      customName: 'Lat pulldown',
+    });
+    // Sin renombrar, y en uno propio, no hay nombre aparte: `name` ya lo dice todo.
+    expect(snapshot.exercises[0]?.customName).toBeNull();
   });
 
   it('las sesiones salen de la más antigua a la más reciente, con sus series en orden', async () => {

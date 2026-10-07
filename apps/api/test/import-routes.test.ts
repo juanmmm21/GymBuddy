@@ -298,6 +298,7 @@ describe('importación de una copia de seguridad', () => {
       createdAt: '2026-09-01T08:00:00.000Z',
       archivedAt: null,
       unilateral: false,
+      customName: null,
     }));
     const session: ExportedSession = {
       id: crypto.randomUUID(),
@@ -338,6 +339,27 @@ describe('importación de una copia de seguridad', () => {
     const response = await request('GET', '/sessions/active', targetToken);
 
     expect(activeSessionResponseSchema.parse(await response.json()).session).toBeNull();
+  });
+
+  it('el nombre propio de un ejercicio del catálogo se recupera con la copia', async () => {
+    const file = await exportFileOf(sourceToken);
+    const renamed = {
+      ...file,
+      exercises: file.exercises.map((exercise) =>
+        exercise.catalogId === CATALOG_ID
+          ? { ...exercise, name: 'Lat pulldown', customName: 'Lat pulldown' }
+          : exercise,
+      ),
+    };
+
+    await importFile(targetToken, renamed);
+    const restored = await exportFileOf(targetToken);
+
+    expect(restored.exercises.find((exercise) => exercise.catalogId === CATALOG_ID)).toMatchObject({
+      origin: 'catalog',
+      name: 'Lat pulldown',
+      customName: 'Lat pulldown',
+    });
   });
 
   it('un ejercicio del catálogo que aquí no está sincronizado entra como propio con su nombre', async () => {
