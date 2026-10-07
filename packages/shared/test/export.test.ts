@@ -38,6 +38,7 @@ function snapshot(): ExportSnapshot {
         createdAt: '2026-09-01T08:00:00.000Z',
         archivedAt: null,
         unilateral: false,
+        customName: null,
       },
       {
         id: PLANK_ID,
@@ -50,6 +51,7 @@ function snapshot(): ExportSnapshot {
         createdAt: '2026-09-02T08:00:00.000Z',
         archivedAt: '2026-09-10T08:00:00.000Z',
         unilateral: false,
+        customName: null,
       },
     ],
     routines: [
@@ -283,13 +285,80 @@ interface LooseFile {
   sessions: { sets: Record<string, unknown>[] }[];
 }
 
-/** La copia de hoy con la forma de la versión 2: sus ejercicios no saben de `unilateral`. */
-function versionTwo(): LooseFile {
+/** La copia de hoy con la forma de la versión 3: sus ejercicios no saben de `customName`. */
+function versionThree(): LooseFile {
   const current = JSON.parse(JSON.stringify(buildExportFile(snapshot(), [session()]))) as LooseFile;
+  for (const exercise of current.exercises) delete exercise.customName;
+  current.version = 3;
+  return current;
+}
+
+/** La misma con la forma de la versión 2: sus ejercicios tampoco saben de `unilateral`. */
+function versionTwo(): LooseFile {
+  const current = versionThree();
   for (const exercise of current.exercises) delete exercise.unilateral;
   current.version = 2;
   return current;
 }
+
+describe('nombres propios de ejercicios del catálogo en la copia', () => {
+  function renamed(): ExportSnapshot {
+    const base = snapshot();
+    return {
+      ...base,
+      exercises: base.exercises.map((exercise) =>
+        exercise.id === BENCH_ID
+          ? { ...exercise, name: 'Chest press', customName: 'Chest press' }
+          : exercise,
+      ),
+    };
+  }
+
+  it('la versión actual exige saber si cada ejercicio lleva nombre propio', () => {
+    const file = buildExportFile(snapshot(), [session()]) as unknown as LooseFile;
+    const withoutName = {
+      ...file,
+      exercises: file.exercises.map(({ customName: _customName, ...rest }) => rest),
+    };
+
+    expect(exportFileSchema.safeParse(withoutName).success).toBe(false);
+  });
+
+  it('una copia de la versión 3 se lee convertida, con ningún ejercicio renombrado', () => {
+    const result = readableExportFileSchema.safeParse(versionThree());
+
+    expect(result.success).toBe(true);
+    expect(result.data?.version).toBe(EXPORT_VERSION);
+    expect(result.data?.exercises.map((exercise) => exercise.customName)).toStrictEqual([
+      null,
+      null,
+    ]);
+    expect(result.data).toEqual(buildExportFile(snapshot(), [session()]));
+  });
+
+  it('el nombre que se le puso a uno del catálogo viaja y vuelve', () => {
+    const file = JSON.parse(JSON.stringify(buildExportFile(renamed(), [session()]))) as unknown;
+
+    expect(
+      readableExportFileSchema.parse(file).exercises.find((exercise) => exercise.id === BENCH_ID),
+    ).toMatchObject({ name: 'Chest press', customName: 'Chest press' });
+  });
+
+  it('rechaza un ejercicio propio con nombre propio aparte: su nombre ya es el suyo', () => {
+    const base = snapshot();
+    const file = buildExportFile(
+      {
+        ...base,
+        exercises: base.exercises.map((exercise) =>
+          exercise.id === PLANK_ID ? { ...exercise, customName: 'Plancha' } : exercise,
+        ),
+      },
+      [session()],
+    );
+
+    expect(exportFileSchema.safeParse(file).success).toBe(false);
+  });
+});
 
 describe('ejercicios a un brazo en la copia', () => {
   it('la versión actual exige saber si cada ejercicio es a un brazo', () => {

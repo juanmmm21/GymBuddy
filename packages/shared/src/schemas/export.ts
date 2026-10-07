@@ -25,13 +25,14 @@ export const EXPORT_FORMAT = 'gymbuddy-export';
 
 /**
  * Se sube cuando cambia la forma del fichero, nunca por un cambio de la API. La 2 trajo las
- * series de cardio (`kind`) y la 3, los ejercicios a un brazo (`unilateral`); las copias de la 1
- * y de la 2 se siguen leyendo, convertidas al leerlas.
+ * series de cardio (`kind`), la 3, los ejercicios a un brazo (`unilateral`) y la 4, el nombre que
+ * el usuario le pone a un ejercicio del catálogo (`customName`); las copias anteriores se siguen
+ * leyendo, convertidas al leerlas.
  */
-export const EXPORT_VERSION = 3;
+export const EXPORT_VERSION = 4;
 
 /** Las versiones que esta app sabe leer. Las viejas se convierten a la actual al validarlas. */
-export const READABLE_EXPORT_VERSIONS: readonly number[] = [1, 2, EXPORT_VERSION];
+export const READABLE_EXPORT_VERSIONS: readonly number[] = [1, 2, 3, EXPORT_VERSION];
 
 /** Tope de sesiones por página al exportar: cada una arrastra sus series y sus marcas. */
 export const MAX_EXPORT_SESSION_PAGE_SIZE = 50;
@@ -78,9 +79,31 @@ const exportedExerciseV2Schema = exportedExerciseV2ShapeSchema.refine(
   CATALOG_ID_MISMATCH,
 );
 
-export const exportedExerciseSchema = exportedExerciseV2ShapeSchema
-  .extend({ unilateral: z.boolean() })
-  .refine(hasCatalogIdOnlyIfCatalog, CATALOG_ID_MISMATCH);
+/* La forma de la versión 3, congelada igual: la de hoy sin `customName`. */
+const exportedExerciseV3ShapeSchema = exportedExerciseV2ShapeSchema.extend({
+  unilateral: z.boolean(),
+});
+
+const exportedExerciseV3Schema = exportedExerciseV3ShapeSchema.refine(
+  hasCatalogIdOnlyIfCatalog,
+  CATALOG_ID_MISMATCH,
+);
+
+export const exportedExerciseSchema = exportedExerciseV3ShapeSchema
+  .extend({
+    /**
+     * El nombre que el usuario le puso a un ejercicio del catálogo, o nulo si lo dejó como venía.
+     * Va aparte de `name` —que es siempre el que se veía al exportar— porque al importar hay que
+     * distinguir un nombre elegido, que se conserva, del nombre del catálogo, que se vuelve a leer
+     * del catálogo en el idioma de la cuenta de destino. En uno propio es nulo: su nombre es `name`.
+     */
+    customName: z.string().min(1).nullable(),
+  })
+  .refine(hasCatalogIdOnlyIfCatalog, CATALOG_ID_MISMATCH)
+  .refine((exercise) => exercise.origin === 'catalog' || exercise.customName === null, {
+    message: 'Solo un ejercicio del catálogo lleva customName; el de uno propio es su name',
+    path: ['customName'],
+  });
 
 /**
  * Una marca personal va dentro de la serie que la puso, y no en una lista aparte que la
@@ -249,6 +272,30 @@ const exportFileV2Schema = z.object({
   routines: z.array(exportedRoutineSchema),
 });
 
+/*
+ * La versión 3, congelada igual: la de hoy sin `customName` en los ejercicios. Sus series ya son
+ * las actuales, porque la 4 no las cambió.
+ */
+const exportFileV3Schema = z.object({
+  format: z.literal(EXPORT_FORMAT),
+  version: z.literal(3),
+  exportedAt: isoDatetimeSchema,
+  profile: exportedProfileSchema,
+  exercises: z.array(exportedExerciseV3Schema),
+  sessions: z.array(exportedSessionSchema),
+  routines: z.array(exportedRoutineSchema),
+});
+
+/**
+ * Antes de la 4 un ejercicio del catálogo no se podía renombrar, así que ninguno tenía nombre
+ * propio: su `name` era el del catálogo.
+ */
+function withoutCustomNames(
+  exercises: readonly z.infer<typeof exportedExerciseV3Schema>[],
+): ExportFileShape['exercises'] {
+  return exercises.map((exercise) => ({ ...exercise, customName: null }));
+}
+
 /**
  * Antes de la 3 no se podía marcar un ejercicio a un brazo, así que ninguno lo era: su volumen se
  * guardó contando un lado, y seguir así es lo que deja las marcas copiadas bien.
@@ -256,7 +303,7 @@ const exportFileV2Schema = z.object({
 function withoutUnilateralExercises(
   exercises: readonly z.infer<typeof exportedExerciseV2Schema>[],
 ): ExportFileShape['exercises'] {
-  return exercises.map((exercise) => ({ ...exercise, unilateral: false }));
+  return withoutCustomNames(exercises.map((exercise) => ({ ...exercise, unilateral: false })));
 }
 
 /**
@@ -266,6 +313,13 @@ function withoutUnilateralExercises(
  */
 export const readableExportFileSchema = z.union([
   exportFileSchema,
+  exportFileV3Schema
+    .transform((file): ExportFileShape => ({
+      ...file,
+      version: EXPORT_VERSION,
+      exercises: withoutCustomNames(file.exercises),
+    }))
+    .pipe(exportFileSchema),
   exportFileV2Schema
     .transform((file): ExportFileShape => ({
       ...file,
