@@ -43,9 +43,10 @@ export const lastCardioSetSchema = z.object({
 });
 
 /**
- * El nombre de un ejercicio propio, con el mismo tope al crearlo y al renombrarlo: es el
- * mismo campo y una definición por sitio acabaría divergiendo. Se recorta al entrar
- * porque un nombre de solo espacios pasaría el mínimo y dejaría la ficha sin título.
+ * El nombre que el usuario le pone a un ejercicio —propio o del catálogo—, con el mismo tope al
+ * crearlo y al renombrarlo: es el mismo campo y una definición por sitio acabaría divergiendo.
+ * Se recorta al entrar porque un nombre de solo espacios pasaría el mínimo y dejaría la ficha
+ * sin título.
  */
 export const trackedExerciseNameSchema = z.string().trim().min(1).max(120);
 
@@ -55,10 +56,16 @@ export const trackedExerciseNameSchema = z.string().trim().min(1).max(120);
  */
 export const trackedExerciseSchema = z.object({
   id: resourceIdSchema,
-  // Ya resuelto: el del catálogo en el idioma del usuario, o el que él escribió.
+  // Ya resuelto: el que el usuario escribió o, si no le ha puesto ninguno, el del catálogo en su idioma.
   name: z.string().min(1),
   origin: z.enum(['catalog', 'custom']),
   catalogId: z.string().min(1).nullable(),
+  /**
+   * Cómo se llama en el catálogo, en el idioma del usuario; nulo en uno propio. Coincide con `name`
+   * mientras no se renombre, y es lo que deja enseñar el nombre original y volver a él. Nulo por
+   * defecto: la instantánea del dispositivo guarda ejercicios leídos antes de que existiera.
+   */
+  catalogName: z.string().min(1).nullable().default(null),
   muscle: muscleSchema.nullable(),
   bodyPart: bodyPartSchema.nullable(),
   gifUrl: z.url().nullable(),
@@ -118,15 +125,16 @@ export const createTrackedExerciseRequestSchema = z.discriminatedUnion('origin',
 ]);
 
 /**
- * Lo que se puede cambiar de un ejercicio ya seguido. El nombre solo cuando es propio: el
- * de uno del catálogo viene del catálogo y en el idioma del usuario, así que renombrarlo
- * aquí no tendría dónde guardarse. El Worker lo rechaza mirando el origen de la ficha.
+ * Lo que se puede cambiar de un ejercicio ya seguido. El nombre vale para los dos orígenes: en uno
+ * propio es su nombre, y en uno del catálogo es el nombre que el usuario le pone encima del
+ * original (el rótulo de la máquina de su gimnasio, por ejemplo). `null` quita ese nombre y
+ * devuelve el del catálogo; en uno propio no hay a qué volver y el Worker lo rechaza.
  *
- * `unilateral` sí vale para los dos: el catálogo no dice si un ejercicio se hace a un brazo.
+ * `unilateral` también vale para los dos: el catálogo no dice si un ejercicio se hace a un brazo.
  */
 export const updateTrackedExerciseRequestSchema = z
   .object({
-    name: trackedExerciseNameSchema,
+    name: trackedExerciseNameSchema.nullable(),
     notes: z.string().max(500).nullable(),
     archived: z.boolean(),
     unilateral: z.boolean(),
