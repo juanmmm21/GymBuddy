@@ -17,6 +17,7 @@ It does the things you actually do between sets:
 - **Log a set** in two taps — the weight comes pre-filled with your last one on that exercise, and the rest timer counts down to `0:00` on its own.
 - **Follow a routine** and bend it when the machine is taken: swap the exercise or the number of sets *for today only*, without editing the routine itself.
 - **Browse a catalogue of 1,323 exercises** with animated demonstrations, search it in plain language ("face pull", "press banca"), and filter by equipment or body part.
+- **Call an exercise what your gym calls it**: give any catalogue exercise your own name — the label on the machine, say — and it still answers to the original one in search.
 - **Track progression**: working weight, estimated 1RM, volume, personal records, and a plateau warning when an exercise has stopped moving.
 - **Record cardio** with duration and distance, including a treadmill finisher that keeps the session open while it runs.
 - **Attach your own photo or video** of the technique to an exercise you created, re-encoded on the phone before it ever leaves it.
