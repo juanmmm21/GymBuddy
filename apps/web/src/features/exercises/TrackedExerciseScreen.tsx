@@ -83,6 +83,7 @@ function TrackedExerciseDetail({ exerciseId }: TrackedExerciseDetailProps) {
     <>
       <ScreenHeader
         title={exercise?.name ?? 'Ejercicio'}
+        subtitle={exercise === null ? undefined : catalogNameSubtitle(exercise)}
         backTo={BACK_TO_EXERCISES}
         action={
           exercise !== null ? (
@@ -200,6 +201,16 @@ function ArchivedNotice({ exercise }: ExerciseProps) {
         : 'No aparece en tu lista ni en la sesión. Su historial y sus marcas siguen aquí.'}
     </Notice>
   );
+}
+
+/**
+ * Uno del catálogo con nombre propio sigue diciendo cómo se llama allí: es con ese nombre con el
+ * que se busca en el catálogo y con el que lo conoce cualquier otra persona.
+ */
+function catalogNameSubtitle({ name, catalogName }: TrackedExercise): string | undefined {
+  return catalogName !== null && catalogName !== name
+    ? `En el catálogo: ${catalogName}`
+    : undefined;
 }
 
 function ExerciseTags({ exercise }: ExerciseProps) {

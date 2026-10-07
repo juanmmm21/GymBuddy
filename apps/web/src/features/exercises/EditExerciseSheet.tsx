@@ -1,4 +1,4 @@
-import type { TrackedExercise } from '@gymbuddy/shared';
+import type { TrackedExercise, UpdateTrackedExerciseRequest } from '@gymbuddy/shared';
 import { useState, type FormEvent } from 'react';
 import { useUpdateTrackedExercise } from '../../api/mutations';
 import { Button, Notice, Sheet, TextArea, TextField } from '../../components/index';
@@ -17,9 +17,9 @@ export interface EditExerciseSheetProps {
 }
 
 /**
- * Editar un ejercicio seguido: su nombre —solo si es propio—, sus notas y si está
- * archivado. El formulario va dentro de la hoja, que solo monta su contenido mientras está
- * abierta: cada apertura arranca con lo guardado y sin restos de un intento anterior.
+ * Editar un ejercicio seguido: su nombre, sus notas y si está archivado. El formulario va dentro
+ * de la hoja, que solo monta su contenido mientras está abierta: cada apertura arranca con lo
+ * guardado y sin restos de un intento anterior.
  */
 export function EditExerciseSheet({ exercise, open, onClose }: EditExerciseSheetProps) {
   return (
@@ -39,23 +39,24 @@ function EditExerciseForm({ exercise, onDone }: EditExerciseFormProps) {
   const [notes, setNotes] = useState(exercise.notes ?? '');
   const update = useUpdateTrackedExercise();
   const archived = exercise.archivedAt !== null;
-  // El nombre de uno del catálogo viene del catálogo, y el Worker rechaza cambiarlo.
-  const renamable = exercise.origin === 'custom';
+  const fromCatalog = exercise.origin === 'catalog';
   const trimmedName = name.trim();
+  // Uno propio no tiene otro nombre al que volver; uno del catálogo, vacío, vuelve al suyo.
+  const nameMissing = !fromCatalog && trimmedName === '';
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
-    if (renamable && trimmedName === '') return;
+    if (nameMissing) return;
 
-    update.mutate(
-      {
-        exerciseId: exercise.id,
-        body: renamable
-          ? { name: trimmedName, notes: normalizeNotes(notes) }
-          : { notes: normalizeNotes(notes) },
-      },
-      { onSuccess: onDone },
-    );
+    const body: UpdateTrackedExerciseRequest = { notes: normalizeNotes(notes) };
+    if (!fromCatalog) {
+      body.name = trimmedName;
+    } else if (trimmedName !== exercise.name) {
+      // Sin tocar no se manda: guardar unas notas no debe fijar el nombre del catálogo como propio.
+      body.name = trimmedName === '' ? null : trimmedName;
+    }
+
+    update.mutate({ exerciseId: exercise.id, body }, { onSuccess: onDone });
   };
 
   const toggleArchived = (): void => {
@@ -67,15 +68,13 @@ function EditExerciseForm({ exercise, onDone }: EditExerciseFormProps) {
 
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
-      {renamable && (
-        <TextField
-          label="Nombre"
-          value={name}
-          onChange={setName}
-          maxLength={MAX_EXERCISE_NAME_LENGTH}
-          hint="Como lo llamas tú. Su historial y sus marcas no se mueven."
-        />
-      )}
+      <TextField
+        label="Nombre"
+        value={name}
+        onChange={setName}
+        maxLength={MAX_EXERCISE_NAME_LENGTH}
+        hint={fromCatalog ? catalogNameHint(exercise) : CUSTOM_NAME_HINT}
+      />
 
       <TextArea
         label="Notas"
@@ -91,13 +90,7 @@ function EditExerciseForm({ exercise, onDone }: EditExerciseFormProps) {
         </Notice>
       )}
 
-      <Button
-        type="submit"
-        size="lg"
-        fullWidth
-        loading={update.isPending}
-        disabled={renamable && trimmedName === ''}
-      >
+      <Button type="submit" size="lg" fullWidth loading={update.isPending} disabled={nameMissing}>
         Guardar
       </Button>
 
@@ -118,4 +111,16 @@ function EditExerciseForm({ exercise, onDone }: EditExerciseFormProps) {
       </div>
     </form>
   );
+}
+
+const CUSTOM_NAME_HINT = 'Como lo llamas tú. Su historial y sus marcas no se mueven.';
+
+/**
+ * Bajo el nombre de uno del catálogo: cómo se llama allí —si ya lleva otro— y cómo volver. El
+ * nombre del catálogo puede faltar en una ficha guardada en el móvil antes de que existiera.
+ */
+function catalogNameHint({ name, catalogName }: TrackedExercise): string {
+  return catalogName !== null && catalogName !== name
+    ? `En el catálogo es «${catalogName}». Déjalo vacío para volver a ese nombre.`
+    : 'Ponle el nombre que uses tú. Déjalo vacío para volver al del catálogo.';
 }

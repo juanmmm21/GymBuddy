@@ -136,8 +136,9 @@ export function matchesPickerFilter(
     .filter((word) => word !== '');
   if (words.length === 0) return true;
 
-  const name = foldForSearch(exercise.name);
-  return words.every((word) => name.includes(word));
+  // Uno del catálogo renombrado se sigue encontrando por su nombre original.
+  const names = foldForSearch(`${exercise.name} ${exercise.catalogName ?? ''}`);
+  return words.every((word) => names.includes(word));
 }
 
 function foldForSearch(text: string): string {

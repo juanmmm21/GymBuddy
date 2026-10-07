@@ -286,14 +286,71 @@ describe('mis ejercicios: ficha', () => {
     });
   });
 
-  it('un ejercicio del catálogo no ofrece renombrarse: su nombre viene del catálogo', async () => {
+  it('le pone nombre propio a un ejercicio del catálogo y la ficha recuerda el original', async () => {
     const user = userEvent.setup();
-    renderApp({ path: DETAIL_PATH, session, setup: serveBenchPress });
+    let current: TrackedExercise = benchPress;
+    const { fake } = renderApp({
+      path: DETAIL_PATH,
+      session,
+      setup: (fake) => {
+        serveBenchPress(fake);
+        fake.on('GET', '/exercises', () => jsonResponse([current]));
+        fake.on('PATCH', `/exercises/${benchPress.id}`, (request) => {
+          const body = request.body as { name: string };
+          current = { ...current, name: body.name };
+          return jsonResponse(current);
+        });
+      },
+    });
 
     await user.click(await screen.findByRole('button', { name: 'Editar' }));
 
-    expect(screen.queryByRole('textbox', { name: 'Nombre' })).not.toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: 'Notas' })).toBeInTheDocument();
+    const name = screen.getByRole('textbox', { name: 'Nombre' });
+    expect(name).toHaveValue('Press de banca');
+    await user.clear(name);
+    await user.type(name, 'Chest press');
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    expect(await screen.findByRole('heading', { name: 'Chest press' })).toBeInTheDocument();
+    expect(screen.getByText('En el catálogo: Press de banca')).toBeInTheDocument();
+    expect(fake.requests.find((r) => r.method === 'PATCH')?.body).toEqual({
+      name: 'Chest press',
+      notes: null,
+    });
+  });
+
+  it('vaciar el nombre de uno del catálogo renombrado le devuelve el del catálogo', async () => {
+    const user = userEvent.setup();
+    let current: TrackedExercise = { ...benchPress, name: 'Chest press' };
+    const { fake } = renderApp({
+      path: DETAIL_PATH,
+      session,
+      setup: (fake) => {
+        serveBenchPress(fake);
+        fake.on('GET', '/exercises', () => jsonResponse([current]));
+        fake.on('PATCH', `/exercises/${benchPress.id}`, () => {
+          current = benchPress;
+          return jsonResponse(current);
+        });
+      },
+    });
+
+    await user.click(await screen.findByRole('button', { name: 'Editar' }));
+    expect(
+      screen.getByText(
+        'En el catálogo es «Press de banca». Déjalo vacío para volver a ese nombre.',
+      ),
+    ).toBeInTheDocument();
+
+    await user.clear(screen.getByRole('textbox', { name: 'Nombre' }));
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    expect(await screen.findByRole('heading', { name: 'Press de banca' })).toBeInTheDocument();
+    expect(screen.queryByText('En el catálogo: Press de banca')).not.toBeInTheDocument();
+    expect(fake.requests.find((r) => r.method === 'PATCH')?.body).toEqual({
+      name: null,
+      notes: null,
+    });
   });
 
   it('no deja guardar un ejercicio propio sin nombre', async () => {

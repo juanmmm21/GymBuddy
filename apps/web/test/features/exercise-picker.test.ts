@@ -191,6 +191,14 @@ describe('matchesPickerFilter', () => {
     expect(match('press barra')).toBe(false);
     expect(match('')).toBe(true);
   });
+
+  it('uno del catálogo renombrado se encuentra por su nombre y por el del catálogo', () => {
+    const renamed: TrackedExercise = { ...benchPress, name: 'Chest press' };
+
+    expect(matchesPickerFilter(renamed, { text: 'chest', bodyPart: null })).toBe(true);
+    expect(matchesPickerFilter(renamed, { text: 'banca', bodyPart: null })).toBe(true);
+    expect(matchesPickerFilter(renamed, { text: 'sentadilla', bodyPart: null })).toBe(false);
+  });
 });
 
 describe('pickerBodyParts', () => {
