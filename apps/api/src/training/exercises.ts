@@ -180,9 +180,8 @@ export async function createTrackedExercise(
 }
 
 /**
- * Cambia el nombre —solo si el ejercicio es propio— y las notas, archiva o recupera, y lo marca
- * o desmarca como a un brazo. La baja es blanda: borrar la fila se llevaría por delante el
- * historial que cuelga de ella.
+ * Cambia el nombre y las notas, archiva o recupera, y lo marca o desmarca como a un brazo. La baja
+ * es blanda: borrar la fila se llevaría por delante el historial que cuelga de ella.
  */
 export async function updateTrackedExercise(
   db: Database,
@@ -194,7 +193,7 @@ export async function updateTrackedExercise(
 ): Promise<TrackedExercise> {
   const changes: Partial<TrackedExerciseRow> = {};
   if (request.name !== undefined) {
-    changes.customName = await requireCustomName(db, userId, exerciseId, request.name);
+    changes.customName = await resolveCustomName(db, userId, exerciseId, request.name, locale);
   }
   if (request.notes !== undefined) changes.notes = request.notes;
   if (request.archived !== undefined) {
@@ -340,32 +339,45 @@ export async function assertTrackedExerciseBelongsToUser(
 }
 
 /**
- * El nombre de un ejercicio del catálogo lo pone el catálogo, y en el idioma del usuario:
- * la columna `custom_name` de una ficha con `catalog_id` no se lee nunca, así que aceptar
- * el renombrado sería guardar un dato que no se vería. Se rechaza en vez de ignorarse.
+ * Lo que va a `custom_name`. En un ejercicio propio es su único nombre y no puede faltar; en uno
+ * del catálogo es el que el usuario le pone encima del original, y `null` lo quita. El nombre
+ * que ya ve del catálogo también se guarda como `null`: escrito, dejaría de seguir a su idioma y
+ * al catálogo si este lo corrige. El del otro idioma sí se guarda: es el rótulo en inglés de la
+ * máquina, y lo ha elegido.
  */
-async function requireCustomName(
+async function resolveCustomName(
   db: Database,
   userId: string,
   exerciseId: string,
-  name: string,
-): Promise<string> {
+  name: string | null,
+  locale: Locale,
+): Promise<string | null> {
   const [row] = await db
-    .select({ catalogId: trackedExercise.catalogId })
+    .select({
+      catalogId: trackedExercise.catalogId,
+      nameEs: catalogExercise.nameEs,
+      nameEn: catalogExercise.nameEn,
+    })
     .from(trackedExercise)
+    .leftJoin(catalogExercise, eq(trackedExercise.catalogId, catalogExercise.catalogId))
     .where(and(eq(trackedExercise.id, exerciseId), eq(trackedExercise.userId, userId)))
     .limit(1);
 
   if (row === undefined) throw exerciseNotFound(exerciseId);
-  if (row.catalogId !== null) {
-    throw new ApiException(
-      'validation_failed',
-      'El nombre de un ejercicio del catálogo no se puede cambiar',
-      { origin: 'catalog' },
-    );
+
+  if (row.catalogId === null) {
+    if (name === null) {
+      throw new ApiException(
+        'validation_failed',
+        'Un ejercicio propio no puede quedarse sin nombre',
+        { origin: 'custom' },
+      );
+    }
+
+    return name;
   }
 
-  return name;
+  return name === (locale === 'es' ? row.nameEs : row.nameEn) ? null : name;
 }
 
 export function exerciseNotFound(exerciseId: string): ApiException {
@@ -540,10 +552,14 @@ async function assertCatalogExerciseExists(db: Database, catalogId: string): Pro
   }
 }
 
+/**
+ * En uno del catálogo el nombre no cuenta: el alta nunca lo trae, y si el usuario lo renombró
+ * después, un reenvío del alta desde la cola offline sigue describiendo el mismo ejercicio.
+ */
 function describesSameExercise(stored: TrackedExerciseRow, incoming: TrackedExerciseRow): boolean {
   return (
     stored.catalogId === incoming.catalogId &&
-    stored.customName === incoming.customName &&
+    (incoming.catalogId !== null || stored.customName === incoming.customName) &&
     stored.customMuscle === incoming.customMuscle &&
     stored.customBodyPart === incoming.customBodyPart
   );
@@ -556,16 +572,15 @@ function toTrackedExercise(
 ): TrackedExercise {
   const { exercise, catalog, media } = row;
   const fromCatalog = exercise.catalogId !== null && catalog !== null;
+  const catalogName = fromCatalog ? (locale === 'es' ? catalog.nameEs : catalog.nameEn) : null;
 
   return {
     id: exercise.id,
-    name: fromCatalog
-      ? locale === 'es'
-        ? catalog.nameEs
-        : catalog.nameEn
-      : (exercise.customName ?? ''),
+    // El nombre que le puso el usuario manda sobre el del catálogo.
+    name: exercise.customName ?? catalogName ?? '',
     origin: exercise.catalogId === null ? 'custom' : 'catalog',
     catalogId: exercise.catalogId,
+    catalogName,
     muscle: parseNullableMuscle(fromCatalog ? catalog.muscle : exercise.customMuscle),
     bodyPart: parseNullableBodyPart(fromCatalog ? catalog.bodyPart : exercise.customBodyPart),
     gifUrl: fromCatalog ? catalog.gifUrl : null,

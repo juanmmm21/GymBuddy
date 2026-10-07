@@ -427,7 +427,7 @@ describe('api de entrenamiento', () => {
     expect(exerciseHistorySchema.parse(await history.json()).sessions[0]?.sets).toHaveLength(1);
   });
 
-  it('no deja renombrar un ejercicio del catálogo: su nombre viene del catálogo', async () => {
+  it('le pone nombre propio a un ejercicio del catálogo sin perder el original', async () => {
     const exerciseId = uuid();
     await call({
       method: 'POST',
@@ -440,14 +440,134 @@ describe('api de entrenamiento', () => {
       method: 'PATCH',
       path: `/exercises/${exerciseId}`,
       token,
-      body: { name: 'Mi press' },
+      body: { name: '  Chest press  ' },
+    });
+
+    expect(response.status).toBe(200);
+    expect(trackedExerciseSchema.parse(await response.json())).toMatchObject({
+      name: 'Chest press',
+      catalogName: 'Press de banca con barra',
+      origin: 'catalog',
+      catalogId: BENCH_CATALOG_ID,
+    });
+
+    // El nombre es del usuario y no del idioma: en inglés sigue siendo el suyo.
+    const english = await call({ method: 'GET', path: `/exercises/${exerciseId}?lang=en`, token });
+    expect(trackedExerciseSchema.parse(await english.json())).toMatchObject({
+      name: 'Chest press',
+      catalogName: 'Barbell Bench Press',
+    });
+
+    const listed = await call({ method: 'GET', path: '/exercises', token });
+    expect(
+      trackedExerciseSchema
+        .array()
+        .parse(await listed.json())
+        .map((exercise) => exercise.name),
+    ).toEqual(['Chest press']);
+  });
+
+  it('quitarle el nombre propio a uno del catálogo le devuelve el del catálogo', async () => {
+    const exerciseId = uuid();
+    await call({
+      method: 'POST',
+      path: '/exercises',
+      token,
+      body: { id: exerciseId, origin: 'catalog', catalogId: BENCH_CATALOG_ID },
+    });
+    await call({
+      method: 'PATCH',
+      path: `/exercises/${exerciseId}`,
+      token,
+      body: { name: 'Chest press' },
+    });
+
+    const restored = await call({
+      method: 'PATCH',
+      path: `/exercises/${exerciseId}`,
+      token,
+      body: { name: null },
+    });
+
+    expect(restored.status).toBe(200);
+    expect(trackedExerciseSchema.parse(await restored.json())).toMatchObject({
+      name: 'Press de banca con barra',
+      catalogName: 'Press de banca con barra',
+    });
+  });
+
+  it('escribir el nombre que ya tiene en el catálogo no lo fija: sigue al idioma', async () => {
+    const exerciseId = uuid();
+    await call({
+      method: 'POST',
+      path: '/exercises',
+      token,
+      body: { id: exerciseId, origin: 'catalog', catalogId: BENCH_CATALOG_ID },
+    });
+    await call({
+      method: 'PATCH',
+      path: `/exercises/${exerciseId}`,
+      token,
+      body: { name: 'Press de banca con barra' },
+    });
+
+    const english = await call({ method: 'GET', path: `/exercises/${exerciseId}?lang=en`, token });
+
+    expect(trackedExerciseSchema.parse(await english.json()).name).toBe('Barbell Bench Press');
+  });
+
+  it('el nombre del otro idioma sí se guarda: es el rótulo de la máquina', async () => {
+    const exerciseId = uuid();
+    await call({
+      method: 'POST',
+      path: '/exercises',
+      token,
+      body: { id: exerciseId, origin: 'catalog', catalogId: BENCH_CATALOG_ID },
+    });
+
+    const renamed = await call({
+      method: 'PATCH',
+      path: `/exercises/${exerciseId}`,
+      token,
+      body: { name: 'Barbell Bench Press' },
+    });
+
+    expect(trackedExerciseSchema.parse(await renamed.json())).toMatchObject({
+      name: 'Barbell Bench Press',
+      catalogName: 'Press de banca con barra',
+    });
+  });
+
+  it('reenviar el alta de uno del catálogo ya renombrado devuelve la misma ficha', async () => {
+    const exerciseId = uuid();
+    const body = { id: exerciseId, origin: 'catalog', catalogId: BENCH_CATALOG_ID };
+    await call({ method: 'POST', path: '/exercises', token, body });
+    await call({
+      method: 'PATCH',
+      path: `/exercises/${exerciseId}`,
+      token,
+      body: { name: 'Chest press' },
+    });
+
+    // Es lo que hace la cola offline si el alta llegó pero su respuesta no.
+    const resent = await call({ method: 'POST', path: '/exercises', token, body });
+
+    expect(resent.status).toBe(200);
+    expect(trackedExerciseSchema.parse(await resent.json()).name).toBe('Chest press');
+  });
+
+  it('un ejercicio propio no puede quedarse sin nombre', async () => {
+    const { exerciseId } = await openSessionWith(token);
+
+    const response = await call({
+      method: 'PATCH',
+      path: `/exercises/${exerciseId}`,
+      token,
+      body: { name: null },
     });
 
     expect(response.status).toBe(400);
     expect(await errorCode(response)).toBe('validation_failed');
-
-    const detail = await call({ method: 'GET', path: `/exercises/${exerciseId}`, token });
-    expect(trackedExerciseSchema.parse(await detail.json()).name).toBe('Press de banca con barra');
   });
 
   it('renombra y cambia las notas en la misma petición', async () => {
