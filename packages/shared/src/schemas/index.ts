@@ -280,3 +280,21 @@ export type {
   PushSubscriptionRequest,
   RestNoticeRequest,
 } from './push';
+export {
+  competitionExerciseEntrySchema,
+  competitionExerciseSchema,
+  competitionSchema,
+  competitionWeekStandingSchema,
+  rivalCandidateSchema,
+  rivalCandidatesSchema,
+  setRivalsRequestSchema,
+} from './competition';
+export type {
+  Competition,
+  CompetitionExercise,
+  CompetitionExerciseEntry,
+  CompetitionWeekStanding,
+  RivalCandidate,
+  RivalCandidates,
+  SetRivalsRequest,
+} from './competition';

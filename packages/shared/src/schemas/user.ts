@@ -14,6 +14,11 @@ export const userSchema = z.object({
   displayName: displayNameSchema,
   locale: localeSchema,
   unitSystem: unitSystemSchema,
+  /**
+   * Ha activado «competir con amigos»: los demás pueden elegirle como rival y ver su semana y sus
+   * marcas. Falso por defecto: la sesión guardada en el dispositivo es de antes de que existiera.
+   */
+  competes: z.boolean().default(false),
   createdAt: isoDatetimeSchema,
 });
 
@@ -26,6 +31,7 @@ export const updateUserRequestSchema = z
     displayName: displayNameSchema,
     locale: localeSchema,
     unitSystem: unitSystemSchema,
+    competes: z.boolean(),
   })
   .partial();
 
