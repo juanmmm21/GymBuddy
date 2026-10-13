@@ -22,6 +22,7 @@ import {
   type SessionTopSet,
   type StalledExercise,
   type TrainingSignals,
+  type WeekDaySummary,
   type WeeklyCalendar,
   type WeekSetEntry,
 } from '@gymbuddy/shared';
@@ -193,6 +194,37 @@ export async function getWeeklyCalendar(
   now: Date,
 ): Promise<WeeklyCalendar> {
   const weekStart = weekStartDayIndex(weekIndexOf(now.getTime()));
+  const days = await readWeekDays(db, userId, now);
+
+  return {
+    generatedAt: now.toISOString(),
+    weekStart: isoDateOfDay(weekStart),
+    days: days.map((day) => ({
+      dayIndex: day.dayIndex,
+      date: day.date,
+      trained: day.trained,
+      bodyParts: day.bodyParts.map((load) => ({
+        bodyPart: load.bodyPart,
+        setCount: load.setCount,
+        volume: formatGramsAsVolumeKilograms(load.volumeGrams),
+      })),
+      volume: formatGramsAsVolumeKilograms(day.volumeGrams),
+      setCount: day.setCount,
+    })),
+  };
+}
+
+/**
+ * Los siete días de la semana en curso de una persona, todavía en gramos. Es la lectura que
+ * comparten el calendario de Hoy y la clasificación entre amigos: la misma semana contada dos veces
+ * con dos consultas distintas acabaría dando dos números.
+ */
+export async function readWeekDays(
+  db: Database,
+  userId: string,
+  now: Date,
+): Promise<WeekDaySummary[]> {
+  const weekStart = weekStartDayIndex(weekIndexOf(now.getTime()));
   const from = new Date(weekStart * MILLISECONDS_PER_DAY).toISOString();
   const to = new Date((weekStart + DAYS_PER_WEEK) * MILLISECONDS_PER_DAY).toISOString();
 
@@ -216,22 +248,7 @@ export async function getWeeklyCalendar(
     };
   });
 
-  return {
-    generatedAt: now.toISOString(),
-    weekStart: isoDateOfDay(weekStart),
-    days: weeklyBodyPartCalendar(entries, now).map((day) => ({
-      dayIndex: day.dayIndex,
-      date: day.date,
-      trained: day.trained,
-      bodyParts: day.bodyParts.map((load) => ({
-        bodyPart: load.bodyPart,
-        setCount: load.setCount,
-        volume: formatGramsAsVolumeKilograms(load.volumeGrams),
-      })),
-      volume: formatGramsAsVolumeKilograms(day.volumeGrams),
-      setCount: day.setCount,
-    })),
-  };
+  return weeklyBodyPartCalendar(entries, now);
 }
 
 /**
