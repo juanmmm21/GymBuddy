@@ -36,6 +36,7 @@ readonly TABLE_ORDER=(
   passkey_credential
   device_link
   push_subscription
+  rival
   routine
   workout_session
   tracked_exercise
