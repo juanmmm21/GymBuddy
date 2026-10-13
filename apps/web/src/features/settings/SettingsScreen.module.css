@@ -14,6 +14,12 @@
   text-transform: uppercase;
 }
 
+/* Lo que va dentro de una sección sin ser una fila de la lista: un interruptor, por ejemplo. */
+.sectionBody {
+  padding: 0 var(--gb-space-lg) var(--gb-space-sm);
+  border-bottom: var(--gb-size-border-width) solid var(--gb-color-border);
+}
+
 .list {
   margin: 0;
   padding: 0;

@@ -23,6 +23,7 @@ import {
   pluralize,
 } from '../../lib/format';
 import { elapsedSecondsSince } from '../../lib/time';
+import { COMPETITION_PATH } from '../competition/paths';
 import { drawsPlates } from '../exercises/equipment';
 import { RECORD_LABELS } from '../exercises/labels';
 import { LiveMascot } from '../mascot/LiveMascot';
@@ -118,6 +119,21 @@ function SignalsSummary({ signals, locale }: SignalsSummaryProps) {
       </section>
 
       <WeekCalendar locale={locale} />
+
+      {/* Debajo de la semana: es la misma semana, comparada con la de los amigos. */}
+      <Surface padding="none">
+        <Link to={COMPETITION_PATH} className={styles.competition}>
+          <span className={styles.competitionText}>
+            <span className={styles.competitionTitle}>Competir con amigos</span>
+            <span className={styles.competitionDescription}>
+              Quién entrena más esta semana y quién levanta más.
+            </span>
+          </span>
+          <span className={styles.competitionChevron} aria-hidden="true">
+            ›
+          </span>
+        </Link>
+      </Surface>
 
       {signals.stalled.length > 0 && (
         <Notice

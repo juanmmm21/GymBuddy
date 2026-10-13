@@ -4,6 +4,8 @@ import { useSession } from '../../auth/SessionProvider';
 import { Button, CatalogCredit, Surface } from '../../components/index';
 import { cx } from '../../lib/cx';
 import { BACKUP_PATH } from '../backup/paths';
+import { CompeteSwitch } from '../competition/CompeteSwitch';
+import { COMPETITION_PATH } from '../competition/paths';
 import { DEVICES_PATH } from '../devices/paths';
 import { useInstallGuide } from '../install/InstallProvider';
 import { INSTALL_PATH } from '../install/paths';
@@ -37,6 +39,14 @@ const ACCOUNT_ENTRIES: readonly SettingsEntry[] = [
     to: BACKUP_PATH,
     title: 'Copia de seguridad',
     description: 'Descarga todo lo que has entrenado o recupéralo desde un fichero.',
+  },
+];
+
+const COMPETITION_ENTRIES: readonly SettingsEntry[] = [
+  {
+    to: COMPETITION_PATH,
+    title: 'Ver la competición',
+    description: 'La clasificación de la semana y a quién tienes de rival.',
   },
 ];
 
@@ -78,6 +88,15 @@ export function SettingsScreen() {
           </h2>
           <RestPushSettings />
           {platform === 'ios' && <IphoneTimerSettings />}
+        </Surface>
+        <Surface as="section" padding="none" aria-labelledby="settings-competition">
+          <h2 id="settings-competition" className={styles.sectionTitle}>
+            Competir
+          </h2>
+          <div className={styles.sectionBody}>
+            <CompeteSwitch />
+          </div>
+          <EntryList entries={COMPETITION_ENTRIES} />
         </Surface>
         <Surface as="section" padding="none" aria-labelledby="settings-account">
           <h2 id="settings-account" className={styles.sectionTitle}>
