@@ -14,11 +14,14 @@ const USER_ID = '3f6c2b1a-58e6-4c65-9d0e-2b1a4c7f8d31';
 
 describe('token de sesión', () => {
   it('va y vuelve con el identificador del usuario y su caducidad', async () => {
-    const { token } = await issueSessionToken(USER_ID, SECRET, NOW);
+    // Emitido ahora y no en `NOW`: la verificación mira el reloj de verdad, y con una fecha fija
+    // este test empezó a fallar solo a los treinta días de escribirse.
+    const issuedAt = new Date();
+    const { token } = await issueSessionToken(USER_ID, SECRET, issuedAt);
 
     expect(await verifySessionToken(token, SECRET)).toEqual({
       userId: USER_ID,
-      expiresAtSeconds: Math.floor(NOW.getTime() / 1000) + SESSION_TTL_SECONDS,
+      expiresAtSeconds: Math.floor(issuedAt.getTime() / 1000) + SESSION_TTL_SECONDS,
     });
   });
 
