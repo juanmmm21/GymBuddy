@@ -11,6 +11,7 @@ import { HistoryScreen } from '../features/history/HistoryScreen';
 import { SessionDetailScreen } from '../features/history/SessionDetailScreen';
 import { HomeScreen } from '../features/home/HomeScreen';
 import { InstallScreen } from '../features/install/InstallScreen';
+import { CompetitionScreen } from '../features/competition/CompetitionScreen';
 import { InviteFriendScreen } from '../features/invitations/InviteFriendScreen';
 import { RoutineScreen } from '../features/routines/RoutineScreen';
 import { RoutinesScreen } from '../features/routines/RoutinesScreen';
@@ -40,6 +41,9 @@ export const routes: RouteObject[] = [
           { path: 'invite', element: <InviteFriendScreen /> },
           // La copia de seguridad también es de la cuenta: cuelga de Hoy junto a las otras dos.
           { path: 'backup', element: <BackupScreen /> },
+          // Competir con amigos tampoco tiene pestaña: se entra desde Hoy, que es donde se mira
+          // cómo va la semana.
+          { path: 'competition', element: <CompetitionScreen /> },
           { path: 'settings', element: <SettingsScreen /> },
           { path: 'exercises', element: <ExercisesScreen /> },
           { path: 'exercises/:id', element: <TrackedExerciseScreen /> },
