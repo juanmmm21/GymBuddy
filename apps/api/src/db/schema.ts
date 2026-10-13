@@ -1,5 +1,13 @@
 import { sql } from 'drizzle-orm';
-import { check, index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import {
+  check,
+  index,
+  integer,
+  primaryKey,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/sqlite-core';
 
 /**
  * Marca temporal en ISO 8601 UTC. SQLite no tiene tipo fecha; guardarlas como texto ISO
@@ -27,8 +35,34 @@ export const user = sqliteTable('user', {
   unitSystem: text('unit_system', { enum: ['metric', 'imperial'] })
     .notNull()
     .default('metric'),
+  // Ha activado «competir con amigos»: otros pueden elegirle como rival y ver su semana y sus marcas.
+  competes: integer('competes', { mode: 'boolean' }).notNull().default(false),
+  // La cuenta de administración. No hay pantalla que lo cambie: se marca a mano en la base. Hoy
+  // solo decide una cosa: a quién se puede elegir como rival sin que haya activado competir.
+  isAdmin: integer('is_admin', { mode: 'boolean' }).notNull().default(false),
   createdAt: isoTimestamp('created_at').notNull(),
 });
+
+/**
+ * A quién ha elegido cada uno para competir. La fila va en un solo sentido: que Juan elija a Ana
+ * pone a Ana en la clasificación de Juan, no a Juan en la de Ana.
+ */
+export const rival = sqliteTable(
+  'rival',
+  {
+    userId: rowId('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    rivalUserId: rowId('rival_user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    createdAt: isoTimestamp('created_at').notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.rivalUserId] }),
+    check('rival_not_self', sql`${table.userId} <> ${table.rivalUserId}`),
+  ],
+);
 
 /**
  * Código de invitación para registrarse. Se guarda el digest SHA-256 del código y no el código:
@@ -433,6 +467,7 @@ export const mediaUploadMonth = sqliteTable(
 
 export type UserRow = typeof user.$inferSelect;
 export type NewUserRow = typeof user.$inferInsert;
+export type RivalRow = typeof rival.$inferSelect;
 export type InvitationRow = typeof invitation.$inferSelect;
 export type NewInvitationRow = typeof invitation.$inferInsert;
 export type PasskeyCredentialRow = typeof passkeyCredential.$inferSelect;

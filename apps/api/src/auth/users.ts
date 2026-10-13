@@ -18,10 +18,11 @@ export async function updateUser(
   userId: string,
   patch: UpdateUserRequest,
 ): Promise<UserRow | null> {
-  const changes: Partial<Pick<UserRow, 'displayName' | 'locale' | 'unitSystem'>> = {};
+  const changes: Partial<Pick<UserRow, 'displayName' | 'locale' | 'unitSystem' | 'competes'>> = {};
   if (patch.displayName !== undefined) changes.displayName = patch.displayName;
   if (patch.locale !== undefined) changes.locale = patch.locale;
   if (patch.unitSystem !== undefined) changes.unitSystem = patch.unitSystem;
+  if (patch.competes !== undefined) changes.competes = patch.competes;
 
   if (Object.keys(changes).length === 0) return findUserById(db, userId);
 
@@ -37,6 +38,7 @@ export function toUser(row: UserRow): User {
     displayName: row.displayName,
     locale: row.locale,
     unitSystem: row.unitSystem,
+    competes: row.competes,
     createdAt: row.createdAt,
   };
 }

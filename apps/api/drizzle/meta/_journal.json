@@ -92,6 +92,13 @@
       "when": 1789587665912,
       "tag": "0012_exercise_media",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1791920591818,
+      "tag": "0013_competition",
+      "breakpoints": true
     }
   ]
 }

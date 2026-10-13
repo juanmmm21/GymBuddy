@@ -135,6 +135,8 @@ export async function finishPasskeyRegistration(
     displayName: registration.displayName,
     locale: registration.locale,
     unitSystem: 'metric',
+    competes: false,
+    isAdmin: false,
     createdAt,
   };
 
