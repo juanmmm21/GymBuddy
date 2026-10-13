@@ -141,3 +141,5 @@ export {
   isMuscleInBodyPart,
   musclesOfBodyPart,
 } from './muscles';
+export { MAX_RIVALS, exerciseDuels, rankWeekTotals, weekTotals } from './competition';
+export type { ExerciseBest, ExerciseDuel, WeekTotals } from './competition';
