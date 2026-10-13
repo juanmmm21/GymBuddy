@@ -4,6 +4,7 @@ import {
   catalogExercisePageSchema,
   catalogExerciseSchema,
   catalogExerciseSummarySchema,
+  competitionSchema,
   deviceLinkSchema,
   exerciseHistorySchema,
   exerciseMediaPath,
@@ -19,6 +20,7 @@ import {
   noContentSchema,
   pushConfigSchema,
   registrationOptionsResponseSchema,
+  rivalCandidatesSchema,
   routineSchema,
   sessionSchema,
   trackedExerciseSchema,
@@ -36,6 +38,7 @@ import {
   type CatalogFilters,
   type CatalogExerciseSummary,
   type CatalogSearchFilters,
+  type Competition,
   type CreateRoutineRequest,
   type CreateTrackedExerciseRequest,
   type DeletePushSubscriptionRequest,
@@ -64,8 +67,10 @@ import {
   type RegistrationOptionsRequest,
   type RegistrationOptionsResponse,
   type RegistrationVerifyRequest,
+  type RivalCandidates,
   type Routine,
   type Session,
+  type SetRivalsRequest,
   type StartCardioRequest,
   type StartSessionRequest,
   type UpdateRoutineRequest,
@@ -534,6 +539,30 @@ export function fetchExerciseStats(
 
 export function fetchTrainingSignals(client: ApiClient): Promise<TrainingSignals> {
   return client.request({ method: 'GET', path: '/stats/signals', schema: trainingSignalsSchema });
+}
+
+/** La clasificación de la semana y el cara a cara por ejercicio con los rivales elegidos. */
+export function fetchCompetition(client: ApiClient): Promise<Competition> {
+  return client.request({ method: 'GET', path: '/competition', schema: competitionSchema });
+}
+
+/** A quién se puede elegir como rival y a quién se tiene elegido ya. */
+export function fetchRivalCandidates(client: ApiClient): Promise<RivalCandidates> {
+  return client.request({
+    method: 'GET',
+    path: '/competition/rivals',
+    schema: rivalCandidatesSchema,
+  });
+}
+
+/** Sustituye la lista entera de rivales y devuelve cómo queda. */
+export function saveRivals(client: ApiClient, body: SetRivalsRequest): Promise<RivalCandidates> {
+  return client.request({
+    method: 'PUT',
+    path: '/competition/rivals',
+    schema: rivalCandidatesSchema,
+    body,
+  });
 }
 
 /** La semana en curso día a día. No lleva parámetros: la semana es siempre la de hoy. */

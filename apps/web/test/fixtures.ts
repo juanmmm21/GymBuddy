@@ -26,6 +26,7 @@ export const user: User = {
   displayName: 'Juan',
   locale: 'es',
   unitSystem: 'metric',
+  competes: false,
   createdAt: '2026-09-01T10:00:00.000Z',
 };
 

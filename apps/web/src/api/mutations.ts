@@ -8,7 +8,9 @@ import type {
   LogSetResponse,
   PersonalRecord,
   ResourceId,
+  RivalCandidates,
   Routine,
+  SetRivalsRequest,
   StartCardioRequest,
   StartSessionRequest,
   TrackedExercise,
@@ -40,6 +42,7 @@ import {
   logSet,
   removeExerciseMedia,
   removeSet,
+  saveRivals,
   startCardio,
   startSession,
   updateRoutine,
@@ -528,6 +531,23 @@ export function useUpdateProfile(): UseMutationResult<User, Error, UpdateUserReq
     mutationFn: (body: UpdateUserRequest) => updateCurrentUser(client, body),
     onSuccess: (user) => {
       updateUser(user);
+    },
+  });
+}
+
+/**
+ * Guarda la lista de rivales. La respuesta ya es la lista de candidatos como queda, así que se
+ * deja en la caché tal cual; la clasificación sí hay que volver a pedirla, porque cambia entera.
+ */
+export function useSaveRivals(): UseMutationResult<RivalCandidates, Error, SetRivalsRequest> {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (body: SetRivalsRequest) => saveRivals(client, body),
+    onSuccess: (candidates) => {
+      queryClient.setQueryData(queryKeys.competition.rivals, candidates);
+      return queryClient.invalidateQueries({ queryKey: queryKeys.competition.standings });
     },
   });
 }

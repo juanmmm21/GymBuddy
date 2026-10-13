@@ -21,12 +21,14 @@ import type {
   CatalogExerciseSummary,
   ExerciseHistory,
   ExerciseStats,
+  Competition,
   InvitationStatus,
   ResourceId,
   Routine,
   TrackedExercise,
   TrainingSignals,
   User,
+  RivalCandidates,
   WeeklyCalendar,
   WorkoutSessionDetail,
   WorkoutSessionPage,
@@ -42,9 +44,11 @@ import {
   fetchCurrentUser,
   fetchExerciseHistory,
   fetchExerciseStats,
+  fetchCompetition,
   fetchInvitationStatus,
   fetchSessionDetail,
   fetchTrainingSignals,
+  fetchRivalCandidates,
   fetchWeeklyCalendar,
   listBodyParts,
   listCatalogExercises,
@@ -88,6 +92,15 @@ export const queryKeys = {
   push: {
     config: ['push', 'config'] as const,
     device: ['push', 'device'] as const,
+  },
+  /**
+   * Fuera de `stats` a propósito: registrar una serie invalida las estadísticas a cada momento, y
+   * la competición lee la semana de todos los rivales. Se relee al entrar en su pantalla.
+   */
+  competition: {
+    all: ['competition'] as const,
+    standings: ['competition', 'standings'] as const,
+    rivals: ['competition', 'rivals'] as const,
   },
   stats: {
     all: ['stats'] as const,
@@ -363,5 +376,31 @@ export function useCatalogExercise(
     queryKey: queryKeys.catalog.exercise(muscle, slug, lang),
     queryFn: () => fetchCatalogExercise(client, muscle, slug, lang),
     retry: shouldRetryRequest,
+  });
+}
+
+/** La clasificación de la semana con los rivales elegidos y el cara a cara por ejercicio. */
+export function useCompetition(): UseQueryResult<Competition> {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: queryKeys.competition.standings,
+    queryFn: () => fetchCompetition(client),
+    retry: shouldRetryRequest,
+    // Lo que cambia aquí lo cambian otros desde su móvil: ninguna escritura propia lo invalida,
+    // así que se vuelve a pedir cada vez que se entra en la pantalla.
+    refetchOnMount: 'always',
+  });
+}
+
+/** A quién se puede elegir como rival. Solo se pide con la hoja de elegir abierta. */
+export function useRivalCandidates({
+  enabled = true,
+}: QueryToggle = {}): UseQueryResult<RivalCandidates> {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: queryKeys.competition.rivals,
+    queryFn: () => fetchRivalCandidates(client),
+    retry: shouldRetryRequest,
+    enabled,
   });
 }
