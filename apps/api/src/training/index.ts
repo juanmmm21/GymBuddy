@@ -40,6 +40,7 @@ export type { ListRoutinesOptions } from './routines';
 export { applyPersonalRecords, getCurrentRecords, toPersonalRecord } from './records';
 export { getExerciseHistory, listSessionPage } from './history';
 export { getExerciseStats, getTrainingSignals, getWeeklyCalendar } from './stats';
+export { getCompetition, listRivalCandidates, setRivals } from './competition';
 export type { SessionPageQuery } from './history';
 export { getExportSnapshot, listExportSessionPage } from './export';
 export type { ExportSessionPageQuery } from './export';
