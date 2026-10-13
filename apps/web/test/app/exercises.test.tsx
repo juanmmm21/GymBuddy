@@ -45,6 +45,24 @@ describe('mis ejercicios: listado', () => {
     expect(screen.getByText('100 kg × 5')).toBeInTheDocument();
     expect(screen.getByText('Sin series')).toBeInTheDocument();
   });
+
+  it('cada fila lleva su miniatura: el GIF en pequeño o las iniciales en uno propio', async () => {
+    renderApp({
+      path: '/exercises',
+      session,
+      setup: (fake) => {
+        fake.on('GET', '/exercises', () => jsonResponse([customCurl, benchPress]));
+      },
+    });
+
+    const catalogRow = await screen.findByRole('link', { name: /Press de banca/ });
+    // La variante `?preview` es la que se queda fuera de la caché offline de GIFs.
+    expect(catalogRow.querySelector('img')).toHaveAttribute('src', `${benchPress.gifUrl}?preview`);
+
+    const customRow = screen.getByRole('link', { name: new RegExp(customCurl.name) });
+    expect(customRow.querySelector('img')).toBeNull();
+    expect(customRow.querySelector('[aria-hidden="true"]')).toHaveTextContent(/^CB$/);
+  });
 });
 
 describe('mis ejercicios: ficha', () => {

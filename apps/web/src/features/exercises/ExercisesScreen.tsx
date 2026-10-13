@@ -17,6 +17,7 @@ import { formatExerciseWeightLabel } from '../../lib/format';
 import { MUSCLE_LABELS } from '../catalog/labels';
 import { CATALOG_PATH } from '../catalog/paths';
 import { ROUTINES_PATH } from '../routines/paths';
+import { ExerciseMedia } from '../session/ExerciseMedia';
 import { CreateExerciseSheet } from './CreateExerciseSheet';
 import { groupExercisesByBodyPart, type ExerciseGroup } from './grouping';
 import { ORIGIN_LABELS } from './labels';
@@ -114,11 +115,15 @@ interface ExerciseRowProps {
   readonly index: number;
 }
 
-/** Una fila es un enlace a la ficha: ahí están el historial y la edición. */
+/**
+ * Una fila es un enlace a la ficha: ahí están el historial y la edición. Lleva la misma miniatura
+ * que al elegir ejercicio en la sesión (lo pidió Juan el 2026-10-13): se reconoce de un vistazo.
+ */
 function ExerciseRow({ exercise, locale, index }: ExerciseRowProps) {
   return (
     <Surface as="li" padding="none" {...listEntranceProps(index)}>
       <Link to={trackedExercisePath(exercise.id)} className={styles.row}>
+        <ExerciseMedia exercise={exercise} />
         <span className={styles.text}>
           <span className={styles.name}>{exercise.name}</span>
           <span className={styles.meta}>
