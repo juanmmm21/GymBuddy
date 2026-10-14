@@ -4,8 +4,10 @@
   align-items: center;
   min-height: var(--gb-size-control-height);
   padding: 0 var(--gb-space-lg);
-  border-radius: var(--gb-radius-md);
-  color: var(--gb-color-accent);
+  border: var(--gb-size-border-width) solid var(--gb-color-border);
+  border-radius: var(--gb-radius-pill);
+  background: var(--gb-color-surface);
+  color: var(--gb-color-text);
   font-size: var(--gb-type-body-strong-size);
   font-weight: var(--gb-type-body-strong-weight);
   line-height: var(--gb-type-body-strong-line);
@@ -14,7 +16,7 @@
 }
 
 .headerLink:hover {
-  background: var(--gb-color-accent-soft);
+  background: var(--gb-color-surface-raised);
 }
 
 .groups {
@@ -76,4 +78,25 @@
   color: var(--gb-color-text-muted);
   font-size: var(--gb-type-caption-size);
   line-height: var(--gb-type-caption-line);
+}
+
+.weight {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.weightValue {
+  font-family: var(--gb-font-display);
+  font-size: var(--gb-type-headline-size);
+  font-weight: var(--gb-type-headline-weight);
+  line-height: 1;
+}
+
+.weightUnit {
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-caption-size);
+  line-height: var(--gb-type-caption-line);
+  white-space: nowrap;
 }

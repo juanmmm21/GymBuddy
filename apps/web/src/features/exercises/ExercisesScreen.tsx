@@ -1,4 +1,9 @@
-import type { Locale, TrackedExercise } from '@gymbuddy/shared';
+import {
+  parseKilogramsToGrams,
+  type Locale,
+  type TrackedExercise,
+  type WorkingWeight,
+} from '@gymbuddy/shared';
 import { useId, useState } from 'react';
 import { Link } from 'react-router';
 import { useTrackedExercises } from '../../api/queries';
@@ -13,7 +18,7 @@ import {
   Surface,
   listEntranceProps,
 } from '../../components/index';
-import { formatExerciseWeightLabel } from '../../lib/format';
+import { formatExerciseWeightLabel, formatWeightValue, PER_ARM } from '../../lib/format';
 import { MUSCLE_LABELS } from '../catalog/labels';
 import { CATALOG_PATH } from '../catalog/paths';
 import { ROUTINES_PATH } from '../routines/paths';
@@ -135,12 +140,41 @@ function ExerciseRow({ exercise, locale, index }: ExerciseRowProps) {
         {exercise.workingWeight === null ? (
           <Badge>Sin series</Badge>
         ) : (
-          <Badge tone="accent">
-            {formatExerciseWeightLabel(exercise.workingWeight.weight, locale, exercise.unilateral)}{' '}
-            × {exercise.workingWeight.reps}
-          </Badge>
+          <WeightFigure
+            workingWeight={exercise.workingWeight}
+            unilateral={exercise.unilateral}
+            locale={locale}
+          />
         )}
       </Link>
     </Surface>
+  );
+}
+
+/**
+ * El peso habitual como en el marcador: la cifra grande y debajo, pequeño, cuántas repeticiones y si
+ * es por brazo. Se lee entero por su nombre, porque partido en dos piezas no se entendería.
+ */
+function WeightFigure({
+  workingWeight,
+  unilateral,
+  locale,
+}: {
+  readonly workingWeight: WorkingWeight;
+  readonly unilateral: boolean;
+  readonly locale: Locale;
+}) {
+  const { weight, reps } = workingWeight;
+  const spoken = `${formatExerciseWeightLabel(weight, locale, unilateral)} × ${String(reps)}`;
+
+  return (
+    <span className={styles.weight} role="img" aria-label={spoken}>
+      <span className={styles.weightValue}>
+        {formatWeightValue(parseKilogramsToGrams(weight), locale)}
+      </span>
+      <span className={styles.weightUnit}>
+        kg{unilateral ? ` ${PER_ARM}` : ''} × {reps}
+      </span>
+    </span>
   );
 }

@@ -63,7 +63,7 @@ describe('pantallas del shell', () => {
     });
 
     expect(await screen.findByText('Press de banca')).toBeInTheDocument();
-    expect(screen.getByText('82,5 kg × 8')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: '82,5 kg × 8' })).toBeInTheDocument();
     expect(screen.getByText('Curl con la barra rara')).toBeInTheDocument();
     expect(screen.getByText('Sin series')).toBeInTheDocument();
     expect(screen.getByText('Pecho')).toBeInTheDocument();

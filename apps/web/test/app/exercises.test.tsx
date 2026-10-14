@@ -42,7 +42,7 @@ describe('mis ejercicios: listado', () => {
     );
     expect(screen.getByText('Pectorales')).toBeInTheDocument();
     expect(screen.getByText('Ejercicio propio')).toBeInTheDocument();
-    expect(screen.getByText('100 kg × 5')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: '100 kg × 5' })).toHaveTextContent('100kg × 5');
     expect(screen.getByText('Sin series')).toBeInTheDocument();
   });
 
