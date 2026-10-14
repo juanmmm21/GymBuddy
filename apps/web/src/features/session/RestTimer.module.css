@@ -35,10 +35,10 @@
 .value {
   font-family: var(--gb-font-display);
   font-stretch: var(--gb-font-width-condensed);
-  font-size: var(--gb-type-headline-size);
-  font-weight: var(--gb-type-headline-weight);
-  line-height: var(--gb-type-headline-line);
-  letter-spacing: var(--gb-type-headline-tracking);
+  /* El descanso es la cifra que se mira de lejos, desde la máquina: la más grande de la sesión. */
+  font-size: calc(var(--gb-type-display-size) * 1.4);
+  font-weight: var(--gb-type-display-weight);
+  line-height: 1;
 }
 
 /*
