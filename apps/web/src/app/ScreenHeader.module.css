@@ -19,7 +19,7 @@
   align-items: center;
   gap: var(--gb-space-xs);
   min-height: var(--gb-space-xl);
-  color: var(--gb-color-accent);
+  color: var(--gb-color-text-muted);
   font-size: var(--gb-type-caption-size);
   font-weight: var(--gb-type-body-strong-weight);
   line-height: var(--gb-type-caption-line);
@@ -34,6 +34,8 @@
   line-height: var(--gb-type-headline-line);
   letter-spacing: var(--gb-type-headline-tracking);
   overflow-wrap: anywhere;
+  /* Los títulos van en mayúsculas, como los rótulos de un marcador. */
+  text-transform: uppercase;
 }
 
 .subtitle {

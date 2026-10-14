@@ -78,7 +78,7 @@
   color: var(--gb-color-text-muted);
   font-size: var(--gb-type-label-size);
   font-weight: var(--gb-type-label-weight);
-  letter-spacing: var(--gb-type-label-tracking);
+  letter-spacing: var(--gb-type-body-tracking);
 }
 
 /* Hoy se señala con el acento: es la columna que el usuario busca primero. */

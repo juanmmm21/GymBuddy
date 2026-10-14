@@ -97,7 +97,7 @@
   font-size: var(--gb-type-label-size);
   font-weight: var(--gb-type-label-weight);
   line-height: var(--gb-type-label-line);
-  letter-spacing: var(--gb-type-label-tracking);
+  letter-spacing: var(--gb-type-body-tracking);
 }
 
 /*
