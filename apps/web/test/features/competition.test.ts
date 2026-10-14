@@ -1,27 +1,17 @@
-import { MAX_RIVALS, type CompetitionWeekStanding, type RivalCandidate } from '@gymbuddy/shared';
+import { MAX_RIVALS, type Competition, type RivalCandidate } from '@gymbuddy/shared';
 import { describe, expect, it } from 'vitest';
 import {
+  barPercents,
+  boardAgainst,
   canToggleRival,
-  rankLabel,
   rivalsChanged,
   selectedRivalIds,
-  standingSummary,
   toggleRival,
 } from '../../src/features/competition/standings';
 
+const JUAN = '3f6c2b1a-58e6-4c65-9d0e-2b1a4c7f8d31';
 const ANA = '7a1d9c3e-2b4f-4a6d-8e0f-1c2d3e4f5a6b';
 const LEO = '9b8c7d6e-5f4a-4b3c-9d2e-1f0a9b8c7d6e';
-
-const standing = (overrides: Partial<CompetitionWeekStanding> = {}): CompetitionWeekStanding => ({
-  userId: ANA,
-  displayName: 'Ana',
-  isSelf: false,
-  rank: 1,
-  daysTrained: 3,
-  setCount: 21,
-  volume: '4500.50',
-  ...overrides,
-});
 
 const candidate = (userId: string, selected: boolean): RivalCandidate => ({
   userId,
@@ -30,25 +20,69 @@ const candidate = (userId: string, selected: boolean): RivalCandidate => ({
   selected,
 });
 
-describe('lo que lleva alguien en la semana', () => {
-  it('se lee en el orden en que se clasifica: días, series y kilos', () => {
-    expect(standingSummary(standing(), 'es')).toBe('3 días · 21 series · 4500,5 kg');
+const entry = (userId: string, maxWeight: string) => ({
+  userId,
+  displayName: userId === JUAN ? 'Juan' : userId === ANA ? 'Ana' : 'Leo',
+  isSelf: userId === JUAN,
+  maxWeight,
+});
+
+const exercise = (name: string, entries: ReturnType<typeof entry>[]) => ({
+  catalogId: `x/${name}`,
+  name,
+  gifUrl: `https://cdn.example.test/${name}.gif`,
+  entries,
+});
+
+const competition: Competition = {
+  generatedAt: '2026-10-14T18:00:00.000Z',
+  rivals: [
+    { userId: ANA, displayName: 'Ana' },
+    { userId: LEO, displayName: 'Leo' },
+  ],
+  exercises: [
+    exercise('Peso muerto', [entry(JUAN, '160.00'), entry(ANA, '135.00')]),
+    exercise('Press de banca', [entry(LEO, '110.00'), entry(JUAN, '100.00'), entry(ANA, '95.00')]),
+    exercise('Remo con barra', [entry(JUAN, '80.00'), entry(ANA, '80.00')]),
+    exercise('Sentadilla', [entry(ANA, '150.00'), entry(JUAN, '140.00')]),
+  ],
+};
+
+describe('el marcador contra un rival', () => {
+  it('cuenta un punto por ejercicio compartido, de dos en dos', () => {
+    const ana = boardAgainst(competition, { userId: ANA, displayName: 'Ana' });
+    // Leo gana el press a los dos, pero contra Ana ese punto sigue siendo de Juan.
+    expect([ana.wins, ana.losses, ana.draws]).toEqual([2, 1, 1]);
+
+    const leo = boardAgainst(competition, { userId: LEO, displayName: 'Leo' });
+    expect([leo.wins, leo.losses, leo.draws]).toEqual([0, 1, 0]);
+    expect(leo.duels.map((duel) => duel.name)).toEqual(['Press de banca']);
   });
 
-  it('en singular cuando toca', () => {
-    expect(standingSummary(standing({ daysTrained: 1, setCount: 1, volume: '80.00' }), 'es')).toBe(
-      '1 día · 1 serie · 80 kg',
-    );
+  it('pone primero lo que vas perdiendo, que es lo que hay que ir a buscar', () => {
+    const ana = boardAgainst(competition, { userId: ANA, displayName: 'Ana' });
+
+    expect(ana.duels.map((duel) => duel.name)).toEqual([
+      'Sentadilla',
+      'Remo con barra',
+      'Press de banca',
+      'Peso muerto',
+    ]);
   });
 
-  it('quien no ha entrenado no enseña tres ceros', () => {
-    expect(standingSummary(standing({ daysTrained: 0, setCount: 0, volume: '0.00' }), 'es')).toBe(
-      'Sin entrenar esta semana',
-    );
-  });
-
-  it('el puesto se dice entero', () => {
-    expect(rankLabel(2, 3)).toBe('Puesto 2 de 3');
+  it('las barras van en proporción al más pesado', () => {
+    expect(
+      barPercents({
+        catalogId: 'x',
+        name: 'x',
+        gifUrl: 'x',
+        mineGrams: 150_000,
+        theirsGrams: 75_000,
+      }),
+    ).toEqual({ mine: 100, theirs: 50 });
+    expect(
+      barPercents({ catalogId: 'x', name: 'x', gifUrl: 'x', mineGrams: 0, theirsGrams: 0 }),
+    ).toEqual({ mine: 0, theirs: 0 });
   });
 });
 

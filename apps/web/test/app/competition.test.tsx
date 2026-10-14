@@ -23,26 +23,17 @@ const self = {
 
 /** Quien mira, solo: todavía no ha elegido a nadie. */
 const alone: Competition = {
-  generatedAt: '2026-10-13T18:00:00.000Z',
-  weekStart: '2026-10-12',
-  week: [{ ...self, rank: 1, daysTrained: 2, setCount: 18, volume: '3200.00' }],
+  generatedAt: '2026-10-14T18:00:00.000Z',
+  rivals: [],
   exercises: [],
 };
 
-/** Ana va por delante en la semana; en el press de banca gana Juan. */
+/** Contra Ana: Juan gana el press de banca y ella la sentadilla. Leo no comparte nada. */
 const withAna: Competition = {
   ...alone,
-  week: [
-    {
-      userId: ANA,
-      displayName: 'Ana',
-      isSelf: false,
-      rank: 1,
-      daysTrained: 3,
-      setCount: 30,
-      volume: '2800.00',
-    },
-    { ...self, rank: 2, daysTrained: 2, setCount: 18, volume: '3200.00' },
+  rivals: [
+    { userId: ANA, displayName: 'Ana' },
+    { userId: LEO, displayName: 'Leo' },
   ],
   exercises: [
     {
@@ -50,14 +41,17 @@ const withAna: Competition = {
       name: catalogBenchPress.name,
       gifUrl: catalogBenchPress.gifUrl,
       entries: [
-        { ...self, maxWeight: '100.00', estimatedOneRepMax: '116.67' },
-        {
-          userId: ANA,
-          displayName: 'Ana',
-          isSelf: false,
-          maxWeight: '60.00',
-          estimatedOneRepMax: '80.00',
-        },
+        { ...self, maxWeight: '100.00' },
+        { userId: ANA, displayName: 'Ana', isSelf: false, maxWeight: '95.00' },
+      ],
+    },
+    {
+      catalogId: 'quads/barbell-squat',
+      name: 'Sentadilla con barra',
+      gifUrl: 'https://cdn.example.test/squat.gif',
+      entries: [
+        { userId: ANA, displayName: 'Ana', isSelf: false, maxWeight: '150.00' },
+        { ...self, maxWeight: '140.00' },
       ],
     },
   ],
@@ -114,10 +108,10 @@ describe('competir con amigos', () => {
 
     expect(await screen.findByText('Todavía no compites con nadie')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Elegir rivales' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Esta semana' })).not.toBeInTheDocument();
   });
 
-  it('pinta la clasificación de la semana y el cara a cara por ejercicio', async () => {
+  it('pinta el marcador contra el rival y la barra de cada ejercicio', async () => {
+    const user = userEvent.setup();
     renderApp({
       path: '/competition',
       session,
@@ -126,23 +120,18 @@ describe('competir con amigos', () => {
       },
     });
 
-    const week = (await screen.findByRole('heading', { name: 'Esta semana' })).closest('section');
-    if (week === null) throw new Error('La semana va en su sección');
-    const rows = within(week).getAllByRole('listitem');
-    expect(rows).toHaveLength(2);
-    expect(rows[0]).toHaveTextContent('Ana');
-    expect(rows[0]).toHaveTextContent('3 días · 30 series · 2800 kg');
-    expect(within(week).getByLabelText('Puesto 1 de 2')).toHaveTextContent('1');
-    expect(rows[1]).toHaveTextContent('Juan');
-    expect(rows[1]).toHaveTextContent('Tú');
+    expect(await screen.findByLabelText('Marcador: tú 1, Ana 1')).toBeInTheDocument();
+    const duels = screen.getAllByRole('listitem', { name: /:/ });
+    // Primero lo que vas perdiendo.
+    expect(duels.map((duel) => duel.getAttribute('aria-label'))).toEqual([
+      'Sentadilla con barra: Te faltan 10 kg',
+      `${catalogBenchPress.name}: Ganas por 5 kg`,
+    ]);
 
-    const marks = within(screen.getByRole('list', { name: `Marcas en ${catalogBenchPress.name}` }));
-    const entries = marks.getAllByRole('listitem');
-    expect(entries[0]).toHaveTextContent('Juan');
-    expect(entries[0]).toHaveTextContent('116,67 kg');
-    expect(entries[0]).toHaveTextContent('Peso máximo 100 kg');
-    expect(entries[1]).toHaveTextContent('Ana');
-    expect(entries[1]).toHaveTextContent('80 kg');
+    // Con Leo no hay ejercicios en común: el marcador a cero y lo dice.
+    await user.click(screen.getByRole('button', { name: 'Leo' }));
+    expect(screen.getByLabelText('Marcador: tú 0, Leo 0')).toBeInTheDocument();
+    expect(screen.getByText(/Todavía no tenéis marca/)).toBeInTheDocument();
   });
 
   it('elegir un rival guarda la lista entera y la clasificación le incorpora', async () => {
@@ -165,7 +154,7 @@ describe('competir con amigos', () => {
     expect(ana).toHaveAttribute('aria-checked', 'true');
     await user.click(dialog.getByRole('button', { name: 'Guardar' }));
 
-    expect(await screen.findByRole('heading', { name: 'Esta semana' })).toBeInTheDocument();
+    expect(await screen.findByLabelText('Marcador: tú 1, Ana 1')).toBeInTheDocument();
     expect(fake.requests.find((request) => request.method === 'PUT')?.body).toEqual({
       rivalIds: [ANA],
     });

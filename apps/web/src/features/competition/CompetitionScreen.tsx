@@ -1,57 +1,50 @@
-import type {
-  Competition,
-  CompetitionExercise,
-  CompetitionWeekStanding,
-  Locale,
-} from '@gymbuddy/shared';
+import type { Competition, Competitor, Locale } from '@gymbuddy/shared';
 import { useState } from 'react';
 import { useCompetition } from '../../api/queries';
 import { ScreenHeader, type BackLink } from '../../app/ScreenHeader';
 import { useSession } from '../../auth/SessionProvider';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
-import { Badge, Button, Notice, SkeletonList, Surface } from '../../components/index';
+import { Button, Notice, SkeletonList, Surface } from '../../components/index';
 import { cx } from '../../lib/cx';
-import { formatWeightLabel } from '../../lib/format';
-import { ExerciseThumb } from '../catalog/ExerciseThumb';
+import { formatWeightValue } from '../../lib/format';
 import { CompeteSwitch } from './CompeteSwitch';
 import { RivalsSheet } from './RivalsSheet';
-import { rankLabel, standingSummary } from './standings';
+import { barPercents, boardAgainst, marginGrams, type RivalDuel } from './standings';
 import styles from './CompetitionScreen.module.css';
 
 const BACK_TO_HOME: BackLink = { to: '/', label: 'Hoy' };
 
 /**
- * Competir con amigos (lo pidió Juan el 2026-10-13): la clasificación de la semana en curso con
- * los rivales que cada uno elige y el cara a cara en los ejercicios del catálogo que comparten.
- * No hay retos ni invitaciones: se elige una lista y la clasificación está siempre ahí.
+ * Competir con amigos: tú contra cada rival, por el peso máximo que habéis levantado en los
+ * ejercicios del catálogo que hacéis los dos (Juan, 2026-10-14: «no competimos por días, solo por
+ * peso»). Se elige un rival arriba y se ve el marcador y la barra de cada ejercicio, como en la
+ * maqueta «Marcador» que eligió.
  */
 export function CompetitionScreen() {
   const { session } = useSession();
   const locale = session?.user.locale ?? 'es';
   const competition = useCompetition();
   const [choosing, setChoosing] = useState(false);
+  const openChooser = (): void => {
+    setChoosing(true);
+  };
 
   return (
     <>
       <ScreenHeader
         title="Competir"
-        subtitle="Tú contra tus amigos, semana a semana"
+        subtitle="Quién levanta más, ejercicio a ejercicio"
         backTo={BACK_TO_HOME}
+        action={
+          <button type="button" className={styles.headerButton} onClick={openChooser}>
+            Rivales
+          </button>
+        }
       />
       <div className={styles.stack}>
         <AsyncContent query={competition} skeleton={<SkeletonList rows={3} />}>
-          {(data) => <Standings competition={data} locale={locale} />}
+          {(data) => <Boards competition={data} locale={locale} onChooseRivals={openChooser} />}
         </AsyncContent>
-
-        <Button
-          variant="secondary"
-          fullWidth
-          onClick={() => {
-            setChoosing(true);
-          }}
-        >
-          Elegir rivales
-        </Button>
 
         <Surface as="section" aria-label="Tu participación">
           <CompeteSwitch />
@@ -68,57 +61,89 @@ export function CompetitionScreen() {
   );
 }
 
-interface StandingsProps {
+interface BoardsProps {
   readonly competition: Competition;
   readonly locale: Locale;
+  readonly onChooseRivals: () => void;
 }
 
-function Standings({ competition, locale }: StandingsProps) {
-  // La clasificación siempre trae a quien mira: con una sola fila no hay contra quién.
-  if (competition.week.length < 2) {
+function Boards({ competition, locale, onChooseRivals }: BoardsProps) {
+  const [pickedId, setPickedId] = useState<string | null>(null);
+  // El elegido puede haber dejado de competir desde la última vez: entonces, el primero.
+  const rival =
+    competition.rivals.find((candidate) => candidate.userId === pickedId) ?? competition.rivals[0];
+
+  if (rival === undefined) {
     return (
-      <Notice title="Todavía no compites con nadie">
-        Elige rivales y aquí verás quién entrena más cada semana y quién levanta más en los
-        ejercicios que hacéis los dos.
+      <Notice
+        title="Todavía no compites con nadie"
+        action={
+          <Button variant="secondary" onClick={onChooseRivals}>
+            Elegir rivales
+          </Button>
+        }
+      >
+        Elige rivales y aquí verás quién levanta más en cada ejercicio que hacéis los dos.
       </Notice>
     );
   }
 
+  const board = boardAgainst(competition, rival);
+
   return (
     <>
-      <section className={styles.section} aria-labelledby="competition-week">
-        <h2 id="competition-week" className={styles.sectionTitle}>
-          Esta semana
-        </h2>
-        <Surface padding="none">
-          <ol className={styles.list}>
-            {competition.week.map((standing) => (
-              <StandingRow
-                key={standing.userId}
-                standing={standing}
-                total={competition.week.length}
-                locale={locale}
-              />
-            ))}
-          </ol>
-        </Surface>
-        <p className={styles.note}>
-          Gana quien más días entrena; las series y los kilos solo desempatan.
-        </p>
+      {competition.rivals.length > 1 && (
+        <div className={styles.rivals} role="group" aria-label="Rival">
+          {competition.rivals.map((candidate) => (
+            <button
+              key={candidate.userId}
+              type="button"
+              className={cx(
+                styles.rivalChip,
+                candidate.userId === rival.userId && styles.rivalChipOn,
+              )}
+              aria-pressed={candidate.userId === rival.userId}
+              onClick={() => {
+                setPickedId(candidate.userId);
+              }}
+            >
+              {candidate.displayName}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <section className={styles.score} aria-label={scoreLabel(rival, board.wins, board.losses)}>
+        <span className={styles.side}>
+          <span className={cx(styles.sideName, styles.sideNameSelf)}>Tú</span>
+          <span className={styles.sideScore}>{board.wins}</span>
+        </span>
+        <span className={styles.versus} aria-hidden="true">
+          <span className={styles.versusMark}>VS</span>
+          {board.draws > 0 && (
+            <span className={styles.draws}>
+              {board.draws === 1 ? '1 empate' : `${String(board.draws)} empates`}
+            </span>
+          )}
+        </span>
+        <span className={cx(styles.side, styles.sideRival)}>
+          <span className={styles.sideName}>{rival.displayName}</span>
+          <span className={styles.sideScore}>{board.losses}</span>
+        </span>
       </section>
 
-      <section className={styles.section} aria-labelledby="competition-exercises">
-        <h2 id="competition-exercises" className={styles.sectionTitle}>
-          Cara a cara
+      <section className={styles.section} aria-labelledby="competition-duels">
+        <h2 id="competition-duels" className={styles.sectionTitle}>
+          Peso máximo, ejercicio a ejercicio
         </h2>
-        {competition.exercises.length === 0 ? (
+        {board.duels.length === 0 ? (
           <p className={styles.note}>
-            Cuando un rival y tú tengáis marca en el mismo ejercicio del catálogo, saldrá aquí.
+            Todavía no tenéis marca en ningún ejercicio del catálogo que hagáis los dos.
           </p>
         ) : (
-          <ul className={styles.exercises}>
-            {competition.exercises.map((exercise) => (
-              <ExerciseDuelCard key={exercise.catalogId} exercise={exercise} locale={locale} />
+          <ul className={styles.duels}>
+            {board.duels.map((duel) => (
+              <DuelCard key={duel.catalogId} duel={duel} rival={rival} locale={locale} />
             ))}
           </ul>
         )}
@@ -127,69 +152,81 @@ function Standings({ competition, locale }: StandingsProps) {
   );
 }
 
-interface StandingRowProps {
-  readonly standing: CompetitionWeekStanding;
-  readonly total: number;
+interface DuelCardProps {
+  readonly duel: RivalDuel;
+  readonly rival: Competitor;
   readonly locale: Locale;
 }
 
-function StandingRow({ standing, total, locale }: StandingRowProps) {
+function DuelCard({ duel, rival, locale }: DuelCardProps) {
+  const margin = marginGrams(duel);
+  const bars = barPercents(duel);
+  const gap = formatWeightValue(Math.abs(margin), locale);
+  const verdict =
+    margin > 0 ? `Ganas por ${gap} kg` : margin < 0 ? `Te faltan ${gap} kg` : 'Empate';
+
   return (
-    <li className={cx(styles.row, standing.isSelf && styles.rowSelf)}>
-      <span
-        className={cx(styles.rank, standing.rank === 1 && styles.rankFirst)}
-        aria-label={rankLabel(standing.rank, total)}
-      >
-        {standing.rank}
-      </span>
-      <span className={styles.text}>
-        <span className={styles.name}>
-          {standing.displayName}
-          {standing.isSelf && <Badge tone="accent">Tú</Badge>}
+    <li className={styles.duel} aria-label={`${duel.name}: ${verdict}`}>
+      <div className={styles.duelHead}>
+        <h3 className={styles.duelName}>{duel.name}</h3>
+        <span
+          className={cx(
+            styles.verdict,
+            margin > 0 && styles.verdictWin,
+            margin < 0 && styles.verdictLoss,
+          )}
+        >
+          {verdict}
         </span>
-        <span className={styles.meta}>{standingSummary(standing, locale)}</span>
-      </span>
+      </div>
+      <DuelBar
+        who="Tú"
+        grams={duel.mineGrams}
+        percent={bars.mine}
+        leading={margin >= 0}
+        self
+        locale={locale}
+      />
+      <DuelBar
+        who={rival.displayName}
+        grams={duel.theirsGrams}
+        percent={bars.theirs}
+        leading={margin <= 0}
+        locale={locale}
+      />
     </li>
   );
 }
 
-interface ExerciseDuelCardProps {
-  readonly exercise: CompetitionExercise;
+interface DuelBarProps {
+  readonly who: string;
+  readonly grams: number;
+  readonly percent: number;
+  /** Va por delante o empata: su barra se enciende. */
+  readonly leading: boolean;
+  readonly self?: boolean;
   readonly locale: Locale;
 }
 
-/** Un ejercicio que hacéis los dos: de mejor a peor 1RM estimado, con el peso máximo al lado. */
-function ExerciseDuelCard({ exercise, locale }: ExerciseDuelCardProps) {
+function DuelBar({ who, grams, percent, leading, self = false, locale }: DuelBarProps) {
   return (
-    <Surface as="li" padding="none">
-      <div className={styles.exerciseHead}>
-        <ExerciseThumb key={exercise.gifUrl} gifUrl={exercise.gifUrl} />
-        <h3 className={styles.exerciseName}>{exercise.name}</h3>
-      </div>
-      <ol className={styles.list} aria-label={`Marcas en ${exercise.name}`}>
-        {exercise.entries.map((entry, index) => (
-          <li key={entry.userId} className={cx(styles.row, entry.isSelf && styles.rowSelf)}>
-            <span className={cx(styles.rank, index === 0 && styles.rankFirst)} aria-hidden="true">
-              {index + 1}
-            </span>
-            <span className={styles.text}>
-              <span className={styles.name}>
-                {entry.displayName}
-                {entry.isSelf && <Badge tone="accent">Tú</Badge>}
-              </span>
-              <span className={styles.meta}>
-                Peso máximo {formatWeightLabel(entry.maxWeight, locale)}
-              </span>
-            </span>
-            <span className={styles.mark}>
-              <span className={styles.markValue}>
-                {formatWeightLabel(entry.estimatedOneRepMax, locale)}
-              </span>
-              <span className={styles.meta}>1RM estimado</span>
-            </span>
-          </li>
-        ))}
-      </ol>
-    </Surface>
+    <div className={styles.barRow}>
+      <span className={styles.barWho}>{who}</span>
+      <span className={styles.barTrack} aria-hidden="true">
+        <span
+          className={cx(
+            styles.barFill,
+            leading && (self ? styles.barFillSelf : styles.barFillRival),
+          )}
+          // El ancho es un dato, no un estilo: el peso de cada uno en proporción al mayor.
+          style={{ inlineSize: `${String(percent)}%` }}
+        />
+      </span>
+      <span className={styles.barValue}>{formatWeightValue(grams, locale)}</span>
+    </div>
   );
+}
+
+function scoreLabel(rival: Competitor, wins: number, losses: number): string {
+  return `Marcador: tú ${String(wins)}, ${rival.displayName} ${String(losses)}`;
 }

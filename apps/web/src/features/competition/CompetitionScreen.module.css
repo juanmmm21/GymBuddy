@@ -1,8 +1,115 @@
 .stack {
   display: flex;
   flex-direction: column;
-  gap: var(--gb-space-xl);
+  gap: var(--gb-space-lg);
 }
+
+.headerButton {
+  min-height: var(--gb-size-control-height);
+  padding: 0 var(--gb-space-lg);
+  border: var(--gb-size-border-width) solid var(--gb-color-border);
+  border-radius: var(--gb-radius-pill);
+  background: var(--gb-color-surface);
+  color: var(--gb-color-text);
+  font-weight: var(--gb-type-body-strong-weight);
+}
+
+/* ---------- Los rivales: uno a la vez, como cambiar de partido ---------- */
+
+.rivals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gb-space-sm);
+}
+
+.rivalChip {
+  min-height: var(--gb-size-control-height);
+  padding: 0 var(--gb-space-lg);
+  border: var(--gb-size-border-width) solid var(--gb-color-border);
+  border-radius: var(--gb-radius-pill);
+  background: transparent;
+  color: var(--gb-color-text-muted);
+  font-weight: var(--gb-type-body-strong-weight);
+  transition:
+    background-color var(--gb-duration-fast) var(--gb-ease-standard),
+    color var(--gb-duration-fast) var(--gb-ease-standard);
+}
+
+.rivalChipOn {
+  border-color: var(--gb-color-text);
+  background: var(--gb-color-text);
+  color: var(--gb-color-canvas);
+}
+
+/* ---------- El marcador ---------- */
+
+.score {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  padding: var(--gb-space-lg);
+  border-radius: var(--gb-radius-lg);
+  background: var(--gb-color-surface);
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--gb-space-xxs);
+  min-width: 0;
+}
+
+.sideRival {
+  align-items: flex-end;
+}
+
+.sideName {
+  max-inline-size: 100%;
+  overflow: hidden;
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-label-size);
+  font-weight: var(--gb-type-label-weight);
+  line-height: var(--gb-type-label-line);
+  letter-spacing: var(--gb-type-label-tracking);
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.sideNameSelf {
+  color: var(--gb-color-accent);
+}
+
+/* Las cifras del marcador son lo único enorme de la pantalla: se leen desde el banco. */
+.sideScore {
+  font-family: var(--gb-font-display);
+  font-size: calc(var(--gb-type-display-size) * 1.7);
+  font-weight: var(--gb-type-display-weight);
+  line-height: 0.85;
+}
+
+.versus {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gb-space-xs);
+}
+
+.versusMark {
+  color: var(--gb-color-border-strong);
+  font-family: var(--gb-font-display);
+  font-size: var(--gb-type-title-size);
+  font-weight: var(--gb-type-title-weight);
+}
+
+.draws {
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-caption-size);
+  line-height: var(--gb-type-caption-line);
+}
+
+/* ---------- Los ejercicios ---------- */
 
 .section {
   display: flex;
@@ -21,113 +128,105 @@
 }
 
 .note {
-  margin: 0;
   padding: 0 var(--gb-space-xs);
   color: var(--gb-color-text-secondary);
   font-size: var(--gb-type-caption-size);
   line-height: var(--gb-type-caption-line);
 }
 
-.list {
+.duels {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-sm);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.row {
+.duel {
   display: flex;
-  align-items: center;
-  gap: var(--gb-space-md);
-  min-height: var(--gb-size-touch-target);
+  flex-direction: column;
+  gap: var(--gb-space-sm);
   padding: var(--gb-space-md) var(--gb-space-lg);
+  border-radius: var(--gb-radius-md);
+  background: var(--gb-color-surface);
 }
 
-.row + .row {
-  border-top: var(--gb-size-border-width) solid var(--gb-color-border);
-}
-
-/* Tu fila se encuentra sin leer: es la que le importa a quien abre la pantalla. */
-.rowSelf {
-  background: var(--gb-color-accent-soft);
-}
-
-/* El puesto, en la misma letra estrecha que las cifras del resto de la app. */
-.rank {
-  flex-shrink: 0;
-  min-width: var(--gb-space-xl);
-  color: var(--gb-color-text-muted);
-  font-family: var(--gb-font-display);
-  font-stretch: var(--gb-font-width-condensed);
-  font-size: var(--gb-type-title-size);
-  font-weight: var(--gb-type-title-weight);
-  line-height: var(--gb-type-title-line);
-  text-align: center;
-}
-
-.rankFirst {
-  color: var(--gb-color-accent);
-}
-
-.text {
-  flex: 1;
+.duelHead {
   display: flex;
-  flex-direction: column;
-  gap: var(--gb-space-xxs);
-  min-width: 0;
-}
-
-.name {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--gb-space-sm);
-  font-weight: var(--gb-type-body-strong-weight);
-  overflow-wrap: anywhere;
-}
-
-.meta {
-  color: var(--gb-color-text-secondary);
-  font-size: var(--gb-type-caption-size);
-  line-height: var(--gb-type-caption-line);
-}
-
-.exercises {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gb-space-sm);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.exerciseHead {
-  display: flex;
-  align-items: center;
+  justify-content: space-between;
+  align-items: baseline;
   gap: var(--gb-space-md);
-  padding: var(--gb-space-sm) var(--gb-space-lg) var(--gb-space-sm) var(--gb-space-sm);
-  border-bottom: var(--gb-size-border-width) solid var(--gb-color-border);
 }
 
-.exerciseName {
-  margin: 0;
+.duelName {
+  min-width: 0;
   font-size: var(--gb-type-body-strong-size);
   font-weight: var(--gb-type-body-strong-weight);
   line-height: var(--gb-type-body-strong-line);
   overflow-wrap: anywhere;
 }
 
-.mark {
+.verdict {
   flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: var(--gb-space-xxs);
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-caption-size);
+  font-weight: var(--gb-type-body-strong-weight);
+  line-height: var(--gb-type-caption-line);
 }
 
-.markValue {
+.verdictWin {
+  color: var(--gb-color-accent);
+}
+
+.verdictLoss {
+  color: var(--gb-color-danger);
+}
+
+.barRow {
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 9fr) minmax(0, 3fr);
+  align-items: center;
+  gap: var(--gb-space-sm);
+}
+
+.barWho {
+  overflow: hidden;
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-caption-size);
+  line-height: var(--gb-type-caption-line);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.barTrack {
+  display: block;
+  block-size: var(--gb-space-md);
+  border-radius: var(--gb-radius-pill);
+  background: var(--gb-color-border);
+  overflow: hidden;
+}
+
+.barFill {
+  display: block;
+  block-size: 100%;
+  border-radius: var(--gb-radius-pill);
+  background: var(--gb-color-border-strong);
+  transition: inline-size var(--gb-duration-slow) var(--gb-ease-enter);
+}
+
+.barFillSelf {
+  background: var(--gb-color-accent);
+}
+
+.barFillRival {
+  background: var(--gb-color-text);
+}
+
+.barValue {
   font-family: var(--gb-font-display);
-  font-stretch: var(--gb-font-width-condensed);
   font-size: var(--gb-type-title-size);
   font-weight: var(--gb-type-title-weight);
   line-height: var(--gb-type-title-line);
+  text-align: end;
 }

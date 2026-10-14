@@ -1,26 +1,83 @@
 import {
   MAX_RIVALS,
-  parseVolumeKilogramsToGrams,
-  type CompetitionWeekStanding,
-  type Locale,
+  parseKilogramsToGrams,
+  type Competition,
+  type Competitor,
   type RivalCandidate,
 } from '@gymbuddy/shared';
-import { formatVolumeLabel, pluralize } from '../../lib/format';
 
-/** «3 días · 21 series · 4500 kg»: lo que lleva alguien esta semana, en el orden en que se clasifica. */
-export function standingSummary(standing: CompetitionWeekStanding, locale: Locale): string {
-  if (standing.daysTrained === 0) return 'Sin entrenar esta semana';
-
-  return [
-    pluralize(standing.daysTrained, 'día', 'días'),
-    pluralize(standing.setCount, 'serie', 'series'),
-    formatVolumeLabel(parseVolumeKilogramsToGrams(standing.volume), locale),
-  ].join(' · ');
+/** Un ejercicio visto contra un rival concreto: tu peso máximo y el suyo, en gramos. */
+export interface RivalDuel {
+  readonly catalogId: string;
+  readonly name: string;
+  readonly gifUrl: string;
+  readonly mineGrams: number;
+  readonly theirsGrams: number;
 }
 
-/** El puesto dicho entero, para quien no ve el número: «Puesto 2 de 3». */
-export function rankLabel(rank: number, total: number): string {
-  return `Puesto ${String(rank)} de ${String(total)}`;
+/** El marcador contra un rival: un punto por ejercicio para quien más levanta. */
+export interface RivalBoard {
+  readonly rival: Competitor;
+  readonly wins: number;
+  readonly losses: number;
+  readonly draws: number;
+  readonly duels: readonly RivalDuel[];
+}
+
+/**
+ * El cara a cara contra un rival: solo los ejercicios que hacéis los dos, con los que vas perdiendo
+ * primero —es lo que hay que ir a buscar— y después por nombre. Se compara de dos en dos aunque la
+ * competición traiga a más gente en el mismo ejercicio.
+ */
+export function boardAgainst(competition: Competition, rival: Competitor): RivalBoard {
+  const duels: RivalDuel[] = [];
+
+  for (const exercise of competition.exercises) {
+    const mine = exercise.entries.find((entry) => entry.isSelf);
+    const theirs = exercise.entries.find((entry) => entry.userId === rival.userId);
+    if (mine === undefined || theirs === undefined) continue;
+
+    duels.push({
+      catalogId: exercise.catalogId,
+      name: exercise.name,
+      gifUrl: exercise.gifUrl,
+      mineGrams: parseKilogramsToGrams(mine.maxWeight),
+      theirsGrams: parseKilogramsToGrams(theirs.maxWeight),
+    });
+  }
+
+  duels.sort(
+    (a, b) =>
+      marginGrams(a) - marginGrams(b) ||
+      a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }),
+  );
+
+  return {
+    rival,
+    wins: duels.filter((duel) => duel.mineGrams > duel.theirsGrams).length,
+    losses: duels.filter((duel) => duel.mineGrams < duel.theirsGrams).length,
+    draws: duels.filter((duel) => duel.mineGrams === duel.theirsGrams).length,
+    duels,
+  };
+}
+
+/** Lo que le sacas al rival en gramos: negativo si vas por detrás. */
+export function marginGrams(duel: RivalDuel): number {
+  return duel.mineGrams - duel.theirsGrams;
+}
+
+/**
+ * Lo largas que salen las dos barras de un ejercicio, en tanto por ciento del más pesado: el que
+ * gana llena la suya y el otro se queda en proporción, para que la diferencia se vea sin leer.
+ */
+export function barPercents(duel: RivalDuel): { readonly mine: number; readonly theirs: number } {
+  const top = Math.max(duel.mineGrams, duel.theirsGrams);
+  if (top === 0) return { mine: 0, theirs: 0 };
+
+  return {
+    mine: Math.round((duel.mineGrams / top) * 100),
+    theirs: Math.round((duel.theirsGrams / top) * 100),
+  };
 }
 
 /** Los rivales que ya están elegidos al abrir la hoja. */
