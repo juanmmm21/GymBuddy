@@ -98,10 +98,11 @@
 }
 
 .title {
+  font-family: var(--gb-font-display);
   font-size: var(--gb-type-title-size);
-  font-weight: var(--gb-type-title-weight);
+  font-weight: var(--gb-type-display-weight);
   line-height: var(--gb-type-title-line);
-  letter-spacing: var(--gb-type-title-tracking);
+  text-transform: uppercase;
 }
 
 .close {

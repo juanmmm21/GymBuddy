@@ -48,12 +48,14 @@
 }
 
 .ghost {
-  background: transparent;
-  color: var(--gb-color-accent);
+  border-color: var(--gb-color-border);
+  border-radius: var(--gb-radius-pill);
+  background: var(--gb-color-surface);
+  color: var(--gb-color-text);
 }
 
 .ghost:hover:not(:disabled) {
-  background: var(--gb-color-accent-soft);
+  background: var(--gb-color-surface-raised);
 }
 
 .danger {
