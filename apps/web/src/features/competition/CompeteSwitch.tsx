@@ -6,7 +6,7 @@ import styles from './CompeteSwitch.module.css';
 
 const SWITCH_LABEL = 'Competir con amigos';
 const SWITCH_HINT =
-  'Quien use GymBuddy podrá elegirte como rival y ver tu semana y tus marcas. Apágalo cuando quieras.';
+  'Quien use GymBuddy podrá elegirte como rival y ver el peso máximo de tus ejercicios. Apágalo cuando quieras.';
 
 /**
  * La casilla que te pone a disposición de los demás. Es de la cuenta, no del dispositivo: vive en

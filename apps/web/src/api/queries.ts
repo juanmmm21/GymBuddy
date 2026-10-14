@@ -95,7 +95,7 @@ export const queryKeys = {
   },
   /**
    * Fuera de `stats` a propósito: registrar una serie invalida las estadísticas a cada momento, y
-   * la competición lee la semana de todos los rivales. Se relee al entrar en su pantalla.
+   * la competición lee las marcas de todos los rivales. Se relee al entrar en su pantalla.
    */
   competition: {
     all: ['competition'] as const,
@@ -379,7 +379,7 @@ export function useCatalogExercise(
   });
 }
 
-/** La clasificación de la semana con los rivales elegidos y el cara a cara por ejercicio. */
+/** El cara a cara por peso máximo con los rivales elegidos. */
 export function useCompetition(): UseQueryResult<Competition> {
   const client = useApiClient();
   return useQuery({

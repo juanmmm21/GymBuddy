@@ -46,7 +46,7 @@ const COMPETITION_ENTRIES: readonly SettingsEntry[] = [
   {
     to: COMPETITION_PATH,
     title: 'Ver la competición',
-    description: 'La clasificación de la semana y a quién tienes de rival.',
+    description: 'Tu marcador contra cada rival, ejercicio a ejercicio.',
   },
 ];
 

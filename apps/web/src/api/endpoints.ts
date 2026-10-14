@@ -541,7 +541,7 @@ export function fetchTrainingSignals(client: ApiClient): Promise<TrainingSignals
   return client.request({ method: 'GET', path: '/stats/signals', schema: trainingSignalsSchema });
 }
 
-/** La clasificación de la semana y el cara a cara por ejercicio con los rivales elegidos. */
+/** El cara a cara por peso máximo con los rivales elegidos. */
 export function fetchCompetition(client: ApiClient): Promise<Competition> {
   return client.request({ method: 'GET', path: '/competition', schema: competitionSchema });
 }
