@@ -69,6 +69,12 @@
   min-height: var(--gb-size-touch-target);
   padding: 0 var(--gb-space-xl);
   font-size: var(--gb-type-title-size);
+  /* La acción grande de cada pantalla habla como el marcador: estrecha, gruesa y en mayúsculas. */
+  font-family: var(--gb-font-display);
+  font-size: var(--gb-type-title-size);
+  font-weight: var(--gb-type-display-weight);
+  line-height: var(--gb-type-title-line);
+  text-transform: uppercase;
 }
 
 .fullWidth {

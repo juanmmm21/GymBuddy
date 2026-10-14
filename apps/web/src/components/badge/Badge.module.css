@@ -7,7 +7,6 @@
   font-size: var(--gb-type-label-size);
   font-weight: var(--gb-type-label-weight);
   line-height: var(--gb-type-label-line);
-  letter-spacing: var(--gb-type-label-tracking);
   white-space: nowrap;
 }
 
@@ -40,5 +39,6 @@
 .record {
   background: var(--gb-color-record);
   color: var(--gb-color-on-record);
+  letter-spacing: var(--gb-type-label-tracking);
   text-transform: uppercase;
 }
