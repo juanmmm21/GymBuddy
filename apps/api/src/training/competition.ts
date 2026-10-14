@@ -2,14 +2,9 @@ import {
   MAX_RIVALS,
   exerciseDuels,
   formatGramsAsKilograms,
-  formatGramsAsVolumeKilograms,
-  isoDateOfDay,
-  rankWeekTotals,
-  weekIndexOf,
-  weekStartDayIndex,
-  weekTotals,
   type Competition,
   type CompetitionExercise,
+  type Competitor,
   type ExerciseBest,
   type RivalCandidates,
 } from '@gymbuddy/shared';
@@ -25,13 +20,6 @@ import {
   type UserRow,
 } from '../db/schema';
 import { ApiException } from '../http/errors';
-import { readWeekDays } from './stats';
-
-/** Lo que hace falta de alguien para ponerle en una clasificación. */
-interface Participant {
-  readonly userId: string;
-  readonly displayName: string;
-}
 
 /**
  * A quién puede elegir como rival quien pregunta: las demás cuentas que han activado competir.
@@ -105,12 +93,12 @@ export async function setRivals(
 }
 
 /**
- * La competición de quien pregunta: la clasificación de la semana en curso con sus rivales y el
- * cara a cara en los ejercicios del catálogo que comparten.
+ * La competición de quien pregunta: el cara a cara por peso máximo en los ejercicios del catálogo
+ * que comparte con sus rivales.
  *
  * Un rival que desactiva competir desaparece de aquí aunque su fila siga en `rival`: el permiso se
  * mira al leer, así que retirarlo surte efecto en el momento y volver a darlo le devuelve a las
- * clasificaciones en las que ya estaba.
+ * competiciones en las que ya estaba.
  */
 export async function getCompetition(
   db: Database,
@@ -118,35 +106,16 @@ export async function getCompetition(
   now: Date,
 ): Promise<Competition> {
   const rivals = await listActiveRivals(db, viewer);
-  const participants: Participant[] = [
-    { userId: viewer.id, displayName: viewer.displayName },
-    ...rivals,
-  ];
-  const nameOf = new Map(participants.map((person) => [person.userId, person.displayName]));
+  const empty: Competition = { generatedAt: now.toISOString(), rivals, exercises: [] };
+  if (rivals.length === 0) return empty;
 
-  // Una lectura por persona: son pocas (`MAX_RIVALS`) y es la misma consulta del calendario de Hoy.
-  const [weeks, bests] = await Promise.all([
-    Promise.all(participants.map((person) => readWeekDays(db, person.userId, now))),
-    rivals.length === 0
-      ? Promise.resolve<ExerciseBest[]>([])
-      : listExerciseBests(
-          db,
-          participants.map((person) => person.userId),
-        ),
-  ]);
-
-  const week = rankWeekTotals(
-    participants.map((person, index) => ({ ...person, ...weekTotals(weeks[index] ?? []) })),
-  ).map((standing) => ({
-    userId: standing.userId,
-    displayName: standing.displayName,
-    isSelf: standing.userId === viewer.id,
-    rank: standing.rank,
-    daysTrained: standing.daysTrained,
-    setCount: standing.setCount,
-    volume: formatGramsAsVolumeKilograms(standing.volumeGrams),
-  }));
-
+  const nameOf = new Map(
+    [{ userId: viewer.id, displayName: viewer.displayName }, ...rivals].map((person) => [
+      person.userId,
+      person.displayName,
+    ]),
+  );
+  const bests = await listExerciseBests(db, [...nameOf.keys()]);
   const duels = exerciseDuels(bests, viewer.id);
   const catalog = await findCatalogNames(
     db,
@@ -168,18 +137,12 @@ export async function getCompetition(
         displayName: nameOf.get(best.userId) ?? '',
         isSelf: best.userId === viewer.id,
         maxWeight: formatGramsAsKilograms(best.maxWeightGrams),
-        estimatedOneRepMax: formatGramsAsKilograms(best.estimatedOneRepMaxGrams),
       })),
     });
   }
   exercises.sort((a, b) => a.name.localeCompare(b.name, viewer.locale));
 
-  return {
-    generatedAt: now.toISOString(),
-    weekStart: isoDateOfDay(weekStartDayIndex(weekIndexOf(now.getTime()))),
-    week,
-    exercises,
-  };
+  return { ...empty, exercises };
 }
 
 /** La condición que decide a quién puede ver quien pregunta: a quien compite, o a todos si administra. */
@@ -187,7 +150,7 @@ function canBeRivalOf(viewer: UserRow) {
   return viewer.isAdmin ? undefined : eq(user.competes, true);
 }
 
-async function listActiveRivals(db: Database, viewer: UserRow): Promise<Participant[]> {
+async function listActiveRivals(db: Database, viewer: UserRow): Promise<Competitor[]> {
   return db
     .select({ userId: user.id, displayName: user.displayName })
     .from(rival)
@@ -198,34 +161,26 @@ async function listActiveRivals(db: Database, viewer: UserRow): Promise<Particip
 }
 
 /**
- * Las marcas vigentes de cada participante en sus ejercicios del catálogo. La tabla de marcas
- * guarda cada récord batido, así que la vigente de cada tipo es la mayor. Los archivados no
- * cuentan —ya no se hacen—, y tampoco una marca de cero kilos: en peso corporal no hay nada que
- * comparar.
+ * El peso máximo vigente de cada participante en sus ejercicios del catálogo. La tabla de marcas
+ * guarda cada récord batido, así que el vigente es el mayor. Los archivados no cuentan —ya no se
+ * hacen—, y tampoco una marca de cero kilos: en peso corporal no hay peso que comparar.
  */
 async function listExerciseBests(
   db: Database,
   userIds: readonly string[],
 ): Promise<ExerciseBest[]> {
-  const maxWeightGrams = sql<
-    number | null
-  >`max(case when ${personalRecord.kind} = 'max_weight' then ${personalRecord.valueGrams} end)`;
-  const estimatedOneRepMaxGrams = sql<
-    number | null
-  >`max(case when ${personalRecord.kind} = 'estimated_1rm' then ${personalRecord.valueGrams} end)`;
-
   const rows = await db
     .select({
       userId: trackedExercise.userId,
       catalogId: trackedExercise.catalogId,
-      maxWeightGrams,
-      estimatedOneRepMaxGrams,
+      maxWeightGrams: sql<number>`max(${personalRecord.valueGrams})`,
     })
     .from(personalRecord)
     .innerJoin(trackedExercise, eq(trackedExercise.id, personalRecord.trackedExerciseId))
     .where(
       and(
         inArray(trackedExercise.userId, [...userIds]),
+        eq(personalRecord.kind, 'max_weight'),
         isNotNull(trackedExercise.catalogId),
         isNull(trackedExercise.archivedAt),
       ),
@@ -234,15 +189,11 @@ async function listExerciseBests(
 
   const bests: ExerciseBest[] = [];
   for (const row of rows) {
-    if (row.catalogId === null) continue;
-    const oneRepMax = row.estimatedOneRepMaxGrams ?? 0;
-    if (oneRepMax <= 0) continue;
-
+    if (row.catalogId === null || row.maxWeightGrams <= 0) continue;
     bests.push({
       userId: row.userId,
       catalogId: row.catalogId,
-      maxWeightGrams: row.maxWeightGrams ?? 0,
-      estimatedOneRepMaxGrams: oneRepMax,
+      maxWeightGrams: row.maxWeightGrams,
     });
   }
 

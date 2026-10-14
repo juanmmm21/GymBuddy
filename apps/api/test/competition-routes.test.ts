@@ -333,14 +333,12 @@ describe('competir con amigos', () => {
 
       const theirs = await request('GET', '/competition', await bearer(otherUserId));
 
-      expect(
-        competitionSchema.parse(await theirs.json()).week.map((entry) => entry.userId),
-      ).toEqual([otherUserId]);
+      expect(competitionSchema.parse(await theirs.json()).rivals).toEqual([]);
     });
   });
 
-  describe('la clasificación', () => {
-    it('sin rivales trae solo a quien mira', async () => {
+  describe('el cara a cara', () => {
+    it('sin rivales no trae nada', async () => {
       await seedCatalog(BENCH, 'Press de banca');
       await seedTraining(userId, BENCH, 0, [[80_000, 8]], {
         maxWeight: 80_000,
@@ -351,40 +349,24 @@ describe('competir con amigos', () => {
 
       expect(response.status).toBe(200);
       const competition = competitionSchema.parse(await response.json());
-      expect(competition.week).toEqual([
-        {
-          userId,
-          displayName: 'Juan',
-          isSelf: true,
-          rank: 1,
-          daysTrained: 1,
-          setCount: 1,
-          volume: '640.00',
-        },
-      ]);
+      expect(competition.rivals).toEqual([]);
       expect(competition.exercises).toEqual([]);
     });
 
-    it('ordena la semana por días entrenados y compara las marcas del ejercicio común', async () => {
+    it('compara por peso máximo, no por 1RM, y solo en el ejercicio común', async () => {
       await setCompetes(otherUserId, true);
       await setCompetes(thirdUserId, true);
       await seedCatalog(BENCH, 'Press de banca');
       await seedCatalog(SQUAT, 'Sentadilla');
 
-      // Juan: un día, dos series. La otra: dos días, una serie cada uno. Leo no ha entrenado.
-      await seedTraining(
-        userId,
-        BENCH,
-        0,
-        [
-          [100_000, 5],
-          [100_000, 5],
-        ],
-        { maxWeight: 100_000, oneRepMax: 116_667 },
-      );
-      await seedTraining(otherUserId, BENCH, 0, [[60_000, 10]], {
-        maxWeight: 60_000,
-        oneRepMax: 80_000,
+      // La otra tiene mejor 1RM estimado, pero Juan ha movido más peso: gana Juan.
+      await seedTraining(userId, BENCH, 0, [[100_000, 1]], {
+        maxWeight: 100_000,
+        oneRepMax: 100_000,
+      });
+      await seedTraining(otherUserId, BENCH, 0, [[95_000, 8]], {
+        maxWeight: 95_000,
+        oneRepMax: 120_333,
       });
       await seedTraining(otherUserId, SQUAT, 1, [[90_000, 5]], {
         maxWeight: 90_000,
@@ -395,15 +377,11 @@ describe('competir con amigos', () => {
       const response = await request('GET', '/competition', token);
 
       const competition = competitionSchema.parse(await response.json());
-      expect(
-        competition.week.map((entry) => [entry.displayName, entry.rank, entry.daysTrained]),
-      ).toEqual([
-        ['Otra', 1, 2],
-        ['Juan', 2, 1],
-        ['Leo', 3, 0],
+      // Leo no ha entrenado, pero es rival: sale en la lista aunque no comparta nada.
+      expect(competition.rivals).toEqual([
+        { userId: thirdUserId, displayName: 'Leo' },
+        { userId: otherUserId, displayName: 'Otra' },
       ]);
-      expect(competition.week[1]).toMatchObject({ isSelf: true, setCount: 2, volume: '1000.00' });
-
       // La sentadilla solo la hace la otra: no hay cara a cara.
       expect(competition.exercises).toEqual([
         {
@@ -411,20 +389,8 @@ describe('competir con amigos', () => {
           name: 'Press de banca',
           gifUrl: `https://cdn.example.test/${BENCH}.gif`,
           entries: [
-            {
-              userId,
-              displayName: 'Juan',
-              isSelf: true,
-              maxWeight: '100.00',
-              estimatedOneRepMax: '116.67',
-            },
-            {
-              userId: otherUserId,
-              displayName: 'Otra',
-              isSelf: false,
-              maxWeight: '60.00',
-              estimatedOneRepMax: '80.00',
-            },
+            { userId, displayName: 'Juan', isSelf: true, maxWeight: '100.00' },
+            { userId: otherUserId, displayName: 'Otra', isSelf: false, maxWeight: '95.00' },
           ],
         },
       ]);
@@ -452,19 +418,17 @@ describe('competir con amigos', () => {
       expect(competitionSchema.parse(await response.json()).exercises).toEqual([]);
     });
 
-    it('quien desactiva competir desaparece de la clasificación de los demás, y vuelve al reactivarlo', async () => {
+    it('quien desactiva competir desaparece de la competición de los demás, y vuelve al reactivarlo', async () => {
       await setCompetes(otherUserId, true);
       await request('PUT', '/competition/rivals', token, { rivalIds: [otherUserId] });
 
       await setCompetes(otherUserId, false);
       const hidden = await request('GET', '/competition', token);
-      expect(
-        competitionSchema.parse(await hidden.json()).week.map((entry) => entry.userId),
-      ).toEqual([userId]);
+      expect(competitionSchema.parse(await hidden.json()).rivals).toEqual([]);
 
       await setCompetes(otherUserId, true);
       const back = await request('GET', '/competition', token);
-      expect(competitionSchema.parse(await back.json()).week).toHaveLength(2);
+      expect(competitionSchema.parse(await back.json()).rivals).toHaveLength(1);
     });
   });
 });

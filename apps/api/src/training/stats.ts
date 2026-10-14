@@ -215,9 +215,8 @@ export async function getWeeklyCalendar(
 }
 
 /**
- * Los siete días de la semana en curso de una persona, todavía en gramos. Es la lectura que
- * comparten el calendario de Hoy y la clasificación entre amigos: la misma semana contada dos veces
- * con dos consultas distintas acabaría dando dos números.
+ * Los siete días de la semana en curso de una persona, todavía en gramos, antes de pasarlos al
+ * formato del contrato.
  */
 export async function readWeekDays(
   db: Database,
