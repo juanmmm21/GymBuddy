@@ -5,13 +5,14 @@ import { App } from './app/App';
 import { installTheme } from './design/theme';
 import { captureInstallPrompt } from './features/install/install-prompt';
 import { readBrowserEnvironment } from './features/install/platform';
-// Las fuentes viajan en el bundle y se precachean: solo los pesos que usan las hojas.
-import '@fontsource/barlow/400.css';
-import '@fontsource/barlow/500.css';
-import '@fontsource/barlow/600.css';
-import '@fontsource/barlow-condensed/600.css';
-import '@fontsource/barlow-condensed/700.css';
-import '@fontsource/barlow-condensed/800.css';
+// Las fuentes viajan en el bundle y se precachean: solo los pesos que usan las hojas y solo el
+// alfabeto latino, que ya trae la ñ y los acentos; el resto de alfabetos sería peso precacheado.
+import '@fontsource/barlow/latin-400.css';
+import '@fontsource/barlow/latin-500.css';
+import '@fontsource/barlow/latin-600.css';
+import '@fontsource/barlow-condensed/latin-600.css';
+import '@fontsource/barlow-condensed/latin-700.css';
+import '@fontsource/barlow-condensed/latin-800.css';
 import './design/global.css';
 
 // Los tokens se aplican antes del primer render: sin ellos no hay ni un color en pantalla.
