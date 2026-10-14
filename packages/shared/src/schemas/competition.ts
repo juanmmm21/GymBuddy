@@ -1,12 +1,6 @@
 import { z } from 'zod';
 import { MAX_RIVALS } from '../domain/competition';
-import { DAYS_PER_WEEK } from '../domain/week';
-import {
-  isoDatetimeSchema,
-  resourceIdSchema,
-  volumeKilogramsSchema,
-  weightKilogramsSchema,
-} from './common';
+import { isoDatetimeSchema, resourceIdSchema, weightKilogramsSchema } from './common';
 import { displayNameSchema } from './user';
 
 /**
@@ -38,16 +32,10 @@ export const setRivalsRequestSchema = z.object({
     }),
 });
 
-/** Lo que lleva una persona en la semana en curso, ya con su puesto. */
-export const competitionWeekStandingSchema = z.object({
+/** Alguien contra quien se compite, aunque todavía no compartáis ningún ejercicio. */
+export const competitorSchema = z.object({
   userId: resourceIdSchema,
   displayName: displayNameSchema,
-  isSelf: z.boolean(),
-  // Quien empata comparte puesto y el siguiente se lo salta (1, 1, 3).
-  rank: z.int().positive(),
-  daysTrained: z.int().min(0).max(DAYS_PER_WEEK),
-  setCount: z.int().nonnegative(),
-  volume: volumeKilogramsSchema,
 });
 
 export const competitionExerciseEntrySchema = z.object({
@@ -55,7 +43,6 @@ export const competitionExerciseEntrySchema = z.object({
   displayName: displayNameSchema,
   isSelf: z.boolean(),
   maxWeight: weightKilogramsSchema,
-  estimatedOneRepMax: weightKilogramsSchema,
 });
 
 /**
@@ -66,23 +53,21 @@ export const competitionExerciseSchema = z.object({
   catalogId: z.string().min(1),
   name: z.string().min(1),
   gifUrl: z.url(),
-  // De mejor a peor 1RM estimado.
+  // Del más pesado al más ligero.
   entries: z.array(competitionExerciseEntrySchema).min(2),
 });
 
 export const competitionSchema = z.object({
   generatedAt: isoDatetimeSchema,
-  /** El lunes de la semana que se compara, en UTC como el calendario de Hoy. */
-  weekStart: z.iso.date(),
-  /** Siempre trae a quien mira; con rivales, también a ellos, ya ordenados. */
-  week: z.array(competitionWeekStandingSchema).min(1),
+  /** Los rivales elegidos que siguen compitiendo, por nombre. Sin ellos no hay competición. */
+  rivals: z.array(competitorSchema).max(MAX_RIVALS),
   exercises: z.array(competitionExerciseSchema),
 });
 
 export type RivalCandidate = z.infer<typeof rivalCandidateSchema>;
 export type RivalCandidates = z.infer<typeof rivalCandidatesSchema>;
 export type SetRivalsRequest = z.infer<typeof setRivalsRequestSchema>;
-export type CompetitionWeekStanding = z.infer<typeof competitionWeekStandingSchema>;
+export type Competitor = z.infer<typeof competitorSchema>;
 export type CompetitionExerciseEntry = z.infer<typeof competitionExerciseEntrySchema>;
 export type CompetitionExercise = z.infer<typeof competitionExerciseSchema>;
 export type Competition = z.infer<typeof competitionSchema>;
