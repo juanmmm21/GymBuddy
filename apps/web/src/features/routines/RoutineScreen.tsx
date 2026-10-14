@@ -191,8 +191,9 @@ function RoutineBody({ routine, exercises }: RoutineBodyProps) {
       )}
 
       <div className={styles.add}>
+        {/* Secundario: el bloque lima de la pantalla es empezar la rutina, no editarla. */}
         <Button
-          size="lg"
+          variant="secondary"
           fullWidth
           disabled={full || reorder.isPending}
           onClick={() => {
