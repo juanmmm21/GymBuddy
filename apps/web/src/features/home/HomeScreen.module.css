@@ -47,7 +47,7 @@
   width: var(--gb-space-sm);
   height: var(--gb-space-sm);
   border-radius: var(--gb-radius-pill);
-  background: var(--gb-color-success);
+  background: var(--gb-color-on-inverse);
   animation: pulse var(--gb-duration-ambient) var(--gb-ease-standard) infinite;
 }
 
@@ -71,7 +71,7 @@
 .liveClock {
   font-family: var(--gb-font-display);
   font-stretch: var(--gb-font-width-condensed);
-  font-size: calc(var(--gb-type-display-size) * 1.4);
+  font-size: calc(var(--gb-type-display-size) * 1.6);
   font-weight: var(--gb-type-display-weight);
   line-height: 1;
   letter-spacing: var(--gb-type-display-tracking);
@@ -142,14 +142,30 @@
 
 /* ---------- Sin sesión: empezar ---------- */
 
-.start {
+.startStack {
   display: flex;
   flex-direction: column;
   gap: var(--gb-space-md);
 }
 
+/* El bloque lima: lo único de Hoy que se pulsa sin pensar. */
+.start {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gb-space-sm);
+  padding: var(--gb-space-xl) var(--gb-space-lg);
+  border-radius: var(--gb-radius-lg);
+  background: var(--gb-color-inverse-surface);
+  color: var(--gb-color-on-inverse);
+  text-decoration: none;
+  transition: transform var(--gb-duration-fast) var(--gb-ease-standard);
+}
+
+.start:active {
+  transform: scale(0.99);
+}
+
 .startLabel {
-  color: var(--gb-color-text-muted);
   font-size: var(--gb-type-label-size);
   font-weight: var(--gb-type-label-weight);
   line-height: var(--gb-type-label-line);
@@ -159,32 +175,17 @@
 
 .startTitle {
   font-family: var(--gb-font-display);
-  font-stretch: var(--gb-font-width-condensed);
-  font-size: var(--gb-type-headline-size);
-  font-weight: var(--gb-type-headline-weight);
-  line-height: var(--gb-type-headline-line);
-  letter-spacing: var(--gb-type-headline-tracking);
+  font-size: var(--gb-type-display-size);
+  font-weight: var(--gb-type-display-weight);
+  line-height: var(--gb-type-display-line);
+  text-transform: uppercase;
 }
 
-/* Enlace con aspecto de acción principal: la sesión es lo único que se pulsa en Hoy. */
-.cta {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: var(--gb-size-touch-target);
-  padding: var(--gb-space-md) var(--gb-space-xl);
-  border-radius: var(--gb-radius-md);
-  background: var(--gb-color-accent);
-  color: var(--gb-color-on-accent);
+.startHint {
+  color: var(--gb-color-on-inverse-muted);
   font-size: var(--gb-type-body-strong-size);
   font-weight: var(--gb-type-body-strong-weight);
   line-height: var(--gb-type-body-strong-line);
-  text-decoration: none;
-  transition: background-color var(--gb-duration-fast) var(--gb-ease-standard);
-}
-
-.cta:active {
-  background: var(--gb-color-accent-strong);
 }
 
 /* ---------- Cómo vas ---------- */
@@ -202,31 +203,31 @@
   gap: var(--gb-space-xs);
   min-width: 0;
   padding: var(--gb-space-md);
-  border: var(--gb-size-border-width) solid var(--gb-color-border);
   border-radius: var(--gb-radius-md);
   background: var(--gb-color-surface);
 }
 
 .metricLabel {
   color: var(--gb-color-text-muted);
-  font-size: var(--gb-type-label-size);
-  font-weight: var(--gb-type-label-weight);
-  line-height: var(--gb-type-label-line);
-  letter-spacing: var(--gb-type-label-tracking);
-  text-transform: uppercase;
+  font-size: var(--gb-type-caption-size);
+  line-height: var(--gb-type-caption-line);
 }
 
+/* La cifra manda y la etiqueta va debajo, como en un marcador. */
 .metricValue,
 .recordValue {
   font-family: var(--gb-font-display);
-  font-stretch: var(--gb-font-width-condensed);
-  font-size: var(--gb-type-title-size);
+  font-size: var(--gb-type-headline-size);
   font-weight: var(--gb-type-headline-weight);
-  line-height: var(--gb-type-title-line);
+  line-height: var(--gb-type-headline-line);
 }
 
 .recordValue {
   color: var(--gb-color-record);
+  /* El récord lleva unidad («480 kg»): baja un escalón para caber en un tercio de pantalla. */
+  font-size: var(--gb-type-title-size);
+  line-height: var(--gb-type-title-line);
+  white-space: nowrap;
 }
 
 /* Un solo botón redondo: la cabecera de Hoy no puede empujar la sesión fuera de la pantalla. */
@@ -260,6 +261,8 @@
   gap: var(--gb-space-md);
   min-height: var(--gb-size-touch-target);
   padding: var(--gb-space-md) var(--gb-space-lg);
+  border: var(--gb-size-border-width) solid var(--gb-color-border);
+  border-radius: var(--gb-radius-md);
   color: var(--gb-color-text);
   text-decoration: none;
   transition: background-color var(--gb-duration-fast) var(--gb-ease-standard);
@@ -278,18 +281,34 @@
 }
 
 .competitionTitle {
-  font-size: var(--gb-type-body-strong-size);
-  font-weight: var(--gb-type-body-strong-weight);
-  line-height: var(--gb-type-body-strong-line);
+  color: var(--gb-color-text-muted);
+  font-size: var(--gb-type-label-size);
+  font-weight: var(--gb-type-label-weight);
+  line-height: var(--gb-type-label-line);
+  letter-spacing: var(--gb-type-label-tracking);
+  text-transform: uppercase;
 }
 
 .competitionDescription {
-  color: var(--gb-color-text-secondary);
-  font-size: var(--gb-type-caption-size);
-  line-height: var(--gb-type-caption-line);
+  color: var(--gb-color-text);
+  font-size: var(--gb-type-body-size);
+  line-height: var(--gb-type-body-line);
 }
 
 .competitionChevron {
   color: var(--gb-color-text-muted);
   font-size: var(--gb-type-title-size);
+}
+
+.competitionScore {
+  flex-shrink: 0;
+  font-family: var(--gb-font-display);
+  font-size: var(--gb-type-headline-size);
+  font-weight: var(--gb-type-headline-weight);
+  line-height: var(--gb-type-headline-line);
+}
+
+.competitionDash {
+  padding: 0 var(--gb-space-xs);
+  color: var(--gb-color-border-strong);
 }

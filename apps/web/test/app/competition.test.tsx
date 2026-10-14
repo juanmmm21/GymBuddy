@@ -103,6 +103,22 @@ describe('competir con amigos', () => {
     expect(await screen.findByRole('heading', { name: 'Competir' })).toBeInTheDocument();
   });
 
+  it('en Hoy, con rivales, la entrada enseña el marcador contra el primero', async () => {
+    renderApp({
+      path: '/',
+      session,
+      setup: (fake) => {
+        fake.on('GET', '/stats/signals', () => jsonResponse(signals));
+        fake.on('GET', '/stats/week', () => jsonResponse(weeklyCalendar));
+        serveCompetition(fake, withAna);
+      },
+    });
+
+    const teaser = await screen.findByRole('link', { name: /Tú contra Ana/ });
+    expect(teaser).toHaveAttribute('href', '/competition');
+    expect(within(teaser).getByLabelText('Marcador: tú 1, Ana 1')).toBeInTheDocument();
+  });
+
   it('sin rivales lo dice y ofrece elegirlos', async () => {
     renderApp({ path: '/competition', session, setup: serveCompetition });
 

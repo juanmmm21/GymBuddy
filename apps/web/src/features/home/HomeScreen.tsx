@@ -5,13 +5,13 @@ import {
   type TrainingSignals,
   type WorkoutSessionDetail,
 } from '@gymbuddy/shared';
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { Link } from 'react-router';
-import { useTrackedExercises, useTrainingSignals } from '../../api/queries';
+import { useCompetition, useTrackedExercises, useTrainingSignals } from '../../api/queries';
 import { useSession } from '../../auth/SessionProvider';
 import { ScreenHeader } from '../../app/ScreenHeader';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
-import { Badge, CountUp, Notice, PlateStack, Surface } from '../../components/index';
+import { Badge, CountUp, Notice, PlateStack } from '../../components/index';
 import { useNow } from '../../hooks/use-now';
 import {
   formatDaysAgo,
@@ -24,6 +24,7 @@ import {
 } from '../../lib/format';
 import { elapsedSecondsSince } from '../../lib/time';
 import { COMPETITION_PATH } from '../competition/paths';
+import { boardAgainst } from '../competition/standings';
 import { drawsPlates } from '../exercises/equipment';
 import { RECORD_LABELS } from '../exercises/labels';
 import { LiveMascot } from '../mascot/LiveMascot';
@@ -94,25 +95,17 @@ function SignalsSummary({ signals, locale }: SignalsSummaryProps) {
 
       <section className={styles.metrics} aria-label="Cómo vas">
         <Metric
-          label="Racha"
-          value={
-            <CountUp
-              value={signals.weeklyStreak}
-              format={(weeks) => pluralize(weeks, 'semana', 'semanas')}
-            />
-          }
+          label={signals.weeklyStreak === 1 ? 'semana de racha' : 'semanas de racha'}
+          spoken={`Racha: ${pluralize(signals.weeklyStreak, 'semana', 'semanas')}`}
+          value={<CountUp value={signals.weeklyStreak} format={String} />}
         />
         <Metric
-          label="Esta semana"
-          value={
-            <CountUp
-              value={signals.sessionsThisWeek}
-              format={(sessions) => pluralize(sessions, 'sesión', 'sesiones')}
-            />
-          }
+          label={signals.sessionsThisWeek === 1 ? 'sesión esta semana' : 'sesiones esta semana'}
+          spoken={`Esta semana: ${pluralize(signals.sessionsThisWeek, 'sesión', 'sesiones')}`}
+          value={<CountUp value={signals.sessionsThisWeek} format={String} />}
         />
         {signals.latestRecord === null ? (
-          <Metric label="Último récord" value="—" />
+          <Metric label="último récord" spoken="Último récord: ninguno" value="—" />
         ) : (
           <LatestRecordMetric record={signals.latestRecord} locale={locale} />
         )}
@@ -120,20 +113,7 @@ function SignalsSummary({ signals, locale }: SignalsSummaryProps) {
 
       <WeekCalendar locale={locale} />
 
-      {/* Debajo de la semana: es la misma semana, comparada con la de los amigos. */}
-      <Surface padding="none">
-        <Link to={COMPETITION_PATH} className={styles.competition}>
-          <span className={styles.competitionText}>
-            <span className={styles.competitionTitle}>Competir con amigos</span>
-            <span className={styles.competitionDescription}>
-              Quién entrena más esta semana y quién levanta más.
-            </span>
-          </span>
-          <span className={styles.competitionChevron} aria-hidden="true">
-            ›
-          </span>
-        </Link>
-      </Surface>
+      <CompetitionTeaser />
 
       {signals.stalled.length > 0 && (
         <Notice
@@ -144,6 +124,50 @@ function SignalsSummary({ signals, locale }: SignalsSummaryProps) {
         </Notice>
       )}
     </div>
+  );
+}
+
+/**
+ * La entrada a competir, debajo de la semana. Con rivales enseña el marcador contra el primero —lo
+ * que de verdad invita a entrar—; sin ellos, o mientras no ha llegado, solo dice qué hay dentro.
+ */
+function CompetitionTeaser() {
+  const competition = useCompetition();
+  const rival = competition.data?.rivals[0];
+  const board =
+    competition.data === undefined || rival === undefined
+      ? null
+      : boardAgainst(competition.data, rival);
+
+  return (
+    <Link to={COMPETITION_PATH} className={styles.competition}>
+      <span className={styles.competitionText}>
+        <span className={styles.competitionTitle}>
+          {board === null ? 'Competir con amigos' : `Tú contra ${board.rival.displayName}`}
+        </span>
+        <span className={styles.competitionDescription}>
+          {board === null
+            ? 'Quién levanta más en cada ejercicio.'
+            : 'Peso máximo, ejercicio a ejercicio.'}
+        </span>
+      </span>
+      {board === null ? (
+        <span className={styles.competitionChevron} aria-hidden="true">
+          ›
+        </span>
+      ) : (
+        <span
+          className={styles.competitionScore}
+          aria-label={`Marcador: tú ${String(board.wins)}, ${board.rival.displayName} ${String(board.losses)}`}
+        >
+          {board.wins}
+          <span className={styles.competitionDash} aria-hidden="true">
+            –
+          </span>
+          {board.losses}
+        </span>
+      )}
+    </Link>
   );
 }
 
@@ -164,11 +188,11 @@ function LatestRecordMetric({ record, locale }: LatestRecordMetricProps) {
 
   return (
     <div className={styles.metric}>
-      <span className={styles.metricLabel}>Último récord</span>
       <span className={styles.recordValue}>
         {formatRecordValueLabel(record, locale, unilateral)}
       </span>
       <Badge tone="record">{RECORD_LABELS[record.kind]}</Badge>
+      <span className={styles.metricLabel}>Último récord</span>
     </div>
   );
 }
@@ -236,35 +260,58 @@ interface StartCardProps {
   readonly daysSinceLastSession: number | null;
 }
 
-/** Sin sesión abierta, empezar ocupa el mismo sitio: vacía o con una rutina. */
+/**
+ * Sin sesión abierta, empezar ocupa el mismo sitio y con el mismo peso: el bloque lima de la
+ * dirección «Marcador». La tarjeta entera es el enlace, como la de la sesión en curso; los atajos
+ * de las rutinas van debajo, fuera del bloque, para que no compitan con él.
+ */
 function StartCard({ lastSessionAt, daysSinceLastSession }: StartCardProps) {
+  const lastId = useId();
   return (
-    <Surface as="section" className={styles.start} aria-label="Empezar a entrenar">
-      <p className={styles.startLabel}>
-        {lastSessionAt === null || daysSinceLastSession === null
-          ? 'Todavía no has entrenado'
-          : `Última sesión: ${formatDaysAgo(daysSinceLastSession)}`}
-      </p>
-      <p className={styles.startTitle}>
-        {lastSessionAt === null ? 'Cuando quieras, empezamos' : '¿Entrenamos?'}
-      </p>
-      <Link to={SESSION_PATH} className={styles.cta}>
-        Empezar a entrenar
+    <section className={styles.startStack} aria-label="Empezar a entrenar">
+      {/* El nombre es la acción; cuándo fue la última sesión va de descripción, no delante. */}
+      <Link
+        to={SESSION_PATH}
+        className={styles.start}
+        aria-label="Empezar a entrenar"
+        aria-describedby={lastId}
+      >
+        <span id={lastId} className={styles.startLabel}>
+          {lastSessionAt === null || daysSinceLastSession === null
+            ? 'Todavía no has entrenado'
+            : `Última sesión: ${formatDaysAgo(daysSinceLastSession)}`}
+        </span>
+        <span className={styles.startTitle}>Empezar a entrenar</span>
+        <span className={styles.startHint}>
+          {lastSessionAt === null ? 'Cuando quieras, empezamos' : '¿Entrenamos?'}
+        </span>
       </Link>
       <RoutineShortcuts />
-    </Surface>
+    </section>
   );
 }
 
 /**
- * Una casilla de «Cómo vas». El valor es un nodo y no un texto porque las cifras cuentan hasta
- * su número al entrar (`CountUp`), y el guion de una casilla vacía no cuenta nada.
+ * Una casilla de «Cómo vas»: la cifra enorme y lo que cuenta debajo, como en un marcador. La cifra
+ * cuenta hasta su número al entrar (`CountUp`), así que se lee entera por el nombre de la casilla.
  */
-function Metric({ label, value }: { readonly label: string; readonly value: ReactNode }) {
+function Metric({
+  label,
+  spoken,
+  value,
+}: {
+  readonly label: string;
+  readonly spoken: string;
+  readonly value: ReactNode;
+}) {
   return (
-    <div className={styles.metric}>
-      <span className={styles.metricLabel}>{label}</span>
-      <span className={styles.metricValue}>{value}</span>
+    <div className={styles.metric} role="group" aria-label={spoken}>
+      <span className={styles.metricValue} aria-hidden="true">
+        {value}
+      </span>
+      <span className={styles.metricLabel} aria-hidden="true">
+        {label}
+      </span>
     </div>
   );
 }

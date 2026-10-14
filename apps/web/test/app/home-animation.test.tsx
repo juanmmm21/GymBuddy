@@ -78,8 +78,8 @@ describe('las cifras de Hoy', () => {
     renderApp({ path: '/', session, setup: serveHome });
 
     const metrics = within(await screen.findByRole('region', { name: 'Cómo vas' }));
-    expect(metrics.getByText('3 semanas')).toBeInTheDocument();
-    expect(metrics.getByText('1 sesión')).toBeInTheDocument();
+    expect(metrics.getByRole('group', { name: 'Racha: 3 semanas' })).toBeInTheDocument();
+    expect(metrics.getByRole('group', { name: 'Esta semana: 1 sesión' })).toBeInTheDocument();
     // Nada se queda contando: en el árbol accesible está el número de verdad.
     expect(document.querySelectorAll('[data-counting]')).toHaveLength(0);
   });

@@ -25,8 +25,8 @@ describe('pantallas del shell', () => {
       },
     });
 
-    expect(await screen.findByText('3 semanas')).toBeInTheDocument();
-    expect(screen.getByText('1 sesión')).toBeInTheDocument();
+    expect(await screen.findByRole('group', { name: 'Racha: 3 semanas' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Esta semana: 1 sesión' })).toBeInTheDocument();
     expect(screen.getByText('Última sesión: ayer')).toBeInTheDocument();
     expect(screen.getByText('85 kg')).toBeInTheDocument();
     expect(screen.getByText('Peso máximo')).toBeInTheDocument();

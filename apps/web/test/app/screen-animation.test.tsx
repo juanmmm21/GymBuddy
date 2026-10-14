@@ -34,14 +34,14 @@ describe('la pantalla que entra se mueve', () => {
   it('la primera pantalla de la app no se mueve', async () => {
     renderApp({ path: '/', session, setup: stubTrainingScreens });
 
-    expect(await screen.findByText('3 semanas')).toBeInTheDocument();
+    expect(await screen.findByRole('group', { name: 'Racha: 3 semanas' })).toBeInTheDocument();
     expect(enteredFrom()).toBe('none');
   });
 
   it('entre pestañas entra por el lado al que se ha ido, y vuelve por el otro', async () => {
     const user = userEvent.setup();
     renderApp({ path: '/', session, setup: stubTrainingScreens });
-    await screen.findByText('3 semanas');
+    await screen.findByRole('group', { name: 'Racha: 3 semanas' });
 
     const bar = screen.getByRole('navigation', { name: 'Secciones' });
 

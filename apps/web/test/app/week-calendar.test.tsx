@@ -108,7 +108,7 @@ describe('mini calendario de la semana', () => {
 
     expect(await screen.findByText('No se pudo cargar')).toBeInTheDocument();
     // Las señales son otra consulta: su fallo no se lleva por delante la pantalla entera.
-    expect(screen.getByText('3 semanas')).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Racha: 3 semanas' })).toBeInTheDocument();
   });
 
   it('sin haber entrenado nunca no se pide la semana: no hay nada que repartir', async () => {
