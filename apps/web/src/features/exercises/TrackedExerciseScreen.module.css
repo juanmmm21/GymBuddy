@@ -38,10 +38,11 @@
 
 .sectionTitle {
   margin-bottom: var(--gb-space-md);
+  font-family: var(--gb-font-display);
   font-size: var(--gb-type-title-size);
-  font-weight: var(--gb-type-title-weight);
+  font-weight: var(--gb-type-display-weight);
   line-height: var(--gb-type-title-line);
-  letter-spacing: var(--gb-type-title-tracking);
+  text-transform: uppercase;
 }
 
 .working {
@@ -99,7 +100,11 @@
 }
 
 .recordValue {
-  font-weight: var(--gb-type-body-strong-weight);
+  flex-shrink: 0;
+  font-family: var(--gb-font-display);
+  font-size: var(--gb-type-title-size);
+  font-weight: var(--gb-type-display-weight);
+  line-height: var(--gb-type-title-line);
 }
 
 .recordDate {
