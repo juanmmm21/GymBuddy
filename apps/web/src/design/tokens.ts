@@ -4,8 +4,6 @@
  * llega a las hojas CSS como variables `--gb-*` (ver `theme.ts`).
  */
 
-export type ColorScheme = 'light' | 'dark';
-
 // Alias de tipo y no `interface`: sin firma de índice implícita, `Object.entries` los
 // devolvería como `any` al generar las variables CSS.
 export type ColorTokens = {
@@ -64,85 +62,48 @@ export type ColorTokens = {
 };
 
 /**
- * Paleta «Discos» (elegida por Juan el 2026-09-14): los colores de los discos de competición
- * dan significado en vez de decorar. El azul del de 20 kg es la acción y el rojo del de 25 kg,
- * el récord. Los neutros tiran a azul para que el acento no parezca pegado encima. Todos los pares
- * de texto y fondo pasan 4,5:1 de contraste (WCAG AA), y un test lo vigila: la app se lee de un
- * vistazo entre series, con la mano sudada y a medio brazo.
+ * Paleta «Marcador» (elegida por Juan el 2026-10-14 entre seis maquetas; sustituye a «Discos»):
+ * fondo casi negro, cifras blancas enormes y un verde lima que es la acción y lo que vas ganando.
+ * El rojo se queda para el récord. Es un solo tema, oscuro: se pensó para leerse en un gimnasio, y
+ * un tema claro sería otra dirección. Todos los pares de texto y fondo pasan 4,5:1 (WCAG AA), y un
+ * test lo vigila.
  */
-export const colors: Readonly<Record<ColorScheme, ColorTokens>> = {
-  light: {
-    canvas: '#f3f5f8',
-    surface: '#ffffff',
-    surfaceRaised: '#ffffff',
-    surfaceSunken: '#e9edf2',
-    border: '#e2e6ec',
-    borderStrong: '#c3cad5',
-    text: '#121826',
-    textSecondary: '#3d4658',
-    textMuted: '#5f687a',
-    accent: '#1f5fbf',
-    accentStrong: '#174a96',
-    onAccent: '#ffffff',
-    accentSoft: '#e7effb',
-    success: '#1b7541',
-    successSoft: '#e4f3ea',
-    warning: '#8f5f00',
-    warningSoft: '#fff3d1',
-    danger: '#c4213a',
-    dangerSoft: '#fde8eb',
-    record: '#d7263d',
-    onRecord: '#ffffff',
-    inverseSurface: '#121826',
-    onInverse: '#ffffff',
-    onInverseMuted: '#b9c2d3',
-    plate25: '#d7263d',
-    plate20: '#1f5fbf',
-    plate15: '#e8a900',
-    plate10: '#2e9e5b',
-    plate5: '#f4f5f7',
-    plate2p5: '#2b3140',
-    plate1p25: '#9aa3b0',
-    plateBar: '#8f98a6',
-    focusRing: '#1f5fbf',
-    overlay: 'rgba(18, 24, 38, 0.55)',
-  },
-  dark: {
-    canvas: '#0e1117',
-    surface: '#171b23',
-    surfaceRaised: '#1f2530',
-    surfaceSunken: '#0a0d12',
-    border: '#282e39',
-    borderStrong: '#3b4350',
-    text: '#eef1f6',
-    textSecondary: '#b6bdca',
-    textMuted: '#8b93a2',
-    accent: '#6f9dff',
-    accentStrong: '#93b5ff',
-    onAccent: '#0a1530',
-    accentSoft: '#16233d',
-    success: '#4cc47f',
-    successSoft: '#0f2a1b',
-    warning: '#f2b705',
-    warningSoft: '#33290a',
-    danger: '#ff6b7d',
-    dangerSoft: '#3a1419',
-    record: '#ff5a6e',
-    onRecord: '#1f0006',
-    inverseSurface: '#1a2b4c',
-    onInverse: '#eef1f6',
-    onInverseMuted: '#aebbd2',
-    plate25: '#f0485c',
-    plate20: '#4f86e8',
-    plate15: '#f2b705',
-    plate10: '#3fb872',
-    plate5: '#e9ecf1',
-    plate2p5: '#6b7484',
-    plate1p25: '#c3cad5',
-    plateBar: '#6b7484',
-    focusRing: '#6f9dff',
-    overlay: 'rgba(0, 0, 0, 0.6)',
-  },
+export const colors: ColorTokens = {
+  canvas: '#0b0c0e',
+  surface: '#16181c',
+  surfaceRaised: '#1d2025',
+  surfaceSunken: '#08090a',
+  border: '#26292f',
+  borderStrong: '#3a3e45',
+  text: '#f2f3f5',
+  textSecondary: '#c3c7ce',
+  textMuted: '#9aa0a9',
+  accent: '#c8ff3d',
+  accentStrong: '#e4ff9e',
+  onAccent: '#0b0c0e',
+  accentSoft: '#1f2610',
+  success: '#3ddc84',
+  successSoft: '#0f2519',
+  warning: '#ffb23d',
+  warningSoft: '#2e220c',
+  danger: '#ff7a70',
+  dangerSoft: '#341513',
+  record: '#ff5a4f',
+  onRecord: '#0b0c0e',
+  // La superficie que manda —la sesión en curso, empezar— es el propio lima, con texto negro.
+  inverseSurface: '#c8ff3d',
+  onInverse: '#0b0c0e',
+  onInverseMuted: '#2f3b0e',
+  plate25: '#ff5a4f',
+  plate20: '#4f86e8',
+  plate15: '#f2b705',
+  plate10: '#3ddc84',
+  plate5: '#f2f3f5',
+  plate2p5: '#5c626b',
+  plate1p25: '#c3c7ce',
+  plateBar: '#5c626b',
+  focusRing: '#c8ff3d',
+  overlay: 'rgba(0, 0, 0, 0.72)',
 };
 
 /** Escala de espaciado en píxeles, en múltiplos de 4. */
@@ -158,7 +119,7 @@ export const spacing = {
 } as const;
 
 export const radius = {
-  sm: 8,
+  sm: 10,
   md: 14,
   lg: 20,
   /** Suficiente para que cualquier caja salga redondeada del todo. */
@@ -168,40 +129,40 @@ export const radius = {
 export interface TypeStyle {
   readonly size: number;
   readonly lineHeight: number;
-  readonly weight: 400 | 500 | 600 | 700;
+  readonly weight: 400 | 500 | 600 | 700 | 800;
   readonly letterSpacing: number;
 }
 
 /**
- * El texto corrido va con la fuente del sistema: pinta en el primer fotograma. Títulos y cifras
- * van con Archivo estrecha, que viaja **dentro de la app** (`@fontsource-variable/archivo`,
- * importada en `main.tsx`) y se precachea con el shell: en un gimnasio sin cobertura no se
- * descarga nada. Si aún no ha cargado, cae a una estrecha del sistema. Los números usan cifras
- * tabulares para que el peso no baile al cambiar de 80.00 a 82.50 (ver `global.css`).
+ * Barlow para el texto y Barlow Condensed para títulos y cifras: la de marcador deportivo, que mete
+ * un peso con decimales en poco ancho. Las dos viajan **dentro de la app** (`@fontsource/*`,
+ * importadas en `main.tsx`) y se precachean con el shell: en un gimnasio sin cobertura no se
+ * descarga nada. Los números usan cifras tabulares para que el peso no baile (ver `global.css`).
  */
 export const fontFamilies = {
-  sans: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
-  display: "'Archivo Variable', 'Arial Narrow', -apple-system, BlinkMacSystemFont, sans-serif",
+  sans: "Barlow, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  display: "'Barlow Condensed', 'Arial Narrow', -apple-system, BlinkMacSystemFont, sans-serif",
   mono: "ui-monospace, 'SF Mono', Menlo, Consolas, monospace",
 } as const;
 
 /**
- * Anchuras del eje `wdth` de Archivo. Estrecha, un peso con sus decimales y el récord caben en
- * una línea de móvil sin encoger la letra.
+ * La anchura que piden las hojas con `font-stretch`. Barlow Condensed ya es estrecha de por sí, así
+ * que se queda en la normal; el token sigue para que una fuente variable pueda volver a usarlo.
  */
 export const fontWidths = {
-  condensed: '78%',
+  condensed: '100%',
 } as const;
 
 export const typography: Readonly<Record<TypeRole, TypeStyle>> = {
-  // Display y headline van en Archivo estrecha: a igual tamaño ocupan menos, así que suben un punto.
-  display: { size: 44, lineHeight: 46, weight: 700, letterSpacing: -0.4 },
-  headline: { size: 32, lineHeight: 36, weight: 700, letterSpacing: -0.2 },
-  title: { size: 20, lineHeight: 26, weight: 600, letterSpacing: -0.2 },
+  // Display y headline van en Barlow Condensed: estrecha, así que crecen mucho sin partir líneas.
+  display: { size: 56, lineHeight: 52, weight: 800, letterSpacing: 0 },
+  headline: { size: 40, lineHeight: 40, weight: 800, letterSpacing: 0 },
+  title: { size: 22, lineHeight: 26, weight: 700, letterSpacing: 0 },
   body: { size: 16, lineHeight: 22, weight: 400, letterSpacing: 0 },
   bodyStrong: { size: 16, lineHeight: 22, weight: 600, letterSpacing: 0 },
   caption: { size: 13, lineHeight: 18, weight: 400, letterSpacing: 0 },
-  label: { size: 12, lineHeight: 16, weight: 600, letterSpacing: 0.4 },
+  // Las etiquetas van en mayúsculas espaciadas, como los rótulos de un marcador.
+  label: { size: 13, lineHeight: 16, weight: 600, letterSpacing: 1.8 },
 };
 
 export type TypeRole =
@@ -261,15 +222,9 @@ export const motionShift = {
   nudge: 8,
 } as const;
 
-export const elevation: Readonly<Record<ColorScheme, ElevationTokens>> = {
-  light: {
-    raised: '0 1px 2px rgba(18, 24, 38, 0.06), 0 4px 12px rgba(18, 24, 38, 0.08)',
-    sheet: '0 -8px 32px rgba(18, 24, 38, 0.18)',
-  },
-  dark: {
-    raised: '0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.5)',
-    sheet: '0 -8px 32px rgba(0, 0, 0, 0.6)',
-  },
+export const elevation: ElevationTokens = {
+  raised: '0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.5)',
+  sheet: '0 -8px 32px rgba(0, 0, 0, 0.6)',
 };
 
 export type ElevationTokens = {
@@ -309,7 +264,4 @@ export const bodyMapOpacity = {
 } as const;
 
 /** Color que se anuncia al sistema en `theme-color`: la barra de estado acompaña al fondo. */
-export const themeColorMeta: Readonly<Record<ColorScheme, string>> = {
-  light: colors.light.canvas,
-  dark: colors.dark.canvas,
-};
+export const themeColorMeta = colors.canvas;

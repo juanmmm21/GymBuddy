@@ -2,17 +2,20 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { registerSW } from 'virtual:pwa-register';
 import { App } from './app/App';
-import { installTheme, watchColorScheme } from './design/theme';
+import { installTheme } from './design/theme';
 import { captureInstallPrompt } from './features/install/install-prompt';
 import { readBrowserEnvironment } from './features/install/platform';
-// Archivo con su eje de anchura: la fuente de títulos y cifras viaja en el bundle y se precachea.
-import '@fontsource-variable/archivo/wdth.css';
+// Las fuentes viajan en el bundle y se precachean: solo los pesos que usan las hojas.
+import '@fontsource/barlow/400.css';
+import '@fontsource/barlow/500.css';
+import '@fontsource/barlow/600.css';
+import '@fontsource/barlow-condensed/600.css';
+import '@fontsource/barlow-condensed/700.css';
+import '@fontsource/barlow-condensed/800.css';
 import './design/global.css';
 
 // Los tokens se aplican antes del primer render: sin ellos no hay ni un color en pantalla.
-watchColorScheme(window, (scheme) => {
-  installTheme(document, scheme);
-});
+installTheme(document);
 
 // El service worker se actualiza solo: en una app de una persona no hay que pedir permiso.
 registerSW({ immediate: true });

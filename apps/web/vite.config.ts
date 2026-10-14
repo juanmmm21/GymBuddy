@@ -29,10 +29,9 @@ export default defineConfig({
         orientation: 'portrait',
         start_url: '/',
         scope: '/',
-        // Los colores del manifiesto son los del tema claro: el manifiesto no sabe de
-        // esquemas y el sistema los usa para la pantalla de arranque y la barra de estado.
-        background_color: colors.light.canvas,
-        theme_color: colors.light.canvas,
+        // El sistema los usa para la pantalla de arranque y la barra de estado: el fondo de la app.
+        background_color: colors.canvas,
+        theme_color: colors.canvas,
         icons: [
           { src: 'pwa-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'pwa-512.png', sizes: '512x512', type: 'image/png' },

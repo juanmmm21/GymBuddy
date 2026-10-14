@@ -1,38 +1,26 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { cssVariablesFor, installTheme, watchColorScheme } from '../../src/design/theme';
-import {
-  colors,
-  motionDuration,
-  type ColorScheme,
-  type ColorTokens,
-} from '../../src/design/tokens';
+import { cssVariablesFor, installTheme } from '../../src/design/theme';
+import { colors, motionDuration, type ColorTokens } from '../../src/design/tokens';
 import { TICK_INTERVAL_MS } from '../../src/hooks/use-now';
 
 // Ruta relativa a la raíz del paquete: vitest arranca ahí, y bajo jsdom `import.meta.url` no es un fichero.
 const SRC_DIR = join(process.cwd(), 'src');
 
 describe('tokens de diseño', () => {
-  it('los dos esquemas definen exactamente las mismas variables', () => {
-    const light = Object.keys(cssVariablesFor('light')).sort();
-    const dark = Object.keys(cssVariablesFor('dark')).sort();
-    expect(dark).toEqual(light);
-    expect(light.length).toBeGreaterThan(40);
-  });
-
-  it('cada color del tema claro tiene su pareja en el oscuro', () => {
-    expect(Object.keys(colors.dark).sort()).toEqual(Object.keys(colors.light).sort());
+  it('genera el juego completo de variables', () => {
+    expect(Object.keys(cssVariablesFor()).length).toBeGreaterThan(40);
   });
 
   it('traduce los nombres camelCase a kebab-case con el prefijo del proyecto', () => {
-    const variables = cssVariablesFor('light');
-    expect(variables['--gb-color-on-accent']).toBe(colors.light.onAccent);
+    const variables = cssVariablesFor();
+    expect(variables['--gb-color-on-accent']).toBe(colors.onAccent);
     expect(variables['--gb-space-md']).toBe('12px');
     expect(variables['--gb-duration-base']).toBe('200ms');
     expect(variables['--gb-type-body-strong-weight']).toBe('600');
-    expect(variables['--gb-font-width-condensed']).toBe('78%');
-    expect(variables['--gb-color-on-record']).toBe(colors.light.onRecord);
+    expect(variables['--gb-font-width-condensed']).toBe('100%');
+    expect(variables['--gb-color-on-record']).toBe(colors.onRecord);
     expect(variables['--gb-opacity-body-map-level1']).toBe('0.45');
   });
 
@@ -81,12 +69,10 @@ const READABLE_PAIRS: readonly (readonly [keyof ColorTokens, keyof ColorTokens])
 ];
 
 describe('contraste de la paleta', () => {
-  const schemes: readonly ColorScheme[] = ['light', 'dark'];
-
-  it.each(schemes)('en el tema %s todo texto pasa 4,5:1 sobre su fondo', (scheme) => {
+  it('todo texto pasa 4,5:1 sobre su fondo', () => {
     const failing = READABLE_PAIRS.map(([foreground, background]) => ({
       pair: `${foreground}/${background}`,
-      ratio: contrastRatio(colors[scheme][foreground], colors[scheme][background]),
+      ratio: contrastRatio(colors[foreground], colors[background]),
     })).filter(({ ratio }) => ratio < 4.5);
 
     expect(failing).toEqual([]);
@@ -99,7 +85,7 @@ describe('contraste de la paleta', () => {
 
 describe('hojas de estilo', () => {
   const cssFiles = listFiles(SRC_DIR, '.css');
-  const knownVariables = new Set(Object.keys(cssVariablesFor('light')));
+  const knownVariables = new Set(Object.keys(cssVariablesFor()));
 
   it('encuentra hojas de estilo que auditar', () => {
     expect(cssFiles.length).toBeGreaterThan(5);
@@ -131,50 +117,16 @@ describe('hojas de estilo', () => {
 
 describe('installTheme', () => {
   it('vuelca las variables en el elemento raíz y anuncia el color al sistema', () => {
-    installTheme(document, 'dark');
+    installTheme(document);
+    installTheme(document);
 
     expect(document.documentElement.style.getPropertyValue('--gb-color-canvas')).toBe(
-      colors.dark.canvas,
+      colors.canvas,
     );
-    expect(document.documentElement.dataset['theme']).toBe('dark');
-    expect(document.head.querySelector('meta[name="theme-color"]')?.getAttribute('content')).toBe(
-      colors.dark.canvas,
-    );
-
-    installTheme(document, 'light');
-    expect(document.documentElement.style.getPropertyValue('--gb-color-canvas')).toBe(
-      colors.light.canvas,
-    );
-    expect(document.head.querySelectorAll('meta[name="theme-color"]')).toHaveLength(1);
-  });
-});
-
-describe('watchColorScheme', () => {
-  it('sigue al sistema y deja de escuchar al cancelar', () => {
-    const listeners = new Set<() => void>();
-    const query = {
-      matches: true,
-      addEventListener: (_: 'change', listener: () => void) => listeners.add(listener),
-      removeEventListener: (_: 'change', listener: () => void) => listeners.delete(listener),
-    };
-    const fakeWindow = { matchMedia: () => query } as unknown as Window;
-    const seen: string[] = [];
-
-    const stop = watchColorScheme(fakeWindow, (scheme) => seen.push(scheme));
-    expect(seen).toEqual(['dark']);
-
-    query.matches = false;
-    for (const listener of listeners) listener();
-    expect(seen).toEqual(['dark', 'light']);
-
-    stop();
-    expect(listeners.size).toBe(0);
-  });
-
-  it('asume el tema claro cuando no existe matchMedia', () => {
-    const seen: string[] = [];
-    watchColorScheme({} as Window, (scheme) => seen.push(scheme));
-    expect(seen).toEqual(['light']);
+    expect(document.documentElement.style.colorScheme).toBe('dark');
+    const metas = document.head.querySelectorAll('meta[name="theme-color"]');
+    expect(metas).toHaveLength(1);
+    expect(metas[0]?.getAttribute('content')).toBe(colors.canvas);
   });
 });
 

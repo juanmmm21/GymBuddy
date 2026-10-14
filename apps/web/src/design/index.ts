@@ -12,6 +12,6 @@ export {
   themeColorMeta,
   typography,
 } from './tokens';
-export type { ColorScheme, ColorTokens, ElevationTokens, TypeRole, TypeStyle } from './tokens';
-export { DARK_SCHEME_QUERY, cssVariablesFor, installTheme, watchColorScheme } from './theme';
+export type { ColorTokens, ElevationTokens, TypeRole, TypeStyle } from './tokens';
+export { cssVariablesFor, installTheme } from './theme';
 export type { CssVariableName, CssVariables } from './theme';

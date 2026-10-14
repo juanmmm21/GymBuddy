@@ -12,7 +12,6 @@ import {
   spacing,
   themeColorMeta,
   typography,
-  type ColorScheme,
 } from './tokens';
 
 /** Nombre de una variable CSS del sistema de diseño. */
@@ -26,13 +25,13 @@ const CSS_VARIABLE_PREFIX = '--gb';
  * Traduce los tokens a variables CSS. Las hojas de estilo solo conocen estos nombres:
  * un `#d9480f` escrito en un `.css` es un error, y un test lo caza.
  */
-export function cssVariablesFor(scheme: ColorScheme): CssVariables {
+export function cssVariablesFor(): CssVariables {
   const variables: Record<CssVariableName, string> = {};
 
-  for (const [name, value] of Object.entries(colors[scheme])) {
+  for (const [name, value] of Object.entries(colors)) {
     variables[variableName('color', kebabCase(name))] = value;
   }
-  for (const [name, value] of Object.entries(elevation[scheme])) {
+  for (const [name, value] of Object.entries(elevation)) {
     variables[variableName('shadow', kebabCase(name))] = value;
   }
   for (const [name, value] of Object.entries(spacing)) {
@@ -74,47 +73,18 @@ export function cssVariablesFor(scheme: ColorScheme): CssVariables {
 }
 
 /**
- * Aplica el esquema sobre el elemento raíz y actualiza `theme-color` para que la barra
- * de estado del sistema acompañe al fondo. Se llama antes del primer render y cada vez
- * que el sistema cambia entre claro y oscuro.
+ * Vuelca los tokens en el elemento raíz y anuncia `theme-color` para que la barra de estado del
+ * sistema acompañe al fondo. Se llama una vez, antes del primer render: hay un solo tema.
  */
-export function installTheme(document: Document, scheme: ColorScheme): void {
+export function installTheme(document: Document): void {
   const root = document.documentElement;
-  for (const [name, value] of Object.entries(cssVariablesFor(scheme))) {
+  for (const [name, value] of Object.entries(cssVariablesFor())) {
     root.style.setProperty(name, value);
   }
-  root.dataset['theme'] = scheme;
-  root.style.colorScheme = scheme;
+  root.style.colorScheme = 'dark';
 
   const meta = ensureThemeColorMeta(document);
-  meta.setAttribute('content', themeColorMeta[scheme]);
-}
-
-export const DARK_SCHEME_QUERY = '(prefers-color-scheme: dark)';
-
-/**
- * Sigue el esquema del sistema y avisa cuando cambia. Devuelve la función que deja de
- * escuchar. Sin `matchMedia` (jsdom, navegadores antiguos) se asume el tema claro.
- */
-export function watchColorScheme(
-  window: Window,
-  onChange: (scheme: ColorScheme) => void,
-): () => void {
-  if (typeof window.matchMedia !== 'function') {
-    onChange('light');
-    return () => undefined;
-  }
-
-  const query = window.matchMedia(DARK_SCHEME_QUERY);
-  const notify = (): void => {
-    onChange(query.matches ? 'dark' : 'light');
-  };
-
-  notify();
-  query.addEventListener('change', notify);
-  return () => {
-    query.removeEventListener('change', notify);
-  };
+  meta.setAttribute('content', themeColorMeta);
 }
 
 function ensureThemeColorMeta(document: Document): HTMLMetaElement {
