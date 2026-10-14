@@ -1,7 +1,7 @@
 # 0011 — Competir con amigos: una casilla, una lista de rivales y nada guardado de la competición
 
 **Fecha:** 2026-10-13
-**Estado:** aceptada y construida.
+**Estado:** aceptada y construida; revisada el 2026-10-14 (solo por peso, sin la semana).
 
 ## Contexto
 
@@ -30,3 +30,12 @@ Juan eligió entre las opciones que se le enseñaron: comparar **la semana y las
 *   **La copia de seguridad en JSON no lleva ni la casilla ni la lista de rivales.** Son de la cuenta y de su relación con otras, no del historial de entrenamiento; al importar una copia en otra cuenta no habría a quién apuntar.
 *   **Quien enciende la casilla se enseña a cualquiera de la app,** no solo a sus amigos. Mientras se entre por invitación y haya pocas cuentas es lo que pidió Juan; si la app creciera, haría falta que el elegido aceptase.
 *   **La cuenta de administración ve la semana y las marcas de quien no ha dado permiso.** Es una excepción consciente y de una sola cuenta —la misma persona que ya tiene acceso a la base—, pensada para poder probar la función.
+
+## Revisión: solo por peso (2026-10-14)
+
+Juan lo probó y corrigió el criterio: **«no competimos por días, solo por peso»**. Eligió entre las opciones que se le dieron que mande el **peso máximo levantado** y que la clasificación de la semana **desaparezca del todo**.
+
+*   **Fuera la semana.** `GET /competition` ya no lee el calendario de nadie: trae `rivals` (los elegidos que siguen compitiendo) y `exercises`. Desaparecen `weekStart`, `week`, `weekTotals` y `rankWeekTotals`. Es también una lectura menos por rival.
+*   **Manda el peso máximo, no el 1RM estimado.** Se lee solo la marca `max_weight` vigente; el cara a cara ordena por ella y el contrato ya no lleva `estimatedOneRepMax`. Un 100 × 1 le gana a un 95 × 8: es lo que se entiende a primera vista en el gimnasio, aunque el 1RM diga otra cosa.
+*   **El marcador es por rival y se cuenta en el móvil**: un punto por ejercicio compartido para quien más levanta, comparando de dos en dos (un tercero que gana a los dos no le quita el punto a ninguno). La pantalla enseña un rival a la vez, con lo que vas perdiendo primero.
+*   Lo demás no cambia: la casilla, la lista en un solo sentido, el permiso mirado al leer y la excepción de la cuenta de administración.

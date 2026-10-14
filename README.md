@@ -19,7 +19,7 @@ It does the things you actually do between sets:
 - **Browse a catalogue of 1,323 exercises** with animated demonstrations, search it in plain language ("face pull", "press banca"), and filter by equipment or body part.
 - **Call an exercise what your gym calls it**: give any catalogue exercise your own name — the label on the machine, say — and it still answers to the original one in search.
 - **Track progression**: working weight, estimated 1RM, volume, personal records, and a plateau warning when an exercise has stopped moving.
-- **Compete with the friends you choose**: a weekly ranking by days trained and a head-to-head on the catalogue exercises you both do. Strictly opt-in — nobody sees your numbers until you switch it on.
+- **Compete with the friends you choose**: a head-to-head on the heaviest weight each of you has lifted in every catalogue exercise you both do, with a running score per rival. Strictly opt-in — nobody sees your numbers until you switch it on.
 - **Record cardio** with duration and distance, including a treadmill finisher that keeps the session open while it runs.
 - **Attach your own photo or video** of the technique to an exercise you created, re-encoded on the phone before it ever leaves it.
 - **Get a rest notification** on the lock screen when the app is closed, over Web Push from the Worker.
@@ -150,7 +150,7 @@ GymBuddy/
 A `workout_session` holds `set_entry` rows, which are a discriminated union: a strength set has weight and reps, a cardio set has duration and an optional distance. Sets are inserts with their own id and timestamp, which is what makes the offline queue safe: they never conflict, they only arrive late. `personal_record` rows are derived from sets and are rewritten inside the same batch whenever a set — or a whole session — is deleted, so the records always match the history that is actually there.
 
 
-Competing adds one flag and one table. `user.competes` is the opt-in: only accounts that have set it can be picked as a rival, and clearing it removes that person from every ranking at read time, without touching anyone's list. `rival` is a one-way pair — choosing someone puts them in *your* ranking, not you in theirs. Nothing is stored about the competition itself: the week is the same aggregation that draws the home calendar, read once per participant, and the head-to-head is the current `personal_record` of each side on a shared `catalogId` ([ADR 0011](docs/decisions/0011-competir-con-amigos.md)).
+Competing adds one flag and one table. `user.competes` is the opt-in: only accounts that have set it can be picked as a rival, and clearing it removes that person from every ranking at read time, without touching anyone's list. `rival` is a one-way pair — choosing someone puts them in *your* ranking, not you in theirs. Nothing is stored about the competition itself: the head-to-head is the current `max_weight` `personal_record` of each side on a shared `catalogId`, and the score is counted on the phone ([ADR 0011](docs/decisions/0011-competir-con-amigos.md)).
 
 ---
 
