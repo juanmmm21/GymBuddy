@@ -1,6 +1,7 @@
 import { useId, useState, type ChangeEvent, type KeyboardEvent } from 'react';
 import { cx } from '../../lib/cx';
 import styles from './NumberField.module.css';
+import { t } from '../../i18n/index';
 
 export interface NumberFieldProps {
   readonly label: string;
@@ -99,7 +100,7 @@ export function NumberField({
             nudge(-1);
           }}
           disabled={disabled || (value ?? min) <= min}
-          aria-label={`Restar una a ${label.toLowerCase()}`}
+          aria-label={t(`Restar una a ${label.toLowerCase()}`, `One less ${label.toLowerCase()}`)}
         >
           −
         </button>
@@ -129,7 +130,7 @@ export function NumberField({
             nudge(1);
           }}
           disabled={disabled || (value ?? min) >= max}
-          aria-label={`Sumar una a ${label.toLowerCase()}`}
+          aria-label={t(`Sumar una a ${label.toLowerCase()}`, `One more ${label.toLowerCase()}`)}
         >
           +
         </button>

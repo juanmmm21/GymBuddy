@@ -20,12 +20,12 @@ import {
   formatExerciseWeightLabel,
   formatShortDate,
   formatWeightValue,
-  PER_ARM,
-  pluralize,
+  perArm,
 } from '../../lib/format';
-import { RECORD_LABELS } from './labels';
+import { recordLabel } from './labels';
 import { markValue, progressionMarks } from './progression-marks';
 import styles from './ProgressionChart.module.css';
+import { t, plural } from '../../i18n/index';
 
 /**
  * El lienzo del SVG. Sus números son unidades del `viewBox`, no píxeles: la gráfica ocupa
@@ -96,11 +96,19 @@ export function ProgressionChart({ points, records, unilateral, locale }: Progre
   if (layout === null) return null;
 
   const marks = progressionMarks(points, records);
-  const summary = `Peso y 1RM estimado en ${pluralize(points.length, 'sesión', 'sesiones')}: de ${formatExerciseWeightLabel(first.topWeight, locale, unilateral)} el ${formatShortDate(first.startedAt, locale)} a ${formatExerciseWeightLabel(last.topWeight, locale, unilateral)} el ${formatShortDate(last.startedAt, locale)}`;
+  const sessions = plural(points.length, ['sesión', 'sesiones'], ['session', 'sessions']);
+  const from = formatExerciseWeightLabel(first.topWeight, locale, unilateral);
+  const fromDate = formatShortDate(first.startedAt, locale);
+  const to = formatExerciseWeightLabel(last.topWeight, locale, unilateral);
+  const toDate = formatShortDate(last.startedAt, locale);
+  const summary = t(
+    `Peso y 1RM estimado en ${sessions}: de ${from} el ${fromDate} a ${to} el ${toDate}`,
+    `Weight and estimated 1RM over ${sessions}: from ${from} on ${fromDate} to ${to} on ${toDate}`,
+  );
 
   return (
     <Surface as="section" className={styles.card}>
-      <h2 className={styles.title}>Progresión</h2>
+      <h2 className={styles.title}>{t('Progresión', 'Progression')}</h2>
 
       <svg
         className={styles.canvas}
@@ -174,7 +182,7 @@ export function ProgressionChart({ points, records, unilateral, locale }: Progre
                 r={MARK_RADIUS}
               >
                 <title>
-                  {`${RECORD_LABELS[mark.record.kind]}: ${formatExerciseWeightLabel(markValue(mark), locale, unilateral)} · ${formatShortDate(mark.point.startedAt, locale)}`}
+                  {`${recordLabel(mark.record.kind)}: ${formatExerciseWeightLabel(markValue(mark), locale, unilateral)} · ${formatShortDate(mark.point.startedAt, locale)}`}
                 </title>
               </circle>
             );
@@ -189,19 +197,21 @@ export function ProgressionChart({ points, records, unilateral, locale }: Progre
         </text>
       </svg>
 
-      <ul className={styles.legend} aria-label="Leyenda de la gráfica">
+      <ul className={styles.legend} aria-label={t('Leyenda de la gráfica', 'Chart legend')}>
         <li className={styles.legendItem}>
           <span className={cx(styles.swatch, styles.weightSwatch)} aria-hidden="true" />
-          {unilateral ? `Peso en kg ${PER_ARM}` : 'Peso en kg'}
+          {unilateral
+            ? t(`Peso en kg ${perArm()}`, `Weight in kg ${perArm()}`)
+            : t('Peso en kg', 'Weight in kg')}
         </li>
         <li className={styles.legendItem}>
           <span className={cx(styles.swatch, styles.oneRepMaxSwatch)} aria-hidden="true" />
-          1RM estimado
+          {t('1RM estimado', 'Estimated 1RM')}
         </li>
         {marks.length > 0 && (
           <li className={styles.legendItem}>
             <span className={cx(styles.swatch, styles.markSwatch)} aria-hidden="true" />
-            Marca personal
+            {t('Marca personal', 'Personal record')}
           </li>
         )}
       </ul>

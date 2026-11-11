@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   exerciseSelectOptions,
   groupExercisesByBodyPart,
-  UNGROUPED_LABEL,
+  ungroupedLabel,
 } from '../../src/features/exercises/grouping';
 import { normalizeNotes } from '../../src/lib/notes';
 import { trackedExercisePath } from '../../src/features/exercises/paths';
@@ -29,7 +29,7 @@ describe('groupExercisesByBodyPart', () => {
     const unclassified = { ...customCurl, bodyPart: null };
     const groups = groupExercisesByBodyPart([unclassified, benchPress]);
 
-    expect(groups.map((group) => group.label)).toEqual(['Pecho', UNGROUPED_LABEL]);
+    expect(groups.map((group) => group.label)).toEqual(['Pecho', ungroupedLabel()]);
     expect(groups[1]?.bodyPart).toBeNull();
   });
 

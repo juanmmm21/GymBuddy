@@ -2,7 +2,7 @@ import type { BodyPart, Locale, ResourceId, SetEntry, TrackedExercise } from '@g
 import { useId, useState } from 'react';
 import { Badge, Notice, SearchField } from '../../components/index';
 import { cx } from '../../lib/cx';
-import { BODY_PART_LABELS } from '../catalog/labels';
+import { bodyPartLabel } from '../catalog/labels';
 import {
   exercisePickerSections,
   NO_PICKER_FILTER,
@@ -78,7 +78,7 @@ export function ExercisePicker({
           {bodyParts.map((bodyPart) => (
             <Chip
               key={bodyPart}
-              label={BODY_PART_LABELS[bodyPart]}
+              label={bodyPartLabel(bodyPart)}
               pressed={filter.bodyPart === bodyPart}
               onPress={() => chooseBodyPart(bodyPart)}
             />

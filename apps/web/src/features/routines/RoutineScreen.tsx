@@ -26,8 +26,11 @@ import {
 import { ROUTINES_PATH } from './paths';
 import { RoutineItemSheet } from './RoutineItemSheet';
 import styles from './RoutineScreen.module.css';
+import { t } from '../../i18n/index';
 
-const BACK_TO_ROUTINES: BackLink = { to: ROUTINES_PATH, label: 'Rutinas' };
+function backToRoutines(): BackLink {
+  return { to: ROUTINES_PATH, label: t('Rutinas', 'Routines') };
+}
 
 /** El editor de una rutina (`/routines/:id`): sus ejercicios en orden, y su edición. */
 export function RoutineScreen() {
@@ -37,9 +40,12 @@ export function RoutineScreen() {
   if (routineId === null) {
     return (
       <>
-        <ScreenHeader title="Rutina" backTo={BACK_TO_ROUTINES} />
-        <Notice tone="danger" title="No existe esa rutina">
-          El enlace no apunta a ninguna de tus rutinas.
+        <ScreenHeader title={t('Rutina', 'Routine')} backTo={backToRoutines()} />
+        <Notice tone="danger" title={t('No existe esa rutina', 'That routine doesn’t exist')}>
+          {t(
+            'El enlace no apunta a ninguna de tus rutinas.',
+            'The link doesn’t point to any of your routines.',
+          )}
         </Notice>
       </>
     );
@@ -63,9 +69,9 @@ function RoutineEditor({ routineId }: { readonly routineId: ResourceId }) {
   return (
     <>
       <ScreenHeader
-        title={routine?.name ?? 'Rutina'}
+        title={routine?.name ?? t('Rutina', 'Routine')}
         subtitle={routine === null ? undefined : describeRoutineSize(routine.items)}
-        backTo={BACK_TO_ROUTINES}
+        backTo={backToRoutines()}
         action={
           routine !== null ? (
             <Button
@@ -74,7 +80,7 @@ function RoutineEditor({ routineId }: { readonly routineId: ResourceId }) {
                 setEditingDetails(true);
               }}
             >
-              Editar
+              {t('Editar', 'Edit')}
             </Button>
           ) : undefined
         }
@@ -84,8 +90,8 @@ function RoutineEditor({ routineId }: { readonly routineId: ResourceId }) {
           const found = items.find((candidate) => candidate.id === routineId);
           if (found === undefined) {
             return (
-              <Notice tone="danger" title="No existe esa rutina">
-                No está entre tus rutinas.
+              <Notice tone="danger" title={t('No existe esa rutina', 'That routine doesn’t exist')}>
+                {t('No está entre tus rutinas.', 'It isn’t among your routines.')}
               </Notice>
             );
           }
@@ -154,16 +160,20 @@ function RoutineBody({ routine, exercises }: RoutineBodyProps) {
           void navigate(sessionPathForRoutine(routine.id));
         }}
       >
-        Empezar esta rutina
+        {t('Empezar esta rutina', 'Start this routine')}
       </Button>
 
       {shown.length === 0 ? (
-        <Notice title="Esta rutina todavía no tiene ejercicios">
-          Añade los que haces, en el orden en que los haces. Un mismo ejercicio puede ir dos veces
-          si lo haces en dos bloques.
+        <Notice
+          title={t('Esta rutina todavía no tiene ejercicios', 'This routine has no exercises yet')}
+        >
+          {t(
+            'Añade los que haces, en el orden en que los haces. Un mismo ejercicio puede ir dos veces si lo haces en dos bloques.',
+            'Add the ones you do, in the order you do them. The same exercise can appear twice if you do it in two blocks.',
+          )}
         </Notice>
       ) : (
-        <ol className={styles.items} aria-label="Ejercicios de la rutina">
+        <ol className={styles.items} aria-label={t('Ejercicios de la rutina', 'Routine exercises')}>
           {shown.map((item, index) => (
             <ItemRow
               key={item.id}
@@ -185,7 +195,7 @@ function RoutineBody({ routine, exercises }: RoutineBodyProps) {
       )}
 
       {reorder.isError && (
-        <Notice tone="danger" title="No se pudo cambiar el orden">
+        <Notice tone="danger" title={t('No se pudo cambiar el orden', 'Couldn’t change the order')}>
           {describeError(reorder.error)}
         </Notice>
       )}
@@ -200,10 +210,15 @@ function RoutineBody({ routine, exercises }: RoutineBodyProps) {
             setSheetTarget({ kind: 'new' });
           }}
         >
-          Añadir ejercicio
+          {t('Añadir ejercicio', 'Add exercise')}
         </Button>
         {full && (
-          <p className={styles.hint}>Una rutina admite hasta {MAX_ROUTINE_ITEMS} ejercicios.</p>
+          <p className={styles.hint}>
+            {t(
+              `Una rutina admite hasta ${String(MAX_ROUTINE_ITEMS)} ejercicios.`,
+              `A routine can hold up to ${String(MAX_ROUTINE_ITEMS)} exercises.`,
+            )}
+          </p>
         )}
       </div>
 
@@ -247,7 +262,7 @@ function ItemRow({
   onEdit,
   onMove,
 }: ItemRowProps) {
-  const name = exercise?.name ?? 'Ejercicio no disponible';
+  const name = exercise?.name ?? t('Ejercicio no disponible', 'Exercise not available');
   const target = formatTarget(item);
 
   return (
@@ -257,7 +272,7 @@ function ItemRow({
         className={styles.itemMain}
         onClick={onEdit}
         disabled={disabled}
-        aria-label={`Editar ${name}, ${target}`}
+        aria-label={t(`Editar ${name}, ${target}`, `Edit ${name}, ${target}`)}
       >
         <span className={styles.position}>{position}</span>
         <span className={styles.itemText}>
@@ -265,7 +280,7 @@ function ItemRow({
           <span className={styles.itemTarget}>{target}</span>
         </span>
         {exercise !== null && exercise.archivedAt !== null && (
-          <Badge tone="warning">Archivado</Badge>
+          <Badge tone="warning">{t('Archivado', 'Archived')}</Badge>
         )}
       </button>
 
@@ -277,7 +292,7 @@ function ItemRow({
             onMove('up');
           }}
           disabled={disabled || !canMoveUp}
-          aria-label={`Subir ${name}`}
+          aria-label={t(`Subir ${name}`, `Move ${name} up`)}
         >
           ↑
         </button>
@@ -288,7 +303,7 @@ function ItemRow({
             onMove('down');
           }}
           disabled={disabled || !canMoveDown}
-          aria-label={`Bajar ${name}`}
+          aria-label={t(`Bajar ${name}`, `Move ${name} down`)}
         >
           ↓
         </button>
@@ -304,7 +319,7 @@ function ArchivedNotice({ routine }: { readonly routine: Routine }) {
   return (
     <Notice
       tone="warning"
-      title="Rutina archivada"
+      title={t('Rutina archivada', 'Archived routine')}
       action={
         <Button
           variant="secondary"
@@ -313,13 +328,16 @@ function ArchivedNotice({ routine }: { readonly routine: Routine }) {
             update.mutate({ routineId: routine.id, body: { archived: false } });
           }}
         >
-          Recuperar
+          {t('Recuperar', 'Restore')}
         </Button>
       }
     >
       {update.isError
         ? describeError(update.error)
-        : 'No aparece entre tus rutinas. Sus ejercicios siguen aquí, en su orden.'}
+        : t(
+            'No aparece entre tus rutinas. Sus ejercicios siguen aquí, en su orden.',
+            'It doesn’t appear among your routines. Its exercises are still here, in order.',
+          )}
     </Notice>
   );
 }

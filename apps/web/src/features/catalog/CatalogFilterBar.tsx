@@ -10,6 +10,7 @@ import {
   withCatalogFilter,
 } from './filters';
 import styles from './CatalogFilterBar.module.css';
+import { t } from '../../i18n/index';
 
 export interface CatalogFilterBarProps {
   readonly filters: CatalogSearchFilters;
@@ -36,7 +37,7 @@ export function CatalogFilterBar({ filters, bodyPart, onChange }: CatalogFilterB
       <div className={styles.fields}>
         {offersBodyPart && (
           <Select
-            label="Parte del cuerpo"
+            label={t('Parte del cuerpo', 'Body part')}
             value={filters.bodyPart ?? NO_FILTER}
             options={bodyPartFilterOptions()}
             onChange={(value) => {
@@ -46,7 +47,7 @@ export function CatalogFilterBar({ filters, bodyPart, onChange }: CatalogFilterB
         )}
         {showMuscle && (
           <Select
-            label="Músculo"
+            label={t('Músculo', 'Muscle')}
             value={filters.muscle ?? NO_FILTER}
             options={muscleFilterOptions(muscleScope)}
             onChange={(value) => {
@@ -55,7 +56,7 @@ export function CatalogFilterBar({ filters, bodyPart, onChange }: CatalogFilterB
           />
         )}
         <Select
-          label="Equipamiento"
+          label={t('Equipamiento', 'Equipment')}
           value={filters.equipment ?? NO_FILTER}
           options={equipmentFilterOptions()}
           onChange={(value) => {
@@ -71,7 +72,7 @@ export function CatalogFilterBar({ filters, bodyPart, onChange }: CatalogFilterB
             onChange({});
           }}
         >
-          Quitar filtros
+          {t('Quitar filtros', 'Clear filters')}
         </Button>
       )}
     </section>

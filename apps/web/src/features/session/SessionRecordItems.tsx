@@ -1,6 +1,6 @@
 import type { Locale, PersonalRecord, TrackedExercise } from '@gymbuddy/shared';
 import { formatRecordValueLabel } from '../../lib/format';
-import { RECORD_LABELS } from '../exercises/labels';
+import { recordLabel } from '../exercises/labels';
 
 export interface SessionRecordItemsProps {
   /** Ya con una sola marca por ejercicio y tipo (`bestPersonalRecords`). */
@@ -21,7 +21,7 @@ export function SessionRecordItems({ records, exercises, locale }: SessionRecord
   return records.map((record) => {
     const exercise = byId.get(record.trackedExerciseId);
     const valueLabel = formatRecordValueLabel(record, locale, exercise?.unilateral ?? false);
-    const value = `${RECORD_LABELS[record.kind]}: ${valueLabel}`;
+    const value = `${recordLabel(record.kind)}: ${valueLabel}`;
     return (
       <li key={record.id}>{exercise === undefined ? value : `${exercise.name} · ${value}`}</li>
     );

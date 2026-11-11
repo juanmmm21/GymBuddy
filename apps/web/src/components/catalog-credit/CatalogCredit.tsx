@@ -1,5 +1,6 @@
 import { CATALOG_SOURCE_REPOSITORY, CATALOG_SOURCE_URL } from '@gymbuddy/shared';
 import styles from './CatalogCredit.module.css';
+import { t } from '../../i18n/index';
 
 /**
  * El crédito del catálogo externo. Los ejercicios y sus GIFs son de terceros y el repositorio de
@@ -10,7 +11,7 @@ import styles from './CatalogCredit.module.css';
 export function CatalogCredit() {
   return (
     <p className={styles.credit}>
-      Los ejercicios y sus animaciones vienen de{' '}
+      {t('Los ejercicios y sus animaciones vienen de', 'Exercises and their animations come from')}{' '}
       <a
         className={styles.link}
         href={CATALOG_SOURCE_URL}
@@ -18,11 +19,17 @@ export function CatalogCredit() {
         rel="noreferrer"
         // El nombre visible es el del repositorio, pero leído letra a letra no se entiende: el
         // lector de pantalla dice de dónde lleva.
-        aria-label={`${CATALOG_SOURCE_REPOSITORY}, el catálogo de ejercicios en GitHub`}
+        aria-label={t(
+          `${CATALOG_SOURCE_REPOSITORY}, el catálogo de ejercicios en GitHub`,
+          `${CATALOG_SOURCE_REPOSITORY}, the exercise catalogue on GitHub`,
+        )}
       >
         {CATALOG_SOURCE_REPOSITORY}
       </a>
-      , servidos por jsDelivr. GymBuddy no los aloja.
+      {t(
+        ', servidos por jsDelivr. GymBuddy no los aloja.',
+        ', served by jsDelivr. GymBuddy doesn’t host them.',
+      )}
     </p>
   );
 }

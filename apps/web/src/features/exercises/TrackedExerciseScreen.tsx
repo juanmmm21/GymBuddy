@@ -23,23 +23,24 @@ import {
   formatSetValueLabel,
   formatTime,
   formatWeightLabel,
-  pluralize,
 } from '../../lib/format';
 import { parseResourceId } from '../../lib/ids';
 import { ExerciseGif } from '../catalog/ExerciseGif';
-import { BODY_PART_LABELS, MUSCLE_LABELS } from '../catalog/labels';
+import { bodyPartLabel, muscleLabel } from '../catalog/labels';
 import { catalogExercisePath, catalogExerciseRef } from '../catalog/paths';
 import { sessionPathForExercise } from '../session/paths';
 import { offersUnilateral } from './custom-exercise';
 import { EditExerciseSheet } from './EditExerciseSheet';
 import { ExerciseMediaSection } from './ExerciseMediaSection';
-import { ORIGIN_LABELS, RECORD_LABELS, RECORD_ORDER, UNILATERAL_HINT } from './labels';
+import { originLabel, recordLabel, RECORD_ORDER, unilateralHint } from './labels';
 import { EXERCISES_PATH } from './paths';
 import { ProgressionChart } from './ProgressionChart';
 import styles from './TrackedExerciseScreen.module.css';
-import { useLocale } from '../../i18n/index';
+import { plural, t, useLocale } from '../../i18n/index';
 
-const BACK_TO_EXERCISES: BackLink = { to: EXERCISES_PATH, label: 'Mis ejercicios' };
+function backToExercises(): BackLink {
+  return { to: EXERCISES_PATH, label: t('Mis ejercicios', 'My exercises') };
+}
 
 /** La ficha de un ejercicio seguido (`/exercises/:id`): cómo va, qué hiciste y su edición. */
 export function TrackedExerciseScreen() {
@@ -49,9 +50,12 @@ export function TrackedExerciseScreen() {
   if (exerciseId === null) {
     return (
       <>
-        <ScreenHeader title="Ejercicio" backTo={BACK_TO_EXERCISES} />
-        <Notice tone="danger" title="No existe ese ejercicio">
-          El enlace no apunta a ninguno de tus ejercicios.
+        <ScreenHeader title={t('Ejercicio', 'Exercise')} backTo={backToExercises()} />
+        <Notice tone="danger" title={t('No existe ese ejercicio', 'That exercise doesn’t exist')}>
+          {t(
+            'El enlace no apunta a ninguno de tus ejercicios.',
+            'The link doesn’t point to any of your exercises.',
+          )}
         </Notice>
       </>
     );
@@ -81,9 +85,9 @@ function TrackedExerciseDetail({ exerciseId }: TrackedExerciseDetailProps) {
   return (
     <>
       <ScreenHeader
-        title={exercise?.name ?? 'Ejercicio'}
+        title={exercise?.name ?? t('Ejercicio', 'Exercise')}
         subtitle={exercise === null ? undefined : catalogNameSubtitle(exercise)}
-        backTo={BACK_TO_EXERCISES}
+        backTo={backToExercises()}
         action={
           exercise !== null ? (
             <Button
@@ -92,7 +96,7 @@ function TrackedExerciseDetail({ exerciseId }: TrackedExerciseDetailProps) {
                 setEditing(true);
               }}
             >
-              Editar
+              {t('Editar', 'Edit')}
             </Button>
           ) : undefined
         }
@@ -102,8 +106,14 @@ function TrackedExerciseDetail({ exerciseId }: TrackedExerciseDetailProps) {
           const found = items.find((item) => item.id === exerciseId);
           if (found === undefined) {
             return (
-              <Notice tone="danger" title="No existe ese ejercicio">
-                No está entre los ejercicios que sigues.
+              <Notice
+                tone="danger"
+                title={t('No existe ese ejercicio', 'That exercise doesn’t exist')}
+              >
+                {t(
+                  'No está entre los ejercicios que sigues.',
+                  'It isn’t among the exercises you track.',
+                )}
               </Notice>
             );
           }
@@ -117,7 +127,7 @@ function TrackedExerciseDetail({ exerciseId }: TrackedExerciseDetailProps) {
                   <ExerciseGif
                     key={found.gifUrl}
                     src={found.gifUrl}
-                    alt={`Animación de ${found.name}`}
+                    alt={t(`Animación de ${found.name}`, `Animation of ${found.name}`)}
                   />
                 )}
 
@@ -132,7 +142,7 @@ function TrackedExerciseDetail({ exerciseId }: TrackedExerciseDetailProps) {
 
                 {found.archivedAt === null && (
                   <Link to={sessionPathForExercise(found.id)} className={styles.logLink}>
-                    Registrar una serie
+                    {t('Registrar una serie', 'Log a set')}
                   </Link>
                 )}
 
@@ -144,7 +154,7 @@ function TrackedExerciseDetail({ exerciseId }: TrackedExerciseDetailProps) {
 
                 {found.notes !== null && (
                   <Surface as="section">
-                    <h2 className={styles.sectionTitle}>Notas</h2>
+                    <h2 className={styles.sectionTitle}>{t('Notas', 'Notes')}</h2>
                     <p className={styles.notes}>{found.notes}</p>
                   </Surface>
                 )}
@@ -182,7 +192,7 @@ function ArchivedNotice({ exercise }: ExerciseProps) {
   return (
     <Notice
       tone="warning"
-      title="Ejercicio archivado"
+      title={t('Ejercicio archivado', 'Archived exercise')}
       action={
         <Button
           variant="secondary"
@@ -191,13 +201,16 @@ function ArchivedNotice({ exercise }: ExerciseProps) {
             update.mutate({ exerciseId: exercise.id, body: { archived: false } });
           }}
         >
-          Recuperar
+          {t('Recuperar', 'Restore')}
         </Button>
       }
     >
       {update.isError
         ? describeError(update.error)
-        : 'No aparece en tu lista ni en la sesión. Su historial y sus marcas siguen aquí.'}
+        : t(
+            'No aparece en tu lista ni en la sesión. Su historial y sus marcas siguen aquí.',
+            'It doesn’t appear in your list or in sessions. Its history and records are still here.',
+          )}
     </Notice>
   );
 }
@@ -208,7 +221,7 @@ function ArchivedNotice({ exercise }: ExerciseProps) {
  */
 function catalogNameSubtitle({ name, catalogName }: TrackedExercise): string | undefined {
   return catalogName !== null && catalogName !== name
-    ? `En el catálogo: ${catalogName}`
+    ? t(`En el catálogo: ${catalogName}`, `In the catalogue: ${catalogName}`)
     : undefined;
 }
 
@@ -222,24 +235,24 @@ function ExerciseTags({ exercise }: ExerciseProps) {
 
   return (
     <div className={styles.tagsRow}>
-      <ul className={styles.tags} aria-label="Características">
+      <ul className={styles.tags} aria-label={t('Características', 'Details')}>
         {exercise.bodyPart !== null && (
           <li>
-            <Badge tone="accent">{BODY_PART_LABELS[exercise.bodyPart]}</Badge>
+            <Badge tone="accent">{bodyPartLabel(exercise.bodyPart)}</Badge>
           </li>
         )}
         {exercise.muscle !== null && (
           <li>
-            <Badge>{MUSCLE_LABELS[exercise.muscle]}</Badge>
+            <Badge>{muscleLabel(exercise.muscle)}</Badge>
           </li>
         )}
         <li>
-          <Badge>{ORIGIN_LABELS[exercise.origin]}</Badge>
+          <Badge>{originLabel(exercise.origin)}</Badge>
         </li>
       </ul>
       {catalogLink !== null && (
         <Link to={catalogLink} className={styles.catalogLink}>
-          Ver en el catálogo
+          {t('Ver en el catálogo', 'View in the catalogue')}
         </Link>
       )}
     </div>
@@ -261,16 +274,16 @@ function UnilateralSetting({ exercise }: ExerciseProps) {
   return (
     <Surface as="section" padding="md">
       <Switch
-        label="A un brazo"
+        label={t('A un brazo', 'One arm')}
         checked={checked}
         disabled={update.isPending}
         onChange={(unilateral) => {
           update.mutate({ exerciseId: exercise.id, body: { unilateral } });
         }}
-        hint={UNILATERAL_HINT}
+        hint={unilateralHint()}
       />
       {update.isError && (
-        <Notice tone="danger" title="No se pudo cambiar">
+        <Notice tone="danger" title={t('No se pudo cambiar', 'Couldn’t change it')}>
           {describeError(update.error)}
         </Notice>
       )}
@@ -298,16 +311,22 @@ function StatsSection({ stats, unilateral, locale }: StatsSectionProps) {
   return (
     <>
       <Surface as="section" className={styles.working}>
-        <p className={styles.sectionLabel}>Peso habitual</p>
+        <p className={styles.sectionLabel}>{t('Peso habitual', 'Usual weight')}</p>
         <p className={styles.workingValue}>
           {formatExerciseWeightLabel(stats.workingWeight.weight, locale, unilateral)}{' '}
           <span className={styles.workingReps}>× {stats.workingWeight.reps}</span>
         </p>
         <p className={styles.workingMeta}>
           {stats.workingWeight.sessionCount === 1
-            ? 'Una sola sesión: todavía es solo un dato'
-            : `Mediana de tus últimas ${pluralize(stats.workingWeight.sessionCount, 'sesión', 'sesiones')}`}
-          {' · última vez '}
+            ? t(
+                'Una sola sesión: todavía es solo un dato',
+                'A single session: still just one data point',
+              )
+            : t(
+                `Mediana de tus últimas ${plural(stats.workingWeight.sessionCount, ['sesión', 'sesiones'], ['session', 'sessions'])}`,
+                `Median of your last ${plural(stats.workingWeight.sessionCount, ['sesión', 'sesiones'], ['session', 'sessions'])}`,
+              )}
+          {t(' · última vez ', ' · last time ')}
           {formatSessionDate(stats.workingWeight.lastPerformedAt, locale)}
         </p>
       </Surface>
@@ -315,11 +334,15 @@ function StatsSection({ stats, unilateral, locale }: StatsSectionProps) {
       {stats.stalled !== null && (
         <Notice
           tone="warning"
-          title={`Estancado en ${formatExerciseWeightLabel(stats.stalled.weight, locale, unilateral)}`}
+          title={t(
+            `Estancado en ${formatExerciseWeightLabel(stats.stalled.weight, locale, unilateral)}`,
+            `Stalled at ${formatExerciseWeightLabel(stats.stalled.weight, locale, unilateral)}`,
+          )}
         >
-          Llevas {pluralize(stats.stalled.sessions, 'sesión', 'sesiones')} con el mismo peso sin
-          perder repeticiones. Prueba con{' '}
-          {formatWeightLabel(stats.stalled.suggestedIncrement, locale)} más.
+          {t(
+            `Llevas ${plural(stats.stalled.sessions, ['sesión', 'sesiones'], ['session', 'sessions'])} con el mismo peso sin perder repeticiones. Prueba con ${formatWeightLabel(stats.stalled.suggestedIncrement, locale)} más.`,
+            `You’ve done ${plural(stats.stalled.sessions, ['sesión', 'sesiones'], ['session', 'sessions'])} at the same weight without losing reps. Try ${formatWeightLabel(stats.stalled.suggestedIncrement, locale)} more.`,
+          )}
         </Notice>
       )}
 
@@ -332,11 +355,11 @@ function StatsSection({ stats, unilateral, locale }: StatsSectionProps) {
 
       {records.length > 0 && (
         <Surface as="section">
-          <h2 className={styles.sectionTitle}>Marcas</h2>
-          <ul className={styles.records} aria-label="Marcas">
+          <h2 className={styles.sectionTitle}>{t('Marcas', 'Records')}</h2>
+          <ul className={styles.records} aria-label={t('Marcas', 'Records')}>
             {records.map((record) => (
               <li key={record.id} className={styles.record}>
-                <span className={styles.recordLabel}>{RECORD_LABELS[record.kind]}</span>
+                <span className={styles.recordLabel}>{recordLabel(record.kind)}</span>
                 <span className={styles.recordValue}>
                   {formatRecordValueLabel(record, locale, unilateral)}
                 </span>
@@ -361,15 +384,20 @@ interface HistorySectionProps {
 function HistorySection({ history, unilateral, locale }: HistorySectionProps) {
   if (history.sessions.length === 0) {
     return (
-      <Notice title="Todavía no has registrado ninguna serie">
-        Cuando la registres, aquí verás tu peso habitual, tus marcas y las últimas sesiones.
+      <Notice
+        title={t('Todavía no has registrado ninguna serie', 'You haven’t logged any sets yet')}
+      >
+        {t(
+          'Cuando la registres, aquí verás tu peso habitual, tus marcas y las últimas sesiones.',
+          'Once you do, you’ll see your usual weight, your records and your latest sessions here.',
+        )}
       </Notice>
     );
   }
 
   return (
     <section className={styles.history}>
-      <h2 className={styles.sectionTitle}>Últimas sesiones</h2>
+      <h2 className={styles.sectionTitle}>{t('Últimas sesiones', 'Latest sessions')}</h2>
       <ul className={styles.sessions}>
         {history.sessions.map((entry) => (
           <HistoryEntry
@@ -417,7 +445,7 @@ function SetRow({ set, unilateral, locale }: SetRowProps) {
     <li className={styles.set}>
       <span className={styles.setValue}>{formatSetValueLabel(set, locale, unilateral)}</span>
       <span className={styles.setMeta}>
-        {set.isWarmup && <Badge>Calentamiento</Badge>}
+        {set.isWarmup && <Badge>{t('Calentamiento', 'Warm-up')}</Badge>}
         {set.rpe !== null && <span>{formatRpe(set.rpe, locale)}</span>}
       </span>
     </li>

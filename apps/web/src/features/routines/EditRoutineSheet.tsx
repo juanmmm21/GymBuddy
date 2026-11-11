@@ -11,6 +11,7 @@ import { describeError } from '../../lib/errors';
 import { normalizeNotes } from '../../lib/notes';
 import { DeleteRoutinePanel } from './DeleteRoutinePanel';
 import styles from './EditRoutineSheet.module.css';
+import { t } from '../../i18n/index';
 
 export interface EditRoutineSheetProps {
   readonly routine: Routine;
@@ -25,7 +26,7 @@ export interface EditRoutineSheetProps {
  */
 export function EditRoutineSheet({ routine, open, onClose }: EditRoutineSheetProps) {
   return (
-    <Sheet open={open} onClose={onClose} title="Editar rutina">
+    <Sheet open={open} onClose={onClose} title={t('Editar rutina', 'Edit routine')}>
       <div className={styles.content}>
         <EditRoutineForm routine={routine} onDone={onClose} />
         <DeleteRoutinePanel routine={routine} />
@@ -68,29 +69,32 @@ function EditRoutineForm({ routine, onDone }: EditRoutineFormProps) {
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
       <TextField
-        label="Nombre"
+        label={t('Nombre', 'Name')}
         value={name}
         onChange={setName}
         maxLength={MAX_ROUTINE_NAME_LENGTH}
       />
 
       <TextArea
-        label="Descripción"
+        label={t('Descripción', 'Description')}
         value={description}
         onChange={setDescription}
         maxLength={MAX_ROUTINE_DESCRIPTION_LENGTH}
         rows={3}
-        placeholder="Qué días la haces o en qué te fijas. Opcional."
+        placeholder={t(
+          'Qué días la haces o en qué te fijas. Opcional.',
+          'Which days you do it or what you focus on. Optional.',
+        )}
       />
 
       {update.isError && (
-        <Notice tone="danger" title="No se pudo guardar">
+        <Notice tone="danger" title={t('No se pudo guardar', 'Couldn’t save')}>
           {describeError(update.error)}
         </Notice>
       )}
 
       <Button type="submit" size="lg" fullWidth loading={update.isPending} disabled={!validName}>
-        Guardar
+        {t('Guardar', 'Save')}
       </Button>
 
       <div className={styles.archive}>
@@ -100,12 +104,20 @@ function EditRoutineForm({ routine, onDone }: EditRoutineFormProps) {
           disabled={update.isPending}
           onClick={toggleArchived}
         >
-          {archived ? 'Recuperar rutina' : 'Archivar rutina'}
+          {archived
+            ? t('Recuperar rutina', 'Restore routine')
+            : t('Archivar rutina', 'Archive routine')}
         </Button>
         <p className={styles.archiveHint}>
           {archived
-            ? 'Vuelve a tu lista de rutinas con sus ejercicios.'
-            : 'Desaparece de tu lista. Tus ejercicios y su historial no se tocan.'}
+            ? t(
+                'Vuelve a tu lista de rutinas con sus ejercicios.',
+                'It comes back to your routines with its exercises.',
+              )
+            : t(
+                'Desaparece de tu lista. Tus ejercicios y su historial no se tocan.',
+                'It disappears from your list. Your exercises and their history aren’t touched.',
+              )}
         </p>
       </div>
     </form>

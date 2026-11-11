@@ -17,17 +17,17 @@ import {
   Surface,
   listEntranceProps,
 } from '../../components/index';
-import { formatExerciseWeightLabel, formatWeightValue, PER_ARM } from '../../lib/format';
-import { MUSCLE_LABELS } from '../catalog/labels';
+import { formatExerciseWeightLabel, formatWeightValue, perArm } from '../../lib/format';
+import { muscleLabel } from '../catalog/labels';
 import { CATALOG_PATH } from '../catalog/paths';
 import { ROUTINES_PATH } from '../routines/paths';
 import { ExerciseMedia } from '../session/ExerciseMedia';
 import { CreateExerciseSheet } from './CreateExerciseSheet';
 import { groupExercisesByBodyPart, type ExerciseGroup } from './grouping';
-import { ORIGIN_LABELS } from './labels';
+import { originLabel } from './labels';
 import { trackedExercisePath } from './paths';
 import styles from './ExercisesScreen.module.css';
-import { useLocale } from '../../i18n/index';
+import { t, useLocale } from '../../i18n/index';
 
 /** Los ejercicios que sigues, por parte del cuerpo y cada uno con su peso habitual. */
 export function ExercisesScreen() {
@@ -40,18 +40,21 @@ export function ExercisesScreen() {
 
   const createButton = (
     <Button variant="secondary" fullWidth onClick={openCreate}>
-      Crear ejercicio propio
+      {t('Crear ejercicio propio', 'Create your own exercise')}
     </Button>
   );
 
   return (
     <>
       <ScreenHeader
-        title="Mis ejercicios"
-        subtitle="Lo que haces de verdad, con tu peso habitual"
+        title={t('Mis ejercicios', 'My exercises')}
+        subtitle={t(
+          'Lo que haces de verdad, con tu peso habitual',
+          'What you actually do, with your usual weight',
+        )}
         action={
           <Link to={ROUTINES_PATH} className={styles.headerLink}>
-            Rutinas
+            {t('Rutinas', 'Routines')}
           </Link>
         }
       />
@@ -60,10 +63,18 @@ export function ExercisesScreen() {
           items.length === 0 ? (
             <div className={styles.groups}>
               <Notice
-                title="Todavía no sigues ningún ejercicio"
-                action={<Link to={CATALOG_PATH}>Abrir el catálogo</Link>}
+                title={t(
+                  'Todavía no sigues ningún ejercicio',
+                  'You’re not tracking any exercise yet',
+                )}
+                action={
+                  <Link to={CATALOG_PATH}>{t('Abrir el catálogo', 'Open the catalogue')}</Link>
+                }
               >
-                Elige uno del catálogo para empezar a seguirlo.
+                {t(
+                  'Elige uno del catálogo para empezar a seguirlo.',
+                  'Pick one from the catalogue to start tracking it.',
+                )}
               </Notice>
               {createButton}
             </div>
@@ -131,13 +142,11 @@ function ExerciseRow({ exercise, locale, index }: ExerciseRowProps) {
         <span className={styles.text}>
           <span className={styles.name}>{exercise.name}</span>
           <span className={styles.meta}>
-            {exercise.muscle !== null
-              ? MUSCLE_LABELS[exercise.muscle]
-              : ORIGIN_LABELS[exercise.origin]}
+            {exercise.muscle !== null ? muscleLabel(exercise.muscle) : originLabel(exercise.origin)}
           </span>
         </span>
         {exercise.workingWeight === null ? (
-          <Badge>Sin series</Badge>
+          <Badge>{t('Sin series', 'No sets')}</Badge>
         ) : (
           <WeightFigure
             workingWeight={exercise.workingWeight}
@@ -172,7 +181,7 @@ function WeightFigure({
         {formatWeightValue(parseKilogramsToGrams(weight), locale)}
       </span>
       <span className={styles.weightUnit}>
-        kg{unilateral ? ` ${PER_ARM}` : ''} × {reps}
+        kg{unilateral ? ` ${perArm()}` : ''} × {reps}
       </span>
     </span>
   );

@@ -20,13 +20,12 @@ import {
   formatTime,
   formatVolumeLabel,
   formatSetValueLabel,
-  pluralize,
 } from '../../lib/format';
 import { elapsedSecondsSince } from '../../lib/time';
 import { COMPETITION_PATH } from '../competition/paths';
 import { boardAgainst } from '../competition/standings';
 import { drawsPlates } from '../exercises/equipment';
-import { RECORD_LABELS } from '../exercises/labels';
+import { recordLabel } from '../exercises/labels';
 import { LiveMascot } from '../mascot/LiveMascot';
 import { useOpenSession } from '../../offline/use-open-session';
 import { SESSION_PATH } from '../session/paths';
@@ -36,7 +35,7 @@ import { homeSessionState } from './open-session';
 import { RoutineShortcuts } from './RoutineShortcuts';
 import { WeekCalendar } from './WeekCalendar';
 import styles from './HomeScreen.module.css';
-import { useLocale } from '../../i18n/index';
+import { plural, t, useLocale } from '../../i18n/index';
 
 /** Resumen de cómo vas: las señales de `GET /stats/signals`, las mismas que verá la mascota. */
 export function HomeScreen() {
@@ -48,9 +47,13 @@ export function HomeScreen() {
   return (
     <>
       <ScreenHeader
-        title={`Hola, ${displayName}`}
+        title={t(`Hola, ${displayName}`, `Hi, ${displayName}`)}
         action={
-          <Link to={SETTINGS_PATH} className={styles.settingsLink} aria-label="Ajustes">
+          <Link
+            to={SETTINGS_PATH}
+            className={styles.settingsLink}
+            aria-label={t('Ajustes', 'Settings')}
+          >
             <SettingsIcon />
           </Link>
         }
@@ -94,19 +97,37 @@ function SignalsSummary({ signals, locale }: SignalsSummaryProps) {
 
       <LiveMascot signals={signals} device={NO_DEVICE_SIGNALS} locale={locale} spot="home" />
 
-      <section className={styles.metrics} aria-label="Cómo vas">
+      <section className={styles.metrics} aria-label={t('Cómo vas', 'How you’re doing')}>
         <Metric
-          label={signals.weeklyStreak === 1 ? 'semana de racha' : 'semanas de racha'}
-          spoken={`Racha: ${pluralize(signals.weeklyStreak, 'semana', 'semanas')}`}
+          label={
+            signals.weeklyStreak === 1
+              ? t('semana de racha', 'week streak')
+              : t('semanas de racha', 'weeks streak')
+          }
+          spoken={t(
+            `Racha: ${plural(signals.weeklyStreak, ['semana', 'semanas'], ['week', 'weeks'])}`,
+            `Streak: ${plural(signals.weeklyStreak, ['semana', 'semanas'], ['week', 'weeks'])}`,
+          )}
           value={<CountUp value={signals.weeklyStreak} format={String} />}
         />
         <Metric
-          label={signals.sessionsThisWeek === 1 ? 'sesión esta semana' : 'sesiones esta semana'}
-          spoken={`Esta semana: ${pluralize(signals.sessionsThisWeek, 'sesión', 'sesiones')}`}
+          label={
+            signals.sessionsThisWeek === 1
+              ? t('sesión esta semana', 'session this week')
+              : t('sesiones esta semana', 'sessions this week')
+          }
+          spoken={t(
+            `Esta semana: ${plural(signals.sessionsThisWeek, ['sesión', 'sesiones'], ['session', 'sessions'])}`,
+            `This week: ${plural(signals.sessionsThisWeek, ['sesión', 'sesiones'], ['session', 'sessions'])}`,
+          )}
           value={<CountUp value={signals.sessionsThisWeek} format={String} />}
         />
         {signals.latestRecord === null ? (
-          <Metric label="último récord" spoken="Último récord: ninguno" value="—" />
+          <Metric
+            label={t('último récord', 'latest record')}
+            spoken={t('Último récord: ninguno', 'Latest record: none')}
+            value="—"
+          />
         ) : (
           <LatestRecordMetric record={signals.latestRecord} locale={locale} />
         )}
@@ -119,9 +140,16 @@ function SignalsSummary({ signals, locale }: SignalsSummaryProps) {
       {signals.stalled.length > 0 && (
         <Notice
           tone="warning"
-          title={pluralize(signals.stalled.length, 'ejercicio estancado', 'ejercicios estancados')}
+          title={plural(
+            signals.stalled.length,
+            ['ejercicio estancado', 'ejercicios estancados'],
+            ['stalled exercise', 'stalled exercises'],
+          )}
         >
-          Mismo peso durante varias sesiones sin perder repeticiones: toca subir.
+          {t(
+            'Mismo peso durante varias sesiones sin perder repeticiones: toca subir.',
+            'Same weight for several sessions without losing reps: time to go up.',
+          )}
         </Notice>
       )}
     </div>
@@ -144,12 +172,14 @@ function CompetitionTeaser() {
     <Link to={COMPETITION_PATH} className={styles.competition}>
       <span className={styles.competitionText}>
         <span className={styles.competitionTitle}>
-          {board === null ? 'Competir con amigos' : `Tú contra ${board.rival.displayName}`}
+          {board === null
+            ? t('Competir con amigos', 'Compete with friends')
+            : t(`Tú contra ${board.rival.displayName}`, `You vs ${board.rival.displayName}`)}
         </span>
         <span className={styles.competitionDescription}>
           {board === null
-            ? 'Quién levanta más en cada ejercicio.'
-            : 'Peso máximo, ejercicio a ejercicio.'}
+            ? t('Quién levanta más en cada ejercicio.', 'Who lifts more in each exercise.')
+            : t('Peso máximo, ejercicio a ejercicio.', 'Max weight, exercise by exercise.')}
         </span>
       </span>
       {board === null ? (
@@ -159,7 +189,10 @@ function CompetitionTeaser() {
       ) : (
         <span
           className={styles.competitionScore}
-          aria-label={`Marcador: tú ${String(board.wins)}, ${board.rival.displayName} ${String(board.losses)}`}
+          aria-label={t(
+            `Marcador: tú ${String(board.wins)}, ${board.rival.displayName} ${String(board.losses)}`,
+            `Score: you ${String(board.wins)}, ${board.rival.displayName} ${String(board.losses)}`,
+          )}
         >
           {board.wins}
           <span className={styles.competitionDash} aria-hidden="true">
@@ -192,8 +225,8 @@ function LatestRecordMetric({ record, locale }: LatestRecordMetricProps) {
       <span className={styles.recordValue}>
         {formatRecordValueLabel(record, locale, unilateral)}
       </span>
-      <Badge tone="record">{RECORD_LABELS[record.kind]}</Badge>
-      <span className={styles.metricLabel}>Último récord</span>
+      <Badge tone="record">{recordLabel(record.kind)}</Badge>
+      <span className={styles.metricLabel}>{t('Último récord', 'Latest record')}</span>
     </div>
   );
 }
@@ -216,18 +249,24 @@ function LiveSessionCard({ startedAt, session, locale }: LiveSessionCardProps) {
   const lastSet = summary?.lastSet ?? null;
 
   return (
-    <Link to={SESSION_PATH} className={styles.live} aria-label="Seguir la sesión">
+    <Link
+      to={SESSION_PATH}
+      className={styles.live}
+      aria-label={t('Seguir la sesión', 'Continue the session')}
+    >
       <span className={styles.liveHead}>
-        <span className={styles.livePulse}>Sesión en curso</span>
-        <span className={styles.liveSince}>desde las {formatTime(startedAt, locale)}</span>
+        <span className={styles.livePulse}>{t('Sesión en curso', 'Session in progress')}</span>
+        <span className={styles.liveSince}>
+          {t('desde las', 'since')} {formatTime(startedAt, locale)}
+        </span>
       </span>
       <span className={styles.liveClock} role="timer">
         {formatStopwatch(elapsedSecondsSince(startedAt, now))}
       </span>
       {summary !== null && (
         <span className={styles.liveMeta}>
-          {pluralize(summary.exerciseCount, 'ejercicio', 'ejercicios')} ·{' '}
-          {pluralize(summary.setCount, 'serie', 'series')} ·{' '}
+          {plural(summary.exerciseCount, ['ejercicio', 'ejercicios'], ['exercise', 'exercises'])} ·{' '}
+          {plural(summary.setCount, ['serie', 'series'], ['set', 'sets'])} ·{' '}
           {formatVolumeLabel(summary.volumeGrams, locale)}
         </span>
       )}
@@ -242,7 +281,7 @@ function LiveSessionCard({ startedAt, session, locale }: LiveSessionCardProps) {
           )}
           <span className={styles.lastSetText}>
             <span className={styles.lastSetName}>{lastSet.exerciseName}</span>
-            <span className={styles.lastSetWhen}>Última serie</span>
+            <span className={styles.lastSetWhen}>{t('Última serie', 'Last set')}</span>
           </span>
           <span className={styles.lastSetValue}>
             {formatSetValueLabel(lastSet.set, locale, lastSet.unilateral)}
@@ -250,7 +289,7 @@ function LiveSessionCard({ startedAt, session, locale }: LiveSessionCardProps) {
         </span>
       )}
       <span className={styles.liveAction} aria-hidden="true">
-        Seguir la sesión →
+        {t('Seguir la sesión →', 'Continue the session →')}
       </span>
     </Link>
   );
@@ -269,22 +308,27 @@ interface StartCardProps {
 function StartCard({ lastSessionAt, daysSinceLastSession }: StartCardProps) {
   const lastId = useId();
   return (
-    <section className={styles.startStack} aria-label="Empezar a entrenar">
+    <section className={styles.startStack} aria-label={t('Empezar a entrenar', 'Start training')}>
       {/* El nombre es la acción; cuándo fue la última sesión va de descripción, no delante. */}
       <Link
         to={SESSION_PATH}
         className={styles.start}
-        aria-label="Empezar a entrenar"
+        aria-label={t('Empezar a entrenar', 'Start training')}
         aria-describedby={lastId}
       >
         <span id={lastId} className={styles.startLabel}>
           {lastSessionAt === null || daysSinceLastSession === null
-            ? 'Todavía no has entrenado'
-            : `Última sesión: ${formatDaysAgo(daysSinceLastSession)}`}
+            ? t('Todavía no has entrenado', 'You haven’t trained yet')
+            : t(
+                `Última sesión: ${formatDaysAgo(daysSinceLastSession)}`,
+                `Last session: ${formatDaysAgo(daysSinceLastSession)}`,
+              )}
         </span>
-        <span className={styles.startTitle}>Empezar a entrenar</span>
+        <span className={styles.startTitle}>{t('Empezar a entrenar', 'Start training')}</span>
         <span className={styles.startHint}>
-          {lastSessionAt === null ? 'Cuando quieras, empezamos' : '¿Entrenamos?'}
+          {lastSessionAt === null
+            ? t('Cuando quieras, empezamos', 'Whenever you’re ready')
+            : t('¿Entrenamos?', 'Shall we train?')}
         </span>
       </Link>
       <RoutineShortcuts />

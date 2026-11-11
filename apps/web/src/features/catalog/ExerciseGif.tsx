@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Notice, Spinner } from '../../components/index';
 import { cx } from '../../lib/cx';
 import styles from './ExerciseGif.module.css';
+import { t } from '../../i18n/index';
 
 export interface ExerciseGifProps {
   readonly src: string;
@@ -24,8 +25,11 @@ export function ExerciseGif({ src, alt }: ExerciseGifProps) {
 
   if (state === 'failed') {
     return (
-      <Notice title="La animación no se pudo cargar">
-        Hace falta conexión para verla la primera vez. El resto de la ficha sigue disponible.
+      <Notice title={t('La animación no se pudo cargar', 'The animation couldn’t load')}>
+        {t(
+          'Hace falta conexión para verla la primera vez. El resto de la ficha sigue disponible.',
+          'You need a connection to see it the first time. The rest of the page is still available.',
+        )}
       </Notice>
     );
   }
@@ -34,7 +38,7 @@ export function ExerciseGif({ src, alt }: ExerciseGifProps) {
     <figure className={styles.frame}>
       {state === 'loading' && (
         <span className={styles.placeholder}>
-          <Spinner label="Cargando animación" />
+          <Spinner label={t('Cargando animación', 'Loading animation')} />
         </span>
       )}
       <img

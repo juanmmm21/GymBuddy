@@ -7,6 +7,7 @@ import { Button, Notice, Sheet, Switch } from '../../components/index';
 import { describeError } from '../../lib/errors';
 import { canToggleRival, rivalsChanged, selectedRivalIds, toggleRival } from './standings';
 import styles from './RivalsSheet.module.css';
+import { t } from '../../i18n/index';
 
 export interface RivalsSheetProps {
   readonly open: boolean;
@@ -21,7 +22,7 @@ export function RivalsSheet({ open, onClose }: RivalsSheetProps) {
   const candidates = useRivalCandidates({ enabled: open });
 
   return (
-    <Sheet open={open} onClose={onClose} title="Elegir rivales">
+    <Sheet open={open} onClose={onClose} title={t('Elegir rivales', 'Choose rivals')}>
       <AsyncContent query={candidates}>
         {(data) => <RivalsForm candidates={data.candidates} onDone={onClose} />}
       </AsyncContent>
@@ -40,8 +41,11 @@ function RivalsForm({ candidates, onDone }: RivalsFormProps) {
 
   if (candidates.length === 0) {
     return (
-      <Notice title="Todavía no hay nadie a quien elegir">
-        Aquí saldrán tus amigos cuando activen «Competir con amigos» en sus ajustes.
+      <Notice title={t('Todavía no hay nadie a quien elegir', 'There’s no one to choose yet')}>
+        {t(
+          'Aquí saldrán tus amigos cuando activen «Competir con amigos» en sus ajustes.',
+          'Your friends will show up here once they turn on “Compete with friends” in their settings.',
+        )}
       </Notice>
     );
   }
@@ -54,7 +58,9 @@ function RivalsForm({ candidates, onDone }: RivalsFormProps) {
             <Switch
               label={candidate.displayName}
               // Solo lo ve la cuenta de administración: a los demás no les llega quien no compite.
-              {...(candidate.competes ? {} : { hint: 'No ha activado competir todavía' })}
+              {...(candidate.competes
+                ? {}
+                : { hint: t('No ha activado competir todavía', 'Hasn’t turned on competing yet') })}
               checked={selected.includes(candidate.userId)}
               disabled={save.isPending || !canToggleRival(selected, candidate.userId)}
               onChange={() => {
@@ -66,11 +72,16 @@ function RivalsForm({ candidates, onDone }: RivalsFormProps) {
       </ul>
 
       {selected.length >= MAX_RIVALS && (
-        <p className={styles.note}>Has llegado al tope de {MAX_RIVALS} rivales.</p>
+        <p className={styles.note}>
+          {t(
+            `Has llegado al tope de ${String(MAX_RIVALS)} rivales.`,
+            `You’ve reached the limit of ${String(MAX_RIVALS)} rivals.`,
+          )}
+        </p>
       )}
 
       {save.isError && (
-        <Notice tone="danger" title="No se pudo guardar">
+        <Notice tone="danger" title={t('No se pudo guardar', 'Couldn’t save')}>
           {describeError(save.error)}
         </Notice>
       )}
@@ -84,7 +95,7 @@ function RivalsForm({ candidates, onDone }: RivalsFormProps) {
           save.mutate({ rivalIds: selected }, { onSuccess: onDone });
         }}
       >
-        Guardar
+        {t('Guardar', 'Save')}
       </Button>
     </div>
   );

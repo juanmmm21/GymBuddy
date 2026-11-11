@@ -10,9 +10,11 @@ import { CompeteSwitch } from './CompeteSwitch';
 import { RivalsSheet } from './RivalsSheet';
 import { barPercents, boardAgainst, marginGrams, type RivalDuel } from './standings';
 import styles from './CompetitionScreen.module.css';
-import { useLocale } from '../../i18n/index';
+import { plural, t, useLocale } from '../../i18n/index';
 
-const BACK_TO_HOME: BackLink = { to: '/', label: 'Hoy' };
+function backToHome(): BackLink {
+  return { to: '/', label: t('Hoy', 'Today') };
+}
 
 /**
  * Competir con amigos: tú contra cada rival, por el peso máximo que habéis levantado en los
@@ -31,12 +33,15 @@ export function CompetitionScreen() {
   return (
     <>
       <ScreenHeader
-        title="Competir"
-        subtitle="Quién levanta más, ejercicio a ejercicio"
-        backTo={BACK_TO_HOME}
+        title={t('Competir', 'Compete')}
+        subtitle={t(
+          'Quién levanta más, ejercicio a ejercicio',
+          'Who lifts more, exercise by exercise',
+        )}
+        backTo={backToHome()}
         action={
           <button type="button" className={styles.headerButton} onClick={openChooser}>
-            Rivales
+            {t('Rivales', 'Rivals')}
           </button>
         }
       />
@@ -45,7 +50,7 @@ export function CompetitionScreen() {
           {(data) => <Boards competition={data} locale={locale} onChooseRivals={openChooser} />}
         </AsyncContent>
 
-        <Surface as="section" aria-label="Tu participación">
+        <Surface as="section" aria-label={t('Tu participación', 'Your participation')}>
           <CompeteSwitch />
         </Surface>
       </div>
@@ -75,14 +80,17 @@ function Boards({ competition, locale, onChooseRivals }: BoardsProps) {
   if (rival === undefined) {
     return (
       <Notice
-        title="Todavía no compites con nadie"
+        title={t('Todavía no compites con nadie', 'You’re not competing with anyone yet')}
         action={
           <Button variant="secondary" onClick={onChooseRivals}>
-            Elegir rivales
+            {t('Elegir rivales', 'Choose rivals')}
           </Button>
         }
       >
-        Elige rivales y aquí verás quién levanta más en cada ejercicio que hacéis los dos.
+        {t(
+          'Elige rivales y aquí verás quién levanta más en cada ejercicio que hacéis los dos.',
+          'Choose rivals and you’ll see here who lifts more in every exercise you both do.',
+        )}
       </Notice>
     );
   }
@@ -92,7 +100,7 @@ function Boards({ competition, locale, onChooseRivals }: BoardsProps) {
   return (
     <>
       {competition.rivals.length > 1 && (
-        <div className={styles.rivals} role="group" aria-label="Rival">
+        <div className={styles.rivals} role="group" aria-label={t('Rival', 'Rival')}>
           {competition.rivals.map((candidate) => (
             <button
               key={candidate.userId}
@@ -114,14 +122,14 @@ function Boards({ competition, locale, onChooseRivals }: BoardsProps) {
 
       <section className={styles.score} aria-label={scoreLabel(rival, board.wins, board.losses)}>
         <span className={styles.side}>
-          <span className={cx(styles.sideName, styles.sideNameSelf)}>Tú</span>
+          <span className={cx(styles.sideName, styles.sideNameSelf)}>{t('Tú', 'You')}</span>
           <span className={styles.sideScore}>{board.wins}</span>
         </span>
         <span className={styles.versus} aria-hidden="true">
           <span className={styles.versusMark}>VS</span>
           {board.draws > 0 && (
             <span className={styles.draws}>
-              {board.draws === 1 ? '1 empate' : `${String(board.draws)} empates`}
+              {plural(board.draws, ['empate', 'empates'], ['draw', 'draws'])}
             </span>
           )}
         </span>
@@ -133,11 +141,14 @@ function Boards({ competition, locale, onChooseRivals }: BoardsProps) {
 
       <section className={styles.section} aria-labelledby="competition-duels">
         <h2 id="competition-duels" className={styles.sectionTitle}>
-          Peso máximo, ejercicio a ejercicio
+          {t('Peso máximo, ejercicio a ejercicio', 'Max weight, exercise by exercise')}
         </h2>
         {board.duels.length === 0 ? (
           <p className={styles.note}>
-            Todavía no tenéis marca en ningún ejercicio del catálogo que hagáis los dos.
+            {t(
+              'Todavía no tenéis marca en ningún ejercicio del catálogo que hagáis los dos.',
+              'Neither of you has a record yet in any catalogue exercise you both do.',
+            )}
           </p>
         ) : (
           <ul className={styles.duels}>
@@ -162,7 +173,11 @@ function DuelCard({ duel, rival, locale }: DuelCardProps) {
   const bars = barPercents(duel);
   const gap = formatWeightValue(Math.abs(margin), locale);
   const verdict =
-    margin > 0 ? `Ganas por ${gap} kg` : margin < 0 ? `Te faltan ${gap} kg` : 'Empate';
+    margin > 0
+      ? t(`Ganas por ${gap} kg`, `You win by ${gap} kg`)
+      : margin < 0
+        ? t(`Te faltan ${gap} kg`, `You’re ${gap} kg behind`)
+        : t('Empate', 'Draw');
 
   return (
     <li className={styles.duel} aria-label={`${duel.name}: ${verdict}`}>
@@ -179,7 +194,7 @@ function DuelCard({ duel, rival, locale }: DuelCardProps) {
         </span>
       </div>
       <DuelBar
-        who="Tú"
+        who={t('Tú', 'You')}
         grams={duel.mineGrams}
         percent={bars.mine}
         leading={margin >= 0}
@@ -227,5 +242,8 @@ function DuelBar({ who, grams, percent, leading, self = false, locale }: DuelBar
 }
 
 function scoreLabel(rival: Competitor, wins: number, losses: number): string {
-  return `Marcador: tú ${String(wins)}, ${rival.displayName} ${String(losses)}`;
+  return t(
+    `Marcador: tú ${String(wins)}, ${rival.displayName} ${String(losses)}`,
+    `Score: you ${String(wins)}, ${rival.displayName} ${String(losses)}`,
+  );
 }

@@ -11,6 +11,7 @@ import {
   stepWeight,
   WEIGHT_STEPS,
 } from './weight-math';
+import { t } from '../../i18n/index';
 
 export interface WeightFieldProps {
   readonly label: string;
@@ -26,10 +27,14 @@ export interface WeightFieldProps {
   readonly hint?: string;
 }
 
-const INVALID_MESSAGES: Readonly<Record<WeightUnit, string>> = {
-  kg: 'Escribe un peso en kilogramos, por ejemplo 82,5',
-  lb: 'Escribe un peso en libras, por ejemplo 100 o 112,5',
-};
+function invalidMessage(unit: WeightUnit): string {
+  return unit === 'kg'
+    ? t('Escribe un peso en kilogramos, por ejemplo 82,5', 'Enter a weight in kilograms, e.g. 82.5')
+    : t(
+        'Escribe un peso en libras, por ejemplo 100 o 112,5',
+        'Enter a weight in pounds, e.g. 100 or 112.5',
+      );
+}
 
 /**
  * Campo numérico de peso. El valor vive en gramos enteros; lo que se teclea se convierte
@@ -102,7 +107,7 @@ export function WeightField({
     }
   };
 
-  const message = invalid ? INVALID_MESSAGES[activeUnit] : hint;
+  const message = invalid ? invalidMessage(activeUnit) : hint;
 
   return (
     <div className={styles.field}>
@@ -111,7 +116,7 @@ export function WeightField({
           {label}
         </label>
 
-        <div className={styles.units} role="group" aria-label="Unidad de peso">
+        <div className={styles.units} role="group" aria-label={t('Unidad de peso', 'Weight unit')}>
           {WEIGHT_UNITS.map((candidate) => (
             <button
               key={candidate}
@@ -137,7 +142,7 @@ export function WeightField({
             nudge(-1);
           }}
           disabled={disabled || (valueGrams ?? 0) === 0}
-          aria-label={`Restar ${unitStepLabel}`}
+          aria-label={t(`Restar ${unitStepLabel}`, `Subtract ${unitStepLabel}`)}
         >
           −
         </button>
@@ -172,7 +177,7 @@ export function WeightField({
             nudge(1);
           }}
           disabled={disabled}
-          aria-label={`Sumar ${unitStepLabel}`}
+          aria-label={t(`Sumar ${unitStepLabel}`, `Add ${unitStepLabel}`)}
         >
           +
         </button>
@@ -182,7 +187,7 @@ export function WeightField({
         <p className={styles.equivalent}>≈ {formatWeightInUnit(valueGrams, 'kg', locale)}</p>
       )}
 
-      <div className={styles.steps} role="group" aria-label="Salto de peso">
+      <div className={styles.steps} role="group" aria-label={t('Salto de peso', 'Weight step')}>
         {WEIGHT_STEPS[activeUnit].map((candidate) => (
           <button
             key={candidate}

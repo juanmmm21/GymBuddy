@@ -4,7 +4,6 @@ import { useCatalogExercises } from '../../api/queries';
 import { ScreenHeader, type BackLink } from '../../app/ScreenHeader';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
 import { Button, Notice, SkeletonList } from '../../components/index';
-import { pluralize } from '../../lib/format';
 import { CatalogExerciseList } from './CatalogExerciseList';
 import { CatalogFilterBar } from './CatalogFilterBar';
 import {
@@ -13,13 +12,15 @@ import {
   hasCatalogFilters,
   parseCatalogFilters,
 } from './filters';
-import { BODY_PART_LABELS } from './labels';
+import { bodyPartLabel } from './labels';
 import { bodyPartBackLink } from './navigation';
 import { CATALOG_PATH, parseBodyPart } from './paths';
 import styles from './BodyPartScreen.module.css';
-import { useLocale } from '../../i18n/index';
+import { plural, t, useLocale } from '../../i18n/index';
 
-const BACK_TO_CATALOG: BackLink = { to: CATALOG_PATH, label: 'Catálogo' };
+function backToCatalog(): BackLink {
+  return { to: CATALOG_PATH, label: t('Catálogo', 'Catalogue') };
+}
 
 /**
  * Los ejercicios de una parte del cuerpo (`/catalog/:bodyPart`), de cincuenta en cincuenta. Los
@@ -32,9 +33,15 @@ export function BodyPartScreen() {
   if (bodyPart === null) {
     return (
       <>
-        <ScreenHeader title="Catálogo" backTo={BACK_TO_CATALOG} />
-        <Notice tone="danger" title="No existe esa parte del cuerpo">
-          El catálogo se navega por pecho, espalda, piernas, hombros, brazos, core y cardio.
+        <ScreenHeader title={t('Catálogo', 'Catalogue')} backTo={backToCatalog()} />
+        <Notice
+          tone="danger"
+          title={t('No existe esa parte del cuerpo', 'That body part doesn’t exist')}
+        >
+          {t(
+            'El catálogo se navega por pecho, espalda, piernas, hombros, brazos, core y cardio.',
+            'The catalogue is organised by chest, back, legs, shoulders, arms, core and cardio.',
+          )}
         </Notice>
       </>
     );
@@ -56,9 +63,13 @@ function BodyPartExercises({ bodyPart }: { readonly bodyPart: BodyPart }) {
   return (
     <>
       <ScreenHeader
-        title={BODY_PART_LABELS[bodyPart]}
-        subtitle={total === undefined ? undefined : pluralize(total, 'ejercicio', 'ejercicios')}
-        backTo={BACK_TO_CATALOG}
+        title={bodyPartLabel(bodyPart)}
+        subtitle={
+          total === undefined
+            ? undefined
+            : plural(total, ['ejercicio', 'ejercicios'], ['exercise', 'exercises'])
+        }
+        backTo={backToCatalog()}
       />
       <div className={styles.filters}>
         <CatalogFilterBar filters={filters} bodyPart={bodyPart} onChange={changeFilters} />
@@ -69,7 +80,10 @@ function BodyPartExercises({ bodyPart }: { readonly bodyPart: BodyPart }) {
           if (items.length === 0 && hasCatalogFilters(filters)) {
             return (
               <Notice
-                title={`Nada con «${describeCatalogFilters(filters)}»`}
+                title={t(
+                  `Nada con «${describeCatalogFilters(filters)}»`,
+                  `Nothing with “${describeCatalogFilters(filters)}”`,
+                )}
                 action={
                   <Button
                     variant="secondary"
@@ -77,20 +91,24 @@ function BodyPartExercises({ bodyPart }: { readonly bodyPart: BodyPart }) {
                       changeFilters({});
                     }}
                   >
-                    Quitar filtros
+                    {t('Quitar filtros', 'Clear filters')}
                   </Button>
                 }
               >
-                Con estos filtros no queda ningún ejercicio de{' '}
-                {BODY_PART_LABELS[bodyPart].toLowerCase()}. Prueba con otro equipamiento o quitando
-                alguno.
+                {t(
+                  `Con estos filtros no queda ningún ejercicio de ${bodyPartLabel(bodyPart).toLowerCase()}. Prueba con otro equipamiento o quitando alguno.`,
+                  `No ${bodyPartLabel(bodyPart).toLowerCase()} exercises are left with these filters. Try other equipment or remove some.`,
+                )}
               </Notice>
             );
           }
           if (items.length === 0) {
             return (
-              <Notice title="Aquí no hay ejercicios todavía">
-                El catálogo se sincroniza por partes en segundo plano. Vuelve en unos minutos.
+              <Notice title={t('Aquí no hay ejercicios todavía', 'No exercises here yet')}>
+                {t(
+                  'El catálogo se sincroniza por partes en segundo plano. Vuelve en unos minutos.',
+                  'The catalogue syncs in parts in the background. Come back in a few minutes.',
+                )}
               </Notice>
             );
           }
@@ -107,11 +125,12 @@ function BodyPartExercises({ bodyPart }: { readonly bodyPart: BodyPart }) {
                     void query.fetchNextPage();
                   }}
                 >
-                  Cargar más
+                  {t('Cargar más', 'Load more')}
                 </Button>
               ) : (
                 <p className={styles.end}>
-                  Eso es todo: {pluralize(items.length, 'ejercicio', 'ejercicios')}
+                  {t('Eso es todo:', 'That’s all:')}{' '}
+                  {plural(items.length, ['ejercicio', 'ejercicios'], ['exercise', 'exercises'])}
                 </p>
               )}
             </div>

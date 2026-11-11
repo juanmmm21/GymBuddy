@@ -1,4 +1,5 @@
 import { Surface } from '../surface/Surface';
+import { t } from '../../i18n/index';
 import { Skeleton } from './Skeleton';
 import styles from './SkeletonList.module.css';
 
@@ -18,11 +19,11 @@ export interface SkeletonListProps {
  *
  * Anuncia la espera una sola vez, en el contenedor; los huecos de dentro son decorativos.
  */
-export function SkeletonList({ rows = 4, thumb = false, label = 'Cargando' }: SkeletonListProps) {
+export function SkeletonList({ rows = 4, thumb = false, label }: SkeletonListProps) {
   const count = Math.max(Math.trunc(rows), 1);
 
   return (
-    <div className={styles.list} role="status" aria-label={label}>
+    <div className={styles.list} role="status" aria-label={label ?? t('Cargando', 'Loading')}>
       {Array.from({ length: count }, (_, index) => (
         <Surface key={index} padding="none" className={styles.row}>
           {thumb && <Skeleton shape="thumb" />}

@@ -9,6 +9,7 @@ import {
   normalizeNotes,
 } from '../../lib/notes';
 import styles from './EditExerciseSheet.module.css';
+import { t } from '../../i18n/index';
 
 export interface EditExerciseSheetProps {
   readonly exercise: TrackedExercise;
@@ -23,7 +24,7 @@ export interface EditExerciseSheetProps {
  */
 export function EditExerciseSheet({ exercise, open, onClose }: EditExerciseSheetProps) {
   return (
-    <Sheet open={open} onClose={onClose} title="Editar ejercicio">
+    <Sheet open={open} onClose={onClose} title={t('Editar ejercicio', 'Edit exercise')}>
       <EditExerciseForm exercise={exercise} onDone={onClose} />
     </Sheet>
   );
@@ -69,29 +70,32 @@ function EditExerciseForm({ exercise, onDone }: EditExerciseFormProps) {
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
       <TextField
-        label="Nombre"
+        label={t('Nombre', 'Name')}
         value={name}
         onChange={setName}
         maxLength={MAX_EXERCISE_NAME_LENGTH}
-        hint={fromCatalog ? catalogNameHint(exercise) : CUSTOM_NAME_HINT}
+        hint={fromCatalog ? catalogNameHint(exercise) : customNameHint()}
       />
 
       <TextArea
-        label="Notas"
+        label={t('Notas', 'Notes')}
         value={notes}
         onChange={setNotes}
         maxLength={MAX_EXERCISE_NOTES_LENGTH}
-        placeholder="Agarre, altura del asiento, lo que quieras recordar la próxima vez."
+        placeholder={t(
+          'Agarre, altura del asiento, lo que quieras recordar la próxima vez.',
+          'Grip, seat height, whatever you want to remember next time.',
+        )}
       />
 
       {update.isError && (
-        <Notice tone="danger" title="No se pudo guardar">
+        <Notice tone="danger" title={t('No se pudo guardar', 'Couldn’t save')}>
           {describeError(update.error)}
         </Notice>
       )}
 
       <Button type="submit" size="lg" fullWidth loading={update.isPending} disabled={nameMissing}>
-        Guardar
+        {t('Guardar', 'Save')}
       </Button>
 
       <div className={styles.archive}>
@@ -101,19 +105,32 @@ function EditExerciseForm({ exercise, onDone }: EditExerciseFormProps) {
           disabled={update.isPending}
           onClick={toggleArchived}
         >
-          {archived ? 'Recuperar ejercicio' : 'Archivar ejercicio'}
+          {archived
+            ? t('Recuperar ejercicio', 'Restore exercise')
+            : t('Archivar ejercicio', 'Archive exercise')}
         </Button>
         <p className={styles.archiveHint}>
           {archived
-            ? 'Vuelve a tu lista y a la sesión, con todo su historial.'
-            : 'Desaparece de tu lista, pero su historial y sus marcas se conservan.'}
+            ? t(
+                'Vuelve a tu lista y a la sesión, con todo su historial.',
+                'It comes back to your list and sessions, with all its history.',
+              )
+            : t(
+                'Desaparece de tu lista, pero su historial y sus marcas se conservan.',
+                'It disappears from your list, but its history and records are kept.',
+              )}
         </p>
       </div>
     </form>
   );
 }
 
-const CUSTOM_NAME_HINT = 'Como lo llamas tú. Su historial y sus marcas no se mueven.';
+function customNameHint(): string {
+  return t(
+    'Como lo llamas tú. Su historial y sus marcas no se mueven.',
+    'What you call it. Its history and records stay put.',
+  );
+}
 
 /**
  * Bajo el nombre de uno del catálogo: cómo se llama allí —si ya lleva otro— y cómo volver. El
@@ -121,6 +138,12 @@ const CUSTOM_NAME_HINT = 'Como lo llamas tú. Su historial y sus marcas no se mu
  */
 function catalogNameHint({ name, catalogName }: TrackedExercise): string {
   return catalogName !== null && catalogName !== name
-    ? `En el catálogo es «${catalogName}». Déjalo vacío para volver a ese nombre.`
-    : 'Ponle el nombre que uses tú. Déjalo vacío para volver al del catálogo.';
+    ? t(
+        `En el catálogo es «${catalogName}». Déjalo vacío para volver a ese nombre.`,
+        `In the catalogue it’s “${catalogName}”. Leave it empty to go back to that name.`,
+      )
+    : t(
+        'Ponle el nombre que uses tú. Déjalo vacío para volver al del catálogo.',
+        'Give it the name you use. Leave it empty to go back to the catalogue’s.',
+      );
 }

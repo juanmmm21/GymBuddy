@@ -2,13 +2,16 @@ import type { BodyPart, CatalogFilters, CatalogSearchFilters } from '@gymbuddy/s
 import { z } from 'zod';
 import type { BackLink } from '../../app/ScreenHeader';
 import { applyCatalogFiltersToParams } from './filters';
-import { BODY_PART_LABELS } from './labels';
+import { bodyPartLabel } from './labels';
 import { CATALOG_PATH, bodyPartPath } from './paths';
+import { t } from '../../i18n/index';
 
 /** El parámetro de la URL con el texto de la búsqueda del catálogo. */
 export const SEARCH_QUERY_PARAM = 'q';
 
-export const SEARCH_BACK_LABEL = 'Búsqueda';
+export function searchBackLabel(): string {
+  return t('Búsqueda', 'Search');
+}
 
 /** Lo que una lista del catálogo deja en el estado de navegación al abrir una ficha. */
 export interface CatalogBackState {
@@ -37,7 +40,7 @@ export function catalogSearchPath(query: string, filters: CatalogSearchFilters):
 }
 
 export function searchBackLink(query: string, filters: CatalogSearchFilters): BackLink {
-  return { to: catalogSearchPath(query, filters), label: SEARCH_BACK_LABEL };
+  return { to: catalogSearchPath(query, filters), label: searchBackLabel() };
 }
 
 /** La página de una parte del cuerpo con los filtros que tenía puestos. */
@@ -47,7 +50,7 @@ export function bodyPartBackLink(bodyPart: BodyPart, filters: CatalogFilters): B
       bodyPartPath(bodyPart),
       applyCatalogFiltersToParams(new URLSearchParams(), filters),
     ),
-    label: BODY_PART_LABELS[bodyPart],
+    label: bodyPartLabel(bodyPart),
   };
 }
 

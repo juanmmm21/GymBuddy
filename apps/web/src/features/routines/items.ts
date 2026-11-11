@@ -4,7 +4,7 @@ import {
   type RoutineItem,
   type RoutineItemInput,
 } from '@gymbuddy/shared';
-import { pluralize } from '../../lib/format';
+import { plural, t } from '../../i18n/index';
 
 /*
  * Las operaciones del editor sobre la lista de ejercicios de una rutina. Todas devuelven
@@ -107,14 +107,16 @@ export function hasInvertedRange(values: ItemValues): boolean {
 
 /** "8–12 reps", o "8 reps" cuando el rango es un número fijo. */
 export function formatRepsRange(min: number, max: number): string {
-  return min === max ? pluralize(min, 'rep', 'reps') : `${String(min)}–${String(max)} reps`;
+  return min === max
+    ? plural(min, ['rep', 'reps'], ['rep', 'reps'])
+    : `${String(min)}–${String(max)} reps`;
 }
 
 /** "3 series × 8–12 reps": el objetivo de una línea tal como se lee en una hoja de rutina. */
 export function formatTarget(
   item: Pick<RoutineItemInput, 'targetSets' | 'targetRepsMin' | 'targetRepsMax'>,
 ): string {
-  return `${pluralize(item.targetSets, 'serie', 'series')} × ${formatRepsRange(item.targetRepsMin, item.targetRepsMax)}`;
+  return `${plural(item.targetSets, ['serie', 'series'], ['set', 'sets'])} × ${formatRepsRange(item.targetRepsMin, item.targetRepsMax)}`;
 }
 
 /**
@@ -124,9 +126,9 @@ export function formatTarget(
 export function describeRoutineSize(
   items: readonly Pick<RoutineItemInput, 'trackedExerciseId' | 'targetSets'>[],
 ): string {
-  if (items.length === 0) return 'Sin ejercicios';
+  if (items.length === 0) return t('Sin ejercicios', 'No exercises');
 
   const exercises = new Set(items.map((item) => item.trackedExerciseId)).size;
   const sets = items.reduce((total, item) => total + item.targetSets, 0);
-  return `${pluralize(exercises, 'ejercicio', 'ejercicios')} · ${pluralize(sets, 'serie', 'series')}`;
+  return `${plural(exercises, ['ejercicio', 'ejercicios'], ['exercise', 'exercises'])} · ${plural(sets, ['serie', 'series'], ['set', 'sets'])}`;
 }

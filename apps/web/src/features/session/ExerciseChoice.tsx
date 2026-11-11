@@ -1,6 +1,6 @@
 import type { TrackedExercise } from '@gymbuddy/shared';
-import { BODY_PART_LABELS } from '../catalog/labels';
-import { UNGROUPED_LABEL } from '../exercises/grouping';
+import { bodyPartLabel } from '../catalog/labels';
+import { ungroupedLabel } from '../exercises/grouping';
 import { ExerciseMedia } from './ExerciseMedia';
 import styles from './ExerciseChoice.module.css';
 
@@ -16,8 +16,7 @@ export interface ExerciseChoiceProps {
  * tocarla entera abre la lista para cambiarlo.
  */
 export function ExerciseChoice({ exercise, onChange }: ExerciseChoiceProps) {
-  const bodyPart =
-    exercise.bodyPart === null ? UNGROUPED_LABEL : BODY_PART_LABELS[exercise.bodyPart];
+  const bodyPart = exercise.bodyPart === null ? ungroupedLabel() : bodyPartLabel(exercise.bodyPart);
 
   return (
     <div className={styles.field}>
