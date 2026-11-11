@@ -12,7 +12,12 @@ import {
 import { env } from 'cloudflare:test';
 import { eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { hashInvitationCode, issueInvitation } from '../src/auth/invitations';
+import {
+  hashInvitationCode,
+  INVITATION_LIMIT,
+  INVITATION_LIMIT_WINDOW_DAYS,
+  issueInvitation,
+} from '../src/auth/invitations';
 import { createDatabase, type Database } from '../src/db/client';
 import { authChallenge, invitation, passkeyCredential, user } from '../src/db/schema';
 import { app } from '../src/index';
@@ -119,14 +124,67 @@ describe('invitar a un amigo desde la app', () => {
     expect((await readStatus(session.token)).pending).toEqual([]);
   });
 
-  it('da todos los códigos que se pidan y lista los que siguen sin usar', async () => {
+  it('una cuenta normal crea hasta su cupo y luego recibe 429 con la fecha de renovación', async () => {
     const codes = new Set<string>();
-    for (let index = 0; index < 5; index += 1) {
+    for (let index = 0; index < INVITATION_LIMIT; index += 1) {
       codes.add((await newInvitation(session.token)).code);
     }
+    expect(codes.size).toBe(INVITATION_LIMIT);
 
-    expect(codes.size).toBe(5);
-    expect((await readStatus(session.token)).pending).toHaveLength(5);
+    const refused = await invite(session.token);
+    expect(refused.status).toBe(429);
+    const body = apiErrorSchema.parse(await refused.json());
+    expect(body.error.code).toBe('invitation_limit_reached');
+    expect(body.error.detail).toEqual({ renewsAt: expect.any(String) as unknown });
+
+    const status = await readStatus(session.token);
+    expect(status.pending).toHaveLength(INVITATION_LIMIT);
+    expect(status.quota).toMatchObject({
+      limit: INVITATION_LIMIT,
+      windowDays: INVITATION_LIMIT_WINDOW_DAYS,
+      remaining: 0,
+    });
+    expect(status.quota?.renewsAt).toBe((body.error.detail as { renewsAt: string }).renewsAt);
+  });
+
+  it('las invitaciones ya usadas siguen contando: no se libera hueco gastándolas', async () => {
+    for (let index = 0; index < INVITATION_LIMIT; index += 1) {
+      const { code } = await newInvitation(session.token);
+      await register(code, `Amigo ${String(index)}`);
+    }
+
+    expect((await invite(session.token)).status).toBe(429);
+  });
+
+  it('peticiones simultáneas no se cuelan por encima del cupo', async () => {
+    const responses = await Promise.all(
+      Array.from({ length: INVITATION_LIMIT + 4 }, () => invite(session.token)),
+    );
+
+    expect(responses.filter((response) => response.status === 201)).toHaveLength(INVITATION_LIMIT);
+    expect(responses.filter((response) => response.status === 429)).toHaveLength(4);
+  });
+
+  it('las creadas fuera de la ventana no cuentan', async () => {
+    const old = new Date(Date.now() - (INVITATION_LIMIT_WINDOW_DAYS + 1) * 24 * 60 * 60 * 1000);
+    for (let index = 0; index < INVITATION_LIMIT; index += 1) {
+      await issueInvitation(db, { createdByUserId: session.user.id, now: old });
+    }
+
+    expect((await readStatus(session.token)).quota?.remaining).toBe(INVITATION_LIMIT);
+    await newInvitation(session.token);
+  });
+
+  it('la cuenta de administración no tiene cupo', async () => {
+    await db.update(user).set({ isAdmin: true }).where(eq(user.id, session.user.id));
+
+    for (let index = 0; index < INVITATION_LIMIT + 2; index += 1) {
+      await newInvitation(session.token);
+    }
+
+    const status = await readStatus(session.token);
+    expect(status.quota).toBeNull();
+    expect(status.pending).toHaveLength(INVITATION_LIMIT + 2);
   });
 
   it('sin sesión no se pide ni se consulta', async () => {

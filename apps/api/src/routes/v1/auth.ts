@@ -11,7 +11,7 @@ import {
 } from '@gymbuddy/shared';
 import { Hono } from 'hono';
 import { issueDeviceLink } from '../../auth/device-links';
-import { issueInvitation, readInvitationStatus } from '../../auth/invitations';
+import { issueInvitationFor, readInvitationStatus } from '../../auth/invitations';
 import { issueSessionToken } from '../../auth/jwt';
 import {
   finishDeviceLinkRegistration,
@@ -71,11 +71,11 @@ export const authRoute = new Hono<AuthenticatedEnv>()
     return c.json(await sessionFor(account, secret, now));
   })
 
-  /** Las invitaciones sin usar de quien pregunta, con su caducidad. */
+  /** Las invitaciones sin usar de quien pregunta, con su caducidad y su cupo. */
   .get('/auth/invitations', requireUser, async (c) => {
     const status: InvitationStatus = await readInvitationStatus(
       createDatabase(c.env.DB),
-      c.get('user').id,
+      c.get('user'),
       new Date(),
     );
 
@@ -84,13 +84,15 @@ export const authRoute = new Hono<AuthenticatedEnv>()
 
   /**
    * Una invitación para un amigo, pedida desde la app. Es la única vez que ese código viaja en
-   * claro: en la base queda su digest, igual que con el de administración.
+   * claro: en la base queda su digest, igual que con el de administración. Las cuentas normales
+   * tienen cupo; la de administración, no.
    */
   .post('/auth/invitations', requireUser, async (c) => {
-    const created: Invitation = await issueInvitation(createDatabase(c.env.DB), {
-      createdByUserId: c.get('user').id,
-      now: new Date(),
-    });
+    const created: Invitation = await issueInvitationFor(
+      createDatabase(c.env.DB),
+      c.get('user'),
+      new Date(),
+    );
 
     return c.json(created, 201);
   })

@@ -12,8 +12,12 @@ import {
   consumeInvitation,
   generateInvitationCode,
   hashInvitationCode,
+  INVITATION_LIMIT,
+  INVITATION_LIMIT_WINDOW_DAYS,
   INVITATION_TTL_MS,
   issueInvitation,
+  issueInvitationFor,
+  readInvitationQuota,
   readInvitationStatus,
   releaseInvitation,
 } from '../src/auth/invitations';
@@ -101,14 +105,18 @@ describe('invitaciones pedidas desde la app', () => {
   });
 
   const issueFor = (userId: string) => issueInvitation(db, { createdByUserId: userId, now });
+  // Las pruebas de la lista miran solo `pending`: con la cuenta de administración el cupo es nulo
+  // y no se mezcla. El cupo tiene sus propias pruebas abajo.
+  const inviter = { id: inviterId, isAdmin: true };
+  const nothingPending = { pending: [], quota: null };
 
   it('lista las que ese usuario tiene sin usar, de la que antes caduca a la que después', async () => {
-    expect(await readInvitationStatus(db, inviterId, now)).toEqual({ pending: [] });
+    expect(await readInvitationStatus(db, inviter, now)).toEqual(nothingPending);
 
     const later = new Date(now.getTime() + 60_000);
     await issueInvitation(db, { createdByUserId: inviterId, now: later });
     await issueFor(inviterId);
-    const { pending } = await readInvitationStatus(db, inviterId, later);
+    const { pending } = await readInvitationStatus(db, inviter, later);
 
     expect(pending.map(({ createdAt }) => createdAt)).toEqual([
       now.toISOString(),
@@ -116,12 +124,12 @@ describe('invitaciones pedidas desde la app', () => {
     ]);
   });
 
-  it('no tiene tope: se pueden pedir tantas como hagan falta', async () => {
+  it('la creación directa (la de administración) no mira ningún cupo', async () => {
     for (let index = 0; index < 12; index += 1) {
       await issueFor(inviterId);
     }
 
-    expect((await readInvitationStatus(db, inviterId, now)).pending).toHaveLength(12);
+    expect((await readInvitationStatus(db, inviter, now)).pending).toHaveLength(12);
   });
 
   it('una usada o caducada deja de contar como pendiente', async () => {
@@ -129,17 +137,54 @@ describe('invitaciones pedidas desde la app', () => {
     await issueFor(inviterId);
 
     await consumeInvitation(db, await hashInvitationCode(code), now);
-    expect((await readInvitationStatus(db, inviterId, now)).pending).toHaveLength(1);
+    expect((await readInvitationStatus(db, inviter, now)).pending).toHaveLength(1);
 
     const afterExpiry = new Date(now.getTime() + INVITATION_TTL_MS);
-    expect(await readInvitationStatus(db, inviterId, afterExpiry)).toEqual({ pending: [] });
+    expect(await readInvitationStatus(db, inviter, afterExpiry)).toEqual(nothingPending);
   });
 
   it('no enseña las de otra cuenta ni las de administración', async () => {
     await issueFor(otherId);
     await issueInvitation(db, { createdByUserId: null, now });
 
-    expect(await readInvitationStatus(db, inviterId, now)).toEqual({ pending: [] });
+    expect(await readInvitationStatus(db, inviter, now)).toEqual(nothingPending);
+  });
+
+  it('una cuenta normal ve su cupo y cuándo se renueva al agotarlo', async () => {
+    const normal = { id: inviterId, isAdmin: false };
+    const day = 24 * 60 * 60 * 1000;
+
+    for (let index = 0; index < INVITATION_LIMIT; index += 1) {
+      await issueInvitationFor(db, normal, new Date(now.getTime() + index * day));
+    }
+    const lastDay = new Date(now.getTime() + (INVITATION_LIMIT - 1) * day);
+
+    expect((await readInvitationStatus(db, normal, lastDay)).quota).toEqual({
+      limit: INVITATION_LIMIT,
+      windowDays: INVITATION_LIMIT_WINDOW_DAYS,
+      remaining: 0,
+      // Se libera hueco cuando la más antigua sale de la ventana.
+      renewsAt: new Date(now.getTime() + INVITATION_LIMIT_WINDOW_DAYS * day).toISOString(),
+    });
+    await expect(issueInvitationFor(db, normal, lastDay)).rejects.toMatchObject({
+      code: 'invitation_limit_reached',
+    });
+
+    const renewed = new Date(now.getTime() + INVITATION_LIMIT_WINDOW_DAYS * day + 1);
+    expect((await readInvitationStatus(db, normal, renewed)).quota).toMatchObject({
+      remaining: 1,
+      renewsAt: null,
+    });
+    await issueInvitationFor(db, normal, renewed);
+  });
+
+  it('el cupo es de cada cuenta', async () => {
+    for (let index = 0; index < INVITATION_LIMIT; index += 1) {
+      await issueInvitationFor(db, { id: otherId, isAdmin: false }, now);
+    }
+
+    const quota = await readInvitationQuota(db, inviterId, now);
+    expect(quota.remaining).toBe(INVITATION_LIMIT);
   });
 });
 
