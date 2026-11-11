@@ -128,11 +128,25 @@ export const pendingInvitationSchema = z.object({
 });
 
 /**
- * Las invitaciones sin usar de quien pregunta. No hay tope de cuántas puede generar: lo que
- * cierra el alta es que cada código sea de un solo uso y caduque.
+ * Cuántas invitaciones le quedan a una cuenta normal. El tope se cuenta sobre las *creadas* en
+ * una ventana móvil, usadas o no: si contara solo las pendientes, consumir una con una cuenta de
+ * paja liberaría el hueco al momento y el tope no frenaría nada.
+ */
+export const invitationQuotaSchema = z.object({
+  limit: z.number().int().positive(),
+  windowDays: z.number().int().positive(),
+  remaining: z.number().int().nonnegative(),
+  // Cuándo vuelve a quedar al menos una; nulo mientras quede alguna.
+  renewsAt: isoDatetimeSchema.nullable(),
+});
+
+/**
+ * Las invitaciones sin usar de quien pregunta y su cupo. El cupo es nulo para la cuenta de
+ * administración, que no tiene tope.
  */
 export const invitationStatusSchema = z.object({
   pending: z.array(pendingInvitationSchema),
+  quota: invitationQuotaSchema.nullable(),
 });
 
 /**
@@ -164,6 +178,7 @@ export type LoginOptionsResponse = z.infer<typeof loginOptionsResponseSchema>;
 export type LoginVerifyRequest = z.infer<typeof loginVerifyRequestSchema>;
 export type Invitation = z.infer<typeof invitationSchema>;
 export type PendingInvitation = z.infer<typeof pendingInvitationSchema>;
+export type InvitationQuota = z.infer<typeof invitationQuotaSchema>;
 export type InvitationStatus = z.infer<typeof invitationStatusSchema>;
 export type DeviceLink = z.infer<typeof deviceLinkSchema>;
 export type DeviceLinkOptionsRequest = z.infer<typeof deviceLinkOptionsRequestSchema>;

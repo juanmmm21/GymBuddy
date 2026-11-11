@@ -13,6 +13,9 @@ export const apiErrorCodeSchema = z.enum([
   // El código de invitación no sirve: no existe, caducó o ya se usó. Los tres casos comparten
   // código a propósito, para no confirmarle a nadie que un código existió.
   'invitation_invalid',
+  // La cuenta ya creó todas las invitaciones de su cupo en la ventana. El `detail` lleva
+  // `renewsAt`: cuándo podrá crear la siguiente.
+  'invitation_limit_reached',
   // El código de «añadir otro dispositivo» no sirve: no existe, caducó o ya se usó. Va aparte de
   // `invitation_invalid` porque el texto que hay que enseñar es otro: aquí se pide otro código
   // desde el móvil que ya tiene la cuenta, no a quien te invitó.
