@@ -7,7 +7,6 @@ import type {
 } from '@gymbuddy/shared';
 import { Link, useParams } from 'react-router';
 import { useSessionDetail, useTrackedExercises } from '../../api/queries';
-import { useSession } from '../../auth/SessionProvider';
 import { ScreenHeader, type BackLink } from '../../app/ScreenHeader';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
 import { Badge, Notice, PlateStack, Surface } from '../../components/index';
@@ -29,6 +28,7 @@ import { DeleteSessionPanel } from './DeleteSessionPanel';
 import { HISTORY_PATH } from './paths';
 import styles from './SessionDetailScreen.module.css';
 import { drawsPlates } from '../exercises/equipment';
+import { useLocale } from '../../i18n/index';
 
 const BACK_TO_HISTORY: BackLink = { to: HISTORY_PATH, label: 'Historial' };
 
@@ -58,8 +58,7 @@ interface SessionDetailProps {
 }
 
 function SessionDetail({ sessionId }: SessionDetailProps) {
-  const { session: authSession } = useSession();
-  const locale = authSession?.user.locale ?? 'es';
+  const locale = useLocale();
   const detail = useSessionDetail(sessionId);
   // Con los archivados: una sesión de hace meses puede tener series de un ejercicio que
   // ya no se sigue, y sin su nombre la pantalla se llenaría de filas sin encabezado.

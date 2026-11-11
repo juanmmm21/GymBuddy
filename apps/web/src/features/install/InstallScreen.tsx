@@ -5,12 +5,16 @@ import { Button, Notice, Surface } from '../../components/index';
 import { copyToClipboard } from '../../lib/clipboard';
 import type { InstallPromptOutcome } from './install-prompt';
 import { useInstallGuide, type InstallGuide } from './InstallProvider';
-import { inAppBrowserTitle, RECOMMENDED_BROWSER } from './labels';
+import { inAppBrowserTitle, recommendedBrowser } from './labels';
 import type { DevicePlatform, InAppBrowserApp } from './platform';
 import styles from './InstallScreen.module.css';
+import { t } from '../../i18n/index';
 
-const BACK_TO_HOME: BackLink = { to: '/', label: 'Hoy' };
-const BACK_TO_LOGIN: BackLink = { to: '/login', label: 'Entrar' };
+function backTo(signedIn: boolean): BackLink {
+  return signedIn
+    ? { to: '/', label: t('Hoy', 'Today') }
+    : { to: '/login', label: t('Entrar', 'Sign in') };
+}
 
 /**
  * Cómo tener GymBuddy en la pantalla de inicio (ADR 0002: se queda en la web). No exige sesión:
@@ -24,9 +28,12 @@ export function InstallScreen() {
   return (
     <main className={styles.screen}>
       <ScreenHeader
-        title="Instalar GymBuddy"
-        subtitle="En la pantalla de inicio, como una app más"
-        backTo={session === null ? BACK_TO_LOGIN : BACK_TO_HOME}
+        title={t('Instalar GymBuddy', 'Install GymBuddy')}
+        subtitle={t(
+          'En la pantalla de inicio, como una app más',
+          'On your home screen, like any other app',
+        )}
+        backTo={backTo(session !== null)}
       />
       <div className={styles.stack}>
         <GuideBody guide={guide} />
@@ -40,15 +47,21 @@ function GuideBody({ guide }: { readonly guide: InstallGuide }) {
 
   if (situation.kind === 'installed') {
     return (
-      <Notice tone="success" title="Ya la tienes instalada">
-        La estás usando desde la pantalla de inicio. No hace falta nada más.
+      <Notice tone="success" title={t('Ya la tienes instalada', 'It’s already installed')}>
+        {t(
+          'La estás usando desde la pantalla de inicio. No hace falta nada más.',
+          'You’re using it from your home screen. Nothing else to do.',
+        )}
       </Notice>
     );
   }
   if (promptState === 'installed') {
     return (
-      <Notice tone="success" title="GymBuddy ya está instalada">
-        Búscala en tu pantalla de inicio y ábrela desde allí a partir de ahora.
+      <Notice tone="success" title={t('GymBuddy ya está instalada', 'GymBuddy is installed')}>
+        {t(
+          'Búscala en tu pantalla de inicio y ábrela desde allí a partir de ahora.',
+          'Find it on your home screen and open it from there from now on.',
+        )}
       </Notice>
     );
   }
@@ -67,9 +80,11 @@ function GuideBody({ guide }: { readonly guide: InstallGuide }) {
     case 'ios_other_browser':
       return (
         <>
-          <Notice tone="warning" title="Instálala desde Safari">
-            En iPhone, donde se instala seguro es en Safari. Copia la dirección, ábrela en Safari y
-            sigue estos pasos.
+          <Notice tone="warning" title={t('Instálala desde Safari', 'Install it from Safari')}>
+            {t(
+              'En iPhone, donde se instala seguro es en Safari. Copia la dirección, ábrela en Safari y sigue estos pasos.',
+              'On iPhone, Safari is the reliable place to install it. Copy the address, open it in Safari and follow these steps.',
+            )}
           </Notice>
           <CopyAddress appUrl={guide.appUrl} />
           <IosSteps />
@@ -93,31 +108,50 @@ interface InAppBrowserGuideProps {
  * que antes de cualquier paso hay que salir a Safari o a Chrome.
  */
 function InAppBrowserGuide({ platform, app, appUrl }: InAppBrowserGuideProps) {
-  const browser = RECOMMENDED_BROWSER[platform];
+  const browser = recommendedBrowser(platform);
 
   return (
     <>
       <Notice tone="warning" title={inAppBrowserTitle(app)}>
-        Desde aquí no se puede instalar GymBuddy ni crear tu llave de acceso. Ábrela en {browser}.
+        {t(
+          `Desde aquí no se puede instalar GymBuddy ni crear tu llave de acceso. Ábrela en ${browser}.`,
+          `GymBuddy can’t be installed from here, nor can your passkey be created. Open it in ${browser}.`,
+        )}
       </Notice>
       {platform !== 'desktop' && (
         <Surface as="section" className={styles.section}>
-          <h2 className={styles.heading}>Abrirla en {browser}</h2>
+          <h2 className={styles.heading}>{t(`Abrirla en ${browser}`, `Open it in ${browser}`)}</h2>
           <ol className={styles.steps}>
             {platform === 'ios' ? (
               <li>
-                Pulsa «···» o el botón de compartir <ShareIcon /> de esta pantalla.
+                {t('Pulsa «···» o el botón de compartir', 'Tap “···” or the share button')}{' '}
+                <ShareIcon /> {t('de esta pantalla.', 'on this screen.')}
               </li>
             ) : (
-              <li>Pulsa el menú «⋮», arriba a la derecha.</li>
+              <li>
+                {t('Pulsa el menú «⋮», arriba a la derecha.', 'Tap the “⋮” menu, top right.')}
+              </li>
             )}
-            <li>Elige «Abrir en {browser}» o «Abrir en el navegador».</li>
-            <li>Ya en {browser}, vuelve a entrar aquí y sigue los pasos para instalarla.</li>
+            <li>
+              {t(
+                `Elige «Abrir en ${browser}» o «Abrir en el navegador».`,
+                `Choose “Open in ${browser}” or “Open in browser”.`,
+              )}
+            </li>
+            <li>
+              {t(
+                `Ya en ${browser}, vuelve a entrar aquí y sigue los pasos para instalarla.`,
+                `Once in ${browser}, come back here and follow the steps to install it.`,
+              )}
+            </li>
           </ol>
         </Surface>
       )}
       <p className={styles.explain}>
-        ¿No encuentras la opción? Copia la dirección y pégala en {browser}.
+        {t(
+          `¿No encuentras la opción? Copia la dirección y pégala en ${browser}.`,
+          `Can’t find the option? Copy the address and paste it into ${browser}.`,
+        )}
       </p>
       <CopyAddress appUrl={appUrl} />
     </>
@@ -129,24 +163,41 @@ function IosSteps() {
   return (
     <>
       <Surface as="section" className={styles.section}>
-        <h2 className={styles.heading}>En Safari</h2>
+        <h2 className={styles.heading}>{t('En Safari', 'In Safari')}</h2>
         <ol className={styles.steps}>
           <li>
-            Pulsa el botón Compartir <ShareIcon />, un cuadrado con una flecha hacia arriba. Si no
-            lo ves, pulsa antes «···», junto a la dirección.
+            {t('Pulsa el botón Compartir', 'Tap the Share button')} <ShareIcon />
+            {t(
+              ', un cuadrado con una flecha hacia arriba. Si no lo ves, pulsa antes «···», junto a la dirección.',
+              ', a square with an arrow pointing up. If you can’t see it, first tap “···” next to the address.',
+            )}
           </li>
-          <li>Baja y pulsa «Añadir a pantalla de inicio».</li>
-          <li>Pulsa «Añadir», arriba a la derecha.</li>
-          <li>Abre GymBuddy desde su icono nuevo.</li>
+          <li>
+            {t(
+              'Baja y pulsa «Añadir a pantalla de inicio».',
+              'Scroll down and tap “Add to Home Screen”.',
+            )}
+          </li>
+          <li>{t('Pulsa «Añadir», arriba a la derecha.', 'Tap “Add”, top right.')}</li>
+          <li>{t('Abre GymBuddy desde su icono nuevo.', 'Open GymBuddy from its new icon.')}</li>
         </ol>
       </Surface>
       {/* La app instalada en iOS no comparte lo guardado con Safari: la sesión no pasa sola. */}
-      <Notice title="La primera vez te pedirá entrar">
-        Pulsa «Entrar» y confirma con tu huella o tu cara: es la misma cuenta y la misma llave.
+      <Notice
+        title={t('La primera vez te pedirá entrar', 'The first time it will ask you to sign in')}
+      >
+        {t(
+          'Pulsa «Entrar» y confirma con tu huella o tu cara: es la misma cuenta y la misma llave.',
+          'Tap “Sign in” and confirm with your fingerprint or face: same account, same passkey.',
+        )}
       </Notice>
-      <Notice title="¿No aparece «Añadir a pantalla de inicio»?">
-        Puede que la hayas abierto desde otra app, como WhatsApp o Telegram. Busca «Abrir en Safari»
-        y repite los pasos desde allí.
+      <Notice
+        title={t('¿No aparece «Añadir a pantalla de inicio»?', 'No “Add to Home Screen” option?')}
+      >
+        {t(
+          'Puede que la hayas abierto desde otra app, como WhatsApp o Telegram. Busca «Abrir en Safari» y repite los pasos desde allí.',
+          'You may have opened it from another app, like WhatsApp or Telegram. Look for “Open in Safari” and repeat the steps from there.',
+        )}
       </Notice>
     </>
   );
@@ -159,8 +210,11 @@ function AndroidGuide({ guide }: { readonly guide: InstallGuide }) {
     return (
       <InstallButton
         guide={guide}
-        label="Instalar GymBuddy"
-        explain="Pulsa el botón y confirma con «Instalar». Quedará en tu pantalla de inicio."
+        label={t('Instalar GymBuddy', 'Install GymBuddy')}
+        explain={t(
+          'Pulsa el botón y confirma con «Instalar». Quedará en tu pantalla de inicio.',
+          'Tap the button and confirm with “Install”. It will be on your home screen.',
+        )}
         onOutcome={setOutcome}
       />
     );
@@ -169,20 +223,36 @@ function AndroidGuide({ guide }: { readonly guide: InstallGuide }) {
   return (
     <>
       {outcome === 'dismissed' && (
-        <Notice title="No se ha instalado">
-          Si cambias de idea, también puedes instalarla desde el menú del navegador.
+        <Notice title={t('No se ha instalado', 'Not installed')}>
+          {t(
+            'Si cambias de idea, también puedes instalarla desde el menú del navegador.',
+            'If you change your mind, you can also install it from the browser menu.',
+          )}
         </Notice>
       )}
       <Surface as="section" className={styles.section}>
-        <h2 className={styles.heading}>En Chrome</h2>
+        <h2 className={styles.heading}>{t('En Chrome', 'In Chrome')}</h2>
         <ol className={styles.steps}>
-          <li>Pulsa el menú «⋮», arriba a la derecha.</li>
-          <li>Pulsa «Instalar aplicación» o «Añadir a pantalla de inicio».</li>
-          <li>Confirma con «Instalar» y abre GymBuddy desde su icono.</li>
+          <li>{t('Pulsa el menú «⋮», arriba a la derecha.', 'Tap the “⋮” menu, top right.')}</li>
+          <li>
+            {t(
+              'Pulsa «Instalar aplicación» o «Añadir a pantalla de inicio».',
+              'Tap “Install app” or “Add to Home screen”.',
+            )}
+          </li>
+          <li>
+            {t(
+              'Confirma con «Instalar» y abre GymBuddy desde su icono.',
+              'Confirm with “Install” and open GymBuddy from its icon.',
+            )}
+          </li>
         </ol>
       </Surface>
       <p className={styles.explain}>
-        ¿Usas otro navegador y no aparece la opción? Copia la dirección y ábrela en Chrome.
+        {t(
+          '¿Usas otro navegador y no aparece la opción? Copia la dirección y ábrela en Chrome.',
+          'Using another browser and the option isn’t there? Copy the address and open it in Chrome.',
+        )}
       </p>
       <CopyAddress appUrl={guide.appUrl} />
     </>
@@ -194,21 +264,29 @@ function DesktopGuide({ guide }: { readonly guide: InstallGuide }) {
 
   return (
     <>
-      <Notice title="GymBuddy está pensada para el móvil">
-        Abre esta dirección en el navegador de tu móvil y sigue allí los pasos para instalarla.
+      <Notice title={t('GymBuddy está pensada para el móvil', 'GymBuddy is made for your phone')}>
+        {t(
+          'Abre esta dirección en el navegador de tu móvil y sigue allí los pasos para instalarla.',
+          'Open this address in your phone’s browser and follow the steps there to install it.',
+        )}
       </Notice>
       <CopyAddress appUrl={guide.appUrl} />
       {guide.promptState === 'available' && (
         <InstallButton
           guide={guide}
-          label="Instalar en este ordenador"
-          explain="También puedes tenerla aquí, en su propia ventana."
+          label={t('Instalar en este ordenador', 'Install on this computer')}
+          explain={t(
+            'También puedes tenerla aquí, en su propia ventana.',
+            'You can also have it here, in its own window.',
+          )}
           variant="secondary"
           onOutcome={setOutcome}
         />
       )}
       {outcome === 'dismissed' && (
-        <Notice title="No se ha instalado">Puedes seguir usándola en el navegador.</Notice>
+        <Notice title={t('No se ha instalado', 'Not installed')}>
+          {t('Puedes seguir usándola en el navegador.', 'You can keep using it in the browser.')}
+        </Notice>
       )}
     </>
   );
@@ -262,11 +340,16 @@ function CopyAddress({ appUrl }: { readonly appUrl: string }) {
     <div className={styles.section}>
       <p className={styles.address}>{appUrl}</p>
       <Button variant="secondary" fullWidth onClick={copy}>
-        {copied === true ? 'Dirección copiada' : 'Copiar la dirección'}
+        {copied === true
+          ? t('Dirección copiada', 'Address copied')
+          : t('Copiar la dirección', 'Copy the address')}
       </Button>
       {copied === false && (
-        <Notice tone="warning" title="No se ha podido copiar">
-          Cópiala a mano de la pantalla: este navegador no deja copiar desde aquí.
+        <Notice tone="warning" title={t('No se ha podido copiar', 'Couldn’t copy')}>
+          {t(
+            'Cópiala a mano de la pantalla: este navegador no deja copiar desde aquí.',
+            'Copy it by hand from the screen: this browser doesn’t allow copying from here.',
+          )}
         </Notice>
       )}
     </div>

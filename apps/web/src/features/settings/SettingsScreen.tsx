@@ -9,14 +9,18 @@ import { COMPETITION_PATH } from '../competition/paths';
 import { DEVICES_PATH } from '../devices/paths';
 import { useInstallGuide } from '../install/InstallProvider';
 import { INSTALL_PATH } from '../install/paths';
+import { t } from '../../i18n/index';
 import { INVITE_PATH } from '../invitations/paths';
 import { useTutorial } from '../tutorial/TutorialProvider';
 import { IphoneTimerSettings } from './IphoneTimerSettings';
+import { LanguageSettings } from './LanguageSettings';
 import { ProfileNameForm } from './ProfileNameForm';
 import { RestPushSettings } from './RestPushSettings';
 import styles from './SettingsScreen.module.css';
 
-const BACK_TO_HOME: BackLink = { to: '/', label: 'Hoy' };
+function backToHome(): BackLink {
+  return { to: '/', label: t('Hoy', 'Today') };
+}
 
 interface SettingsEntry {
   readonly to: string;
@@ -24,37 +28,58 @@ interface SettingsEntry {
   readonly description: string;
 }
 
-const ACCOUNT_ENTRIES: readonly SettingsEntry[] = [
-  {
-    to: DEVICES_PATH,
-    title: 'Añadir otro dispositivo',
-    description: 'Entra en tu cuenta desde otro móvil con un código de diez minutos.',
-  },
-  {
-    to: INVITE_PATH,
-    title: 'Invitar a un amigo',
-    description: 'Un código para que se cree su propia cuenta.',
-  },
-  {
-    to: BACKUP_PATH,
-    title: 'Copia de seguridad',
-    description: 'Descarga todo lo que has entrenado o recupéralo desde un fichero.',
-  },
-];
+function accountEntries(): readonly SettingsEntry[] {
+  return [
+    {
+      to: DEVICES_PATH,
+      title: t('Añadir otro dispositivo', 'Add another device'),
+      description: t(
+        'Entra en tu cuenta desde otro móvil con un código de diez minutos.',
+        'Sign in to your account on another phone with a ten-minute code.',
+      ),
+    },
+    {
+      to: INVITE_PATH,
+      title: t('Invitar a un amigo', 'Invite a friend'),
+      description: t(
+        'Un código para que se cree su propia cuenta.',
+        'A code so they can create their own account.',
+      ),
+    },
+    {
+      to: BACKUP_PATH,
+      title: t('Copia de seguridad', 'Backup'),
+      description: t(
+        'Descarga todo lo que has entrenado o recupéralo desde un fichero.',
+        'Download everything you have trained, or restore it from a file.',
+      ),
+    },
+  ];
+}
 
-const COMPETITION_ENTRIES: readonly SettingsEntry[] = [
-  {
-    to: COMPETITION_PATH,
-    title: 'Ver la competición',
-    description: 'Tu marcador contra cada rival, ejercicio a ejercicio.',
-  },
-];
+function competitionEntries(): readonly SettingsEntry[] {
+  return [
+    {
+      to: COMPETITION_PATH,
+      title: t('Ver la competición', 'View the competition'),
+      description: t(
+        'Tu marcador contra cada rival, ejercicio a ejercicio.',
+        'Your score against each rival, exercise by exercise.',
+      ),
+    },
+  ];
+}
 
-const INSTALL_ENTRY: SettingsEntry = {
-  to: INSTALL_PATH,
-  title: 'Instalar la app',
-  description: 'Tenla en la pantalla de inicio y ábrela sin navegador, también sin cobertura.',
-};
+function installEntry(): SettingsEntry {
+  return {
+    to: INSTALL_PATH,
+    title: t('Instalar la app', 'Install the app'),
+    description: t(
+      'Tenla en la pantalla de inicio y ábrela sin navegador, también sin cobertura.',
+      'Keep it on your home screen and open it without a browser, even with no signal.',
+    ),
+  };
+}
 
 /**
  * Lo que no se usa entrenando: la cuenta, los dispositivos y la copia. Vive aparte de Hoy para que
@@ -64,50 +89,58 @@ export function SettingsScreen() {
   const { session, signOut } = useSession();
   const { situation, platform } = useInstallGuide();
   const { show: showTutorial } = useTutorial();
-  const appEntries = situation.kind === 'installed' ? [] : [INSTALL_ENTRY];
+  const appEntries = situation.kind === 'installed' ? [] : [installEntry()];
 
   return (
     <>
       <ScreenHeader
-        title="Ajustes"
-        subtitle={session === null ? undefined : `Entraste como ${session.user.displayName}`}
-        backTo={BACK_TO_HOME}
+        title={t('Ajustes', 'Settings')}
+        subtitle={
+          session === null
+            ? undefined
+            : t(
+                `Entraste como ${session.user.displayName}`,
+                `Signed in as ${session.user.displayName}`,
+              )
+        }
+        backTo={backToHome()}
       />
       <div className={styles.stack}>
         {session !== null && (
           <Surface as="section" padding="none" aria-labelledby="settings-profile">
             <h2 id="settings-profile" className={styles.sectionTitle}>
-              Tu nombre
+              {t('Tu nombre', 'Your name')}
             </h2>
             <ProfileNameForm currentName={session.user.displayName} />
           </Surface>
         )}
         <Surface as="section" padding="none" aria-labelledby="settings-rest">
           <h2 id="settings-rest" className={styles.sectionTitle}>
-            Descanso
+            {t('Descanso', 'Rest')}
           </h2>
           <RestPushSettings />
           {platform === 'ios' && <IphoneTimerSettings />}
         </Surface>
         <Surface as="section" padding="none" aria-labelledby="settings-competition">
           <h2 id="settings-competition" className={styles.sectionTitle}>
-            Competir
+            {t('Competir', 'Compete')}
           </h2>
           <div className={styles.sectionBody}>
             <CompeteSwitch />
           </div>
-          <EntryList entries={COMPETITION_ENTRIES} />
+          <EntryList entries={competitionEntries()} />
         </Surface>
         <Surface as="section" padding="none" aria-labelledby="settings-account">
           <h2 id="settings-account" className={styles.sectionTitle}>
-            Tu cuenta
+            {t('Tu cuenta', 'Your account')}
           </h2>
-          <EntryList entries={ACCOUNT_ENTRIES} />
+          <EntryList entries={accountEntries()} />
         </Surface>
         <Surface as="section" padding="none" aria-labelledby="settings-app">
           <h2 id="settings-app" className={styles.sectionTitle}>
-            La app
+            {t('La app', 'The app')}
           </h2>
+          <LanguageSettings />
           <ul className={styles.list}>
             <li>
               <button
@@ -116,9 +149,14 @@ export function SettingsScreen() {
                 onClick={showTutorial}
               >
                 <span className={styles.rowText}>
-                  <span className={styles.rowTitle}>Ver el tutorial</span>
+                  <span className={styles.rowTitle}>
+                    {t('Ver el tutorial', 'View the tutorial')}
+                  </span>
                   <span className={styles.rowDescription}>
-                    Lo que hace cada pantalla, otra vez y desde el principio.
+                    {t(
+                      'Lo que hace cada pantalla, otra vez y desde el principio.',
+                      'What each screen does, again from the start.',
+                    )}
                   </span>
                 </span>
                 <span className={styles.chevron} aria-hidden="true">
@@ -135,12 +173,12 @@ export function SettingsScreen() {
             y esta pantalla se abre aunque nunca se entre al catálogo. */}
         <Surface as="section" padding="none" aria-labelledby="settings-credits">
           <h2 id="settings-credits" className={styles.sectionTitle}>
-            Créditos
+            {t('Créditos', 'Credits')}
           </h2>
           <CatalogCredit />
         </Surface>
         <Button variant="danger" fullWidth onClick={signOut}>
-          Salir
+          {t('Salir', 'Sign out')}
         </Button>
       </div>
     </>

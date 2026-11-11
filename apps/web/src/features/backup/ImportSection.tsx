@@ -1,6 +1,5 @@
 import { useId, useState, type ChangeEvent } from 'react';
 import { ApiRequestError } from '../../api/client';
-import { useSession } from '../../auth/SessionProvider';
 import { Button, Notice, Surface } from '../../components/index';
 import { describeError } from '../../lib/errors';
 import { formatShortDate, pluralize } from '../../lib/format';
@@ -8,6 +7,7 @@ import { readImportFile, summarizeImportFile, type ImportFileReading } from './r
 import { ImportConflictError, type ImportProgress, type ImportResult } from './run-import';
 import { useImportBackup } from './use-import-backup';
 import styles from './BackupScreen.module.css';
+import { useLocale } from '../../i18n/index';
 
 /** Lo elegido en el selector: lo que dijo su lectura, o que ni siquiera se pudo abrir. */
 type ChosenFile = ImportFileReading | { readonly status: 'unreadable' };
@@ -111,9 +111,8 @@ function ImportPreview({
 }: {
   readonly reading: Extract<ImportFileReading, { status: 'ready' }>;
 }) {
-  const { session } = useSession();
   const summary = summarizeImportFile(reading.file);
-  const locale = session?.user.locale ?? 'es';
+  const locale = useLocale();
 
   return (
     <Notice tone="info" title={`Copia del ${formatShortDate(summary.exportedAt, locale)}`}>

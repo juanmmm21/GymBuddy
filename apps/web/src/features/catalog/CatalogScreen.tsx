@@ -2,7 +2,6 @@ import type { BodyPartSummary, CatalogSearchFilters, Locale } from '@gymbuddy/sh
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { MIN_SEARCH_LENGTH, useBodyParts, useCatalogSearch } from '../../api/queries';
-import { useSession } from '../../auth/SessionProvider';
 import { ScreenHeader } from '../../app/ScreenHeader';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
 import {
@@ -31,6 +30,7 @@ import { BODY_PART_LABELS, BODY_PART_ORDER } from './labels';
 import { readSearchQuery, searchBackLink, withSearchQuery } from './navigation';
 import { bodyPartPath } from './paths';
 import styles from './CatalogScreen.module.css';
+import { useLocale } from '../../i18n/index';
 
 /** Lo que se espera desde la última tecla antes de buscar: una pausa, no una petición por letra. */
 const SEARCH_DEBOUNCE_MS = 250;
@@ -42,8 +42,7 @@ const SEARCH_DEBOUNCE_MS = 250;
  * tal cual estaba, y la pestaña «Catálogo» la vacía.
  */
 export function CatalogScreen() {
-  const { session } = useSession();
-  const locale = session?.user.locale;
+  const locale = useLocale();
   const [searchParams, setSearchParams] = useSearchParams();
   const query = readSearchQuery(searchParams);
   const filters = parseCatalogSearchFilters(searchParams);

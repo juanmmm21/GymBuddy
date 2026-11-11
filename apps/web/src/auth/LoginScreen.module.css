@@ -79,3 +79,8 @@
   color: var(--gb-color-accent);
   font-weight: var(--gb-type-body-strong-weight);
 }
+
+/* Antes de entrar ya se puede cambiar el idioma: quien no entiende el del sistema no pasaría de aquí. */
+.language {
+  width: 100%;
+}

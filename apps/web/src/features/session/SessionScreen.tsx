@@ -14,7 +14,6 @@ import { useStartCardio, useStartSession } from '../../api/mutations';
 import { useRoutines, useTrackedExercises } from '../../api/queries';
 import { ScreenHeader, type BackLink } from '../../app/ScreenHeader';
 import { useStorage } from '../../app/StorageProvider';
-import { useSession } from '../../auth/SessionProvider';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
 import { Badge, Button, Notice, PlateStack, Surface } from '../../components/index';
 import { useNow } from '../../hooks/use-now';
@@ -65,6 +64,7 @@ import {
 import { groupSetsByExercise, latestSetCompletedAt, type SessionExerciseGroup } from './summary';
 import styles from './SessionScreen.module.css';
 import { drawsPlates } from '../exercises/equipment';
+import { useLocale } from '../../i18n/index';
 
 const BACK_TO_HOME: BackLink = { to: '/', label: 'Hoy' };
 
@@ -82,8 +82,7 @@ interface LogSheetTarget {
  */
 export function SessionScreen() {
   const [searchParams] = useSearchParams();
-  const { session: authSession } = useSession();
-  const locale = authSession?.user.locale ?? 'es';
+  const locale = useLocale();
   // Con lo que espera en la cola offline encima: sin cobertura, lo registrado se sigue viendo.
   const active = useOpenSession();
   // Con los archivados: una serie de un ejercicio archivado a media sesión seguiría

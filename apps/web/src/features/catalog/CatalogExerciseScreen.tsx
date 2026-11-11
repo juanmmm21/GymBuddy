@@ -2,7 +2,6 @@ import type { CatalogExercise, Muscle, TrackedExercise } from '@gymbuddy/shared'
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { useCreateTrackedExercise } from '../../api/mutations';
 import { useCatalogExercise, useTrackedExercises } from '../../api/queries';
-import { useSession } from '../../auth/SessionProvider';
 import { ScreenHeader, type BackLink } from '../../app/ScreenHeader';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
 import { Badge, Button, Notice, Surface } from '../../components/index';
@@ -14,6 +13,7 @@ import { BODY_PART_LABELS, MUSCLE_LABELS, categoryLabel, equipmentLabel } from '
 import { readCatalogBackLink } from './navigation';
 import { CATALOG_PATH, bodyPartPath, parseMuscle } from './paths';
 import styles from './CatalogExerciseScreen.module.css';
+import { useLocale } from '../../i18n/index';
 
 const BACK_TO_CATALOG: BackLink = { to: CATALOG_PATH, label: 'Catálogo' };
 const CATALOG_SOURCE_URL = 'https://github.com/JahelCuadrado/ExerciseGymGifsDB';
@@ -44,8 +44,7 @@ interface CatalogExerciseDetailProps {
 }
 
 function CatalogExerciseDetail({ muscle, slug }: CatalogExerciseDetailProps) {
-  const { session } = useSession();
-  const exercise = useCatalogExercise(muscle, slug, session?.user.locale);
+  const exercise = useCatalogExercise(muscle, slug, useLocale());
   const tracked = useTrackedExercises();
 
   const fromList = readCatalogBackLink(useLocation().state);

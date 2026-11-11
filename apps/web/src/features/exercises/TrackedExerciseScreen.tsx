@@ -11,7 +11,6 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { useUpdateTrackedExercise } from '../../api/mutations';
 import { useExerciseHistory, useExerciseStats, useTrackedExercises } from '../../api/queries';
-import { useSession } from '../../auth/SessionProvider';
 import { ScreenHeader, type BackLink } from '../../app/ScreenHeader';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
 import { Badge, Button, Notice, Surface, Switch } from '../../components/index';
@@ -38,6 +37,7 @@ import { ORIGIN_LABELS, RECORD_LABELS, RECORD_ORDER, UNILATERAL_HINT } from './l
 import { EXERCISES_PATH } from './paths';
 import { ProgressionChart } from './ProgressionChart';
 import styles from './TrackedExerciseScreen.module.css';
+import { useLocale } from '../../i18n/index';
 
 const BACK_TO_EXERCISES: BackLink = { to: EXERCISES_PATH, label: 'Mis ejercicios' };
 
@@ -70,8 +70,7 @@ interface TrackedExerciseDetailProps {
  * uno archivado siga abriéndose y se pueda recuperar desde ella.
  */
 function TrackedExerciseDetail({ exerciseId }: TrackedExerciseDetailProps) {
-  const { session } = useSession();
-  const locale = session?.user.locale ?? 'es';
+  const locale = useLocale();
   const exercises = useTrackedExercises({ includeArchived: true });
   const stats = useExerciseStats(exerciseId);
   const history = useExerciseHistory(exerciseId);

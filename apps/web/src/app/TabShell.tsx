@@ -13,6 +13,7 @@ import { ScreenTransition } from './ScreenTransition';
 import { sessionShortcutFor } from './session-shortcut';
 import { tabIndicatorFor, type TabIndicator } from './tab-indicator';
 import styles from './TabShell.module.css';
+import { t } from '../i18n/index';
 
 interface Tab {
   readonly to: string;
@@ -23,15 +24,19 @@ interface Tab {
 type TabIcon = 'home' | 'exercises' | 'catalog' | 'history';
 
 // Dos a cada lado: con una sesión abierta, su botón cae justo en el centro, bajo el pulgar.
-const LEADING_TABS: readonly Tab[] = [
-  { to: TAB_PATHS.home, label: 'Hoy', icon: 'home' },
-  { to: TAB_PATHS.exercises, label: 'Ejercicios', icon: 'exercises' },
-];
+function leadingTabs(): readonly Tab[] {
+  return [
+    { to: TAB_PATHS.home, label: t('Hoy', 'Today'), icon: 'home' },
+    { to: TAB_PATHS.exercises, label: t('Ejercicios', 'Exercises'), icon: 'exercises' },
+  ];
+}
 
-const TRAILING_TABS: readonly Tab[] = [
-  { to: TAB_PATHS.catalog, label: 'Catálogo', icon: 'catalog' },
-  { to: TAB_PATHS.history, label: 'Historial', icon: 'history' },
-];
+function trailingTabs(): readonly Tab[] {
+  return [
+    { to: TAB_PATHS.catalog, label: t('Catálogo', 'Catalogue'), icon: 'catalog' },
+    { to: TAB_PATHS.history, label: t('Historial', 'History'), icon: 'history' },
+  ];
+}
 
 /**
  * Columna de contenido con la barra de pestañas fija abajo, al alcance del pulgar. El tutorial de
@@ -68,10 +73,10 @@ function TabBar() {
   const indicator = tabIndicatorFor(pathname, shortcut.kind === 'shown');
 
   return (
-    <nav className={styles.tabBar} aria-label="Secciones">
+    <nav className={styles.tabBar} aria-label={t('Secciones', 'Sections')}>
       <div className={styles.tabs} style={tabsStyle(indicator)}>
         <TabIndicatorMark indicator={indicator} />
-        {LEADING_TABS.map((tab) => (
+        {leadingTabs().map((tab) => (
           <TabLink key={tab.to} tab={tab} />
         ))}
         {shortcut.kind === 'shown' && (
@@ -81,7 +86,7 @@ function TabBar() {
             leaving={shortcut.leaving}
           />
         )}
-        {TRAILING_TABS.map((tab) => (
+        {trailingTabs().map((tab) => (
           <TabLink key={tab.to} tab={tab} />
         ))}
       </div>
@@ -160,7 +165,7 @@ function SessionShortcutButton({
     <NavLink
       ref={ref}
       to={TAB_PATHS.session}
-      aria-label="Sesión en curso"
+      aria-label={t('Sesión en curso', 'Session in progress')}
       data-session-shortcut={leaving ? 'leaving' : 'live'}
       className={({ isActive }) =>
         cx(styles.sessionTab, isActive && styles.sessionTabActive, leaving && styles.sessionTabGone)

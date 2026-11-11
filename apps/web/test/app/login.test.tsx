@@ -119,11 +119,11 @@ describe('entrada con llave de acceso', () => {
       authenticator: { isSupported: () => true, create, get: unused },
       setup: (fake) => {
         fake.on('POST', '/auth/registration/options', (request) => {
-          // jsdom dice que el navegador está en inglés: la cuenta arranca en inglés.
+          // La cuenta arranca en el idioma de la app, que sigue al del sistema (español en los tests).
           expect(request.body).toEqual({
             invitationCode: 'ABCDEFGHJKMN',
             displayName: 'Juan',
-            locale: 'en',
+            locale: 'es',
           });
           return jsonResponse(registrationOptions);
         });
