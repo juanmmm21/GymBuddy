@@ -24,6 +24,7 @@ import { readBrowserEnvironment } from '../features/install/platform';
 import { createBrowserPushBrowser } from '../features/settings/push-browser';
 import type { PushBrowser } from '../features/settings/push-notices';
 import { PushBrowserProvider } from '../features/settings/PushBrowserProvider';
+import { LanguageProvider, LocaleBoundary } from '../i18n/index';
 import type { StorageLike } from '../lib/storage';
 import {
   clearDeviceSnapshot,
@@ -36,6 +37,7 @@ import { MediaFileCacheProvider, useMediaFileCache } from '../offline/MediaFileC
 import { WriteQueue } from '../offline/write-queue';
 import { createBrowserWriteQueueStore, type WriteQueueStore } from '../offline/write-queue-store';
 import { useQueueDrainer, WriteQueueProvider } from '../offline/WriteQueueProvider';
+import { AccountLanguageSync } from './AccountLanguageSync';
 import { createAppRouter } from './router';
 import { StorageProvider, useStorage } from './StorageProvider';
 
@@ -126,25 +128,33 @@ export function App({
   return (
     <QueryClientProvider client={queryClient}>
       <StorageProvider storage={storage}>
-        <SessionProvider storage={storage}>
-          <WriteQueueProvider queue={writeQueue}>
-            <MediaFileCacheProvider store={deviceMediaFiles}>
-              <ApiBoundary apiBaseUrl={apiBaseUrl} fetchImpl={fetchImpl} queryClient={queryClient}>
-                <AuthenticatorProvider authenticator={authenticator}>
-                  <InstallProvider support={installSupport}>
-                    <PushBrowserProvider browser={devicePush}>
-                      <PhotoCodecProvider codec={devicePhotoCodec}>
-                        <VideoConverterProvider converter={deviceVideoConverter}>
-                          <RouterProvider router={appRouter} flushSync={flushRouterUpdate} />
-                        </VideoConverterProvider>
-                      </PhotoCodecProvider>
-                    </PushBrowserProvider>
-                  </InstallProvider>
-                </AuthenticatorProvider>
-              </ApiBoundary>
-            </MediaFileCacheProvider>
-          </WriteQueueProvider>
-        </SessionProvider>
+        <LanguageProvider storage={storage}>
+          <SessionProvider storage={storage}>
+            <WriteQueueProvider queue={writeQueue}>
+              <MediaFileCacheProvider store={deviceMediaFiles}>
+                <ApiBoundary
+                  apiBaseUrl={apiBaseUrl}
+                  fetchImpl={fetchImpl}
+                  queryClient={queryClient}
+                >
+                  <AuthenticatorProvider authenticator={authenticator}>
+                    <InstallProvider support={installSupport}>
+                      <PushBrowserProvider browser={devicePush}>
+                        <PhotoCodecProvider codec={devicePhotoCodec}>
+                          <VideoConverterProvider converter={deviceVideoConverter}>
+                            <LocaleBoundary>
+                              <RouterProvider router={appRouter} flushSync={flushRouterUpdate} />
+                            </LocaleBoundary>
+                          </VideoConverterProvider>
+                        </PhotoCodecProvider>
+                      </PushBrowserProvider>
+                    </InstallProvider>
+                  </AuthenticatorProvider>
+                </ApiBoundary>
+              </MediaFileCacheProvider>
+            </WriteQueueProvider>
+          </SessionProvider>
+        </LanguageProvider>
       </StorageProvider>
     </QueryClientProvider>
   );
@@ -203,5 +213,10 @@ function ApiBoundary({ apiBaseUrl, fetchImpl, queryClient, children }: ApiBounda
   }, [queryClient]);
   useQueueDrainer({ client, userId, onSettled: refreshAfterDrain });
 
-  return <ApiClientProvider client={client}>{children}</ApiClientProvider>;
+  return (
+    <ApiClientProvider client={client}>
+      <AccountLanguageSync />
+      {children}
+    </ApiClientProvider>
+  );
 }

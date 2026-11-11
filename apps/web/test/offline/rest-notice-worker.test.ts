@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  REST_NOTICE_BODY,
   REST_NOTICE_TAG,
-  REST_NOTICE_TITLE,
+  REST_NOTICE_TEXT,
   installRestNoticeHandlers,
   pickNoticeClient,
   type NoticeClickEvent,
@@ -51,7 +50,10 @@ interface FakeScope {
   readonly dispatchClick: () => Promise<{ closed: boolean }>;
 }
 
-function createFakeScope(windows: readonly NoticeWindowClient[] = []): FakeScope {
+function createFakeScope(
+  windows: readonly NoticeWindowClient[] = [],
+  languages: readonly string[] = ['es-ES'],
+): FakeScope {
   const shown: { title: string; options: RestNoticeOptions }[] = [];
   const opened: string[] = [];
   let pushListener: ((event: NoticeEvent) => void) | null = null;
@@ -65,6 +67,7 @@ function createFakeScope(windows: readonly NoticeWindowClient[] = []): FakeScope
         return Promise.resolve();
       },
     },
+    navigator: { languages },
     clients: {
       matchAll: () => Promise.resolve(windows),
       openWindow: (url) => {
@@ -117,9 +120,9 @@ describe('el aviso de fin de descanso en el service worker', () => {
 
     expect(fake.shown()).toEqual([
       {
-        title: REST_NOTICE_TITLE,
+        title: REST_NOTICE_TEXT.es.title,
         options: {
-          body: REST_NOTICE_BODY,
+          body: REST_NOTICE_TEXT.es.body,
           tag: REST_NOTICE_TAG,
           renotify: true,
           icon: `${SCOPE}pwa-192.png`,
@@ -127,6 +130,16 @@ describe('el aviso de fin de descanso en el service worker', () => {
         },
       },
     ]);
+  });
+
+  it('con el sistema en inglés y sin idioma elegido en la app, el aviso sale en inglés', async () => {
+    const fake = createFakeScope([], ['en-US']);
+    installRestNoticeHandlers(fake.scope);
+
+    await fake.dispatchPush();
+
+    expect(fake.shown()[0]?.title).toBe(REST_NOTICE_TEXT.en.title);
+    expect(fake.shown()[0]?.options).toMatchObject({ body: REST_NOTICE_TEXT.en.body, lang: 'en' });
   });
 
   it('cada push enseña la suya: dos descansos son dos avisos que suenan', async () => {

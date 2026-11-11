@@ -7,7 +7,6 @@ import {
 import { useId, useState } from 'react';
 import { Link } from 'react-router';
 import { useTrackedExercises } from '../../api/queries';
-import { useSession } from '../../auth/SessionProvider';
 import { ScreenHeader } from '../../app/ScreenHeader';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
 import {
@@ -28,11 +27,11 @@ import { groupExercisesByBodyPart, type ExerciseGroup } from './grouping';
 import { ORIGIN_LABELS } from './labels';
 import { trackedExercisePath } from './paths';
 import styles from './ExercisesScreen.module.css';
+import { useLocale } from '../../i18n/index';
 
 /** Los ejercicios que sigues, por parte del cuerpo y cada uno con su peso habitual. */
 export function ExercisesScreen() {
-  const { session } = useSession();
-  const locale = session?.user.locale ?? 'es';
+  const locale = useLocale();
   const exercises = useTrackedExercises();
   const [creating, setCreating] = useState(false);
   const openCreate = (): void => {

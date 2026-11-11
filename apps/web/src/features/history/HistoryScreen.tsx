@@ -1,7 +1,6 @@
 import type { Locale, WorkoutSessionSummary } from '@gymbuddy/shared';
 import { Link } from 'react-router';
 import { useSessionHistory } from '../../api/queries';
-import { useSession } from '../../auth/SessionProvider';
 import { ScreenHeader } from '../../app/ScreenHeader';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
 import {
@@ -15,14 +14,14 @@ import {
 import { formatSessionDate, formatTime, pluralize } from '../../lib/format';
 import { sessionDetailPath } from './paths';
 import styles from './HistoryScreen.module.css';
+import { useLocale } from '../../i18n/index';
 
 /** Un mes largo de entrenamiento entra de un tirón; lo anterior se pide al bajar. */
 const PAGE_SIZE = 20;
 
 /** Las últimas sesiones, de la más reciente a la más antigua. */
 export function HistoryScreen() {
-  const { session } = useSession();
-  const locale = session?.user.locale ?? 'es';
+  const locale = useLocale();
   const history = useSessionHistory({ limit: PAGE_SIZE });
   const total = history.data?.pages[0]?.total;
 

@@ -1,7 +1,6 @@
 import type { BodyPart, CatalogFilters } from '@gymbuddy/shared';
 import { useParams, useSearchParams } from 'react-router';
 import { useCatalogExercises } from '../../api/queries';
-import { useSession } from '../../auth/SessionProvider';
 import { ScreenHeader, type BackLink } from '../../app/ScreenHeader';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
 import { Button, Notice, SkeletonList } from '../../components/index';
@@ -18,6 +17,7 @@ import { BODY_PART_LABELS } from './labels';
 import { bodyPartBackLink } from './navigation';
 import { CATALOG_PATH, parseBodyPart } from './paths';
 import styles from './BodyPartScreen.module.css';
+import { useLocale } from '../../i18n/index';
 
 const BACK_TO_CATALOG: BackLink = { to: CATALOG_PATH, label: 'Catálogo' };
 
@@ -44,10 +44,9 @@ export function BodyPartScreen() {
 }
 
 function BodyPartExercises({ bodyPart }: { readonly bodyPart: BodyPart }) {
-  const { session } = useSession();
   const [searchParams, setSearchParams] = useSearchParams();
   const filters = parseCatalogFilters(searchParams, bodyPart);
-  const query = useCatalogExercises(bodyPart, session?.user.locale, filters);
+  const query = useCatalogExercises(bodyPart, useLocale(), filters);
   const total = query.data?.pages[0]?.total;
   // Se reemplaza la entrada del historial: «atrás» vuelve al catálogo, no al filtro anterior.
   const changeFilters = (next: CatalogFilters): void => {

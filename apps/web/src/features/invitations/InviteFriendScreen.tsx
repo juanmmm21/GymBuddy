@@ -9,7 +9,6 @@ import { useState } from 'react';
 import { useCreateInvitation } from '../../api/mutations';
 import { useInvitationStatus } from '../../api/queries';
 import { ScreenHeader, type BackLink } from '../../app/ScreenHeader';
-import { useSession } from '../../auth/SessionProvider';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
 import { AccessCode, Button, Notice, Surface } from '../../components/index';
 import { copyToClipboard } from '../../lib/clipboard';
@@ -17,6 +16,7 @@ import { describeError } from '../../lib/errors';
 import { formatShortDate, pluralize } from '../../lib/format';
 import styles from './InviteFriendScreen.module.css';
 import { SETTINGS_PATH } from '../settings/paths';
+import { useLocale } from '../../i18n/index';
 
 const BACK_TO_SETTINGS: BackLink = { to: SETTINGS_PATH, label: 'Ajustes' };
 
@@ -45,8 +45,7 @@ interface InvitationsProps {
 }
 
 function Invitations({ status }: InvitationsProps) {
-  const { session } = useSession();
-  const locale = session?.user.locale ?? 'es';
+  const locale = useLocale();
   const invite = useCreateInvitation();
 
   const exhausted = status.quota !== null && status.quota.remaining === 0;

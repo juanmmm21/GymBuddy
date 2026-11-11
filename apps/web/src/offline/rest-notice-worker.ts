@@ -1,9 +1,15 @@
+import type { Locale } from '@gymbuddy/shared';
+import { readNoticeLocale, type LocaleCacheStorage } from '../i18n/notice-locale';
+
 /**
  * El aviso de fin de descanso dentro del service worker (ADR 0009). El Worker manda el push **sin
- * carga**, así que el texto es siempre este: no hay nada que leer del mensaje.
+ * carga**, así que el texto es siempre este, en el idioma de la app: no hay nada que leer del
+ * mensaje.
  */
-export const REST_NOTICE_TITLE = 'Descanso cumplido';
-export const REST_NOTICE_BODY = 'Toca la siguiente serie.';
+export const REST_NOTICE_TEXT: Readonly<Record<Locale, { title: string; body: string }>> = {
+  es: { title: 'Descanso cumplido', body: 'Toca la siguiente serie.' },
+  en: { title: 'Rest over', body: 'Time for your next set.' },
+};
 
 /**
  * Una sola notificación de descanso a la vez: la de la serie siguiente sustituye a la anterior en
@@ -52,18 +58,29 @@ export interface RestNoticeWorkerScope {
     }) => Promise<readonly NoticeWindowClient[]>;
     readonly openWindow: (url: string) => Promise<unknown>;
   };
+  /** Donde la app deja el idioma elegido; sin ella, el aviso sale en el del sistema. */
+  readonly caches?: LocaleCacheStorage;
+  readonly navigator?: { readonly languages: readonly string[] };
   addEventListener(type: 'push', listener: (event: NoticeEvent) => void): void;
   addEventListener(type: 'notificationclick', listener: (event: NoticeClickEvent) => void): void;
 }
 
-export function restNoticeOptions(scope: string): RestNoticeOptions {
+export function restNoticeOptions(scope: string, locale: Locale): RestNoticeOptions {
   return {
-    body: REST_NOTICE_BODY,
+    body: REST_NOTICE_TEXT[locale].body,
     tag: REST_NOTICE_TAG,
     renotify: true,
     icon: new URL(REST_NOTICE_ICON, scope).href,
-    lang: 'es',
+    lang: locale,
   };
+}
+
+async function showRestNotice(scope: RestNoticeWorkerScope): Promise<void> {
+  const locale = await readNoticeLocale(scope.caches, scope.navigator?.languages ?? []);
+  await scope.registration.showNotification(
+    REST_NOTICE_TEXT[locale].title,
+    restNoticeOptions(scope.registration.scope, locale),
+  );
 }
 
 /**
@@ -108,12 +125,7 @@ export async function openSessionFromNotice(scope: RestNoticeWorkerScope): Promi
  */
 export function installRestNoticeHandlers(scope: RestNoticeWorkerScope): void {
   scope.addEventListener('push', (event) => {
-    event.waitUntil(
-      scope.registration.showNotification(
-        REST_NOTICE_TITLE,
-        restNoticeOptions(scope.registration.scope),
-      ),
-    );
+    event.waitUntil(showRestNotice(scope));
   });
 
   scope.addEventListener('notificationclick', (event) => {

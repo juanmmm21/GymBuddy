@@ -2,7 +2,6 @@ import type { Competition, Competitor, Locale } from '@gymbuddy/shared';
 import { useState } from 'react';
 import { useCompetition } from '../../api/queries';
 import { ScreenHeader, type BackLink } from '../../app/ScreenHeader';
-import { useSession } from '../../auth/SessionProvider';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
 import { Button, Notice, SkeletonList, Surface } from '../../components/index';
 import { cx } from '../../lib/cx';
@@ -11,6 +10,7 @@ import { CompeteSwitch } from './CompeteSwitch';
 import { RivalsSheet } from './RivalsSheet';
 import { barPercents, boardAgainst, marginGrams, type RivalDuel } from './standings';
 import styles from './CompetitionScreen.module.css';
+import { useLocale } from '../../i18n/index';
 
 const BACK_TO_HOME: BackLink = { to: '/', label: 'Hoy' };
 
@@ -21,8 +21,7 @@ const BACK_TO_HOME: BackLink = { to: '/', label: 'Hoy' };
  * maqueta «Marcador» que eligió.
  */
 export function CompetitionScreen() {
-  const { session } = useSession();
-  const locale = session?.user.locale ?? 'es';
+  const locale = useLocale();
   const competition = useCompetition();
   const [choosing, setChoosing] = useState(false);
   const openChooser = (): void => {

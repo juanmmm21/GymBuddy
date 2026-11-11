@@ -36,13 +36,14 @@ import { homeSessionState } from './open-session';
 import { RoutineShortcuts } from './RoutineShortcuts';
 import { WeekCalendar } from './WeekCalendar';
 import styles from './HomeScreen.module.css';
+import { useLocale } from '../../i18n/index';
 
 /** Resumen de cómo vas: las señales de `GET /stats/signals`, las mismas que verá la mascota. */
 export function HomeScreen() {
   const { session } = useSession();
   const signals = useTrainingSignals();
   const displayName = session?.user.displayName ?? '';
-  const locale = session?.user.locale ?? 'es';
+  const locale = useLocale();
 
   return (
     <>

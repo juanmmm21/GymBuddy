@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { ApiContractError, ApiRequestError, ApiTransportError } from '../../src/api/client';
 import { PasskeyCeremonyError, toCeremonyError } from '../../src/auth/passkey-authenticator';
 import { entryFailureOf } from '../../src/auth/use-passkey-entry';
-import { localeFromLanguage } from '../../src/lib/locale';
 
 const browserError = (name: string): Error => new DOMException('del navegador', name);
 
@@ -51,16 +50,5 @@ describe('entryFailureOf', () => {
     expect(entryFailureOf(new PasskeyCeremonyError('failed', 'x'))).toBe('unexpected');
     expect(entryFailureOf(new ApiRequestError('internal_error', 500, 'x'))).toBe('unexpected');
     expect(entryFailureOf(new ApiContractError('x', 200))).toBe('unexpected');
-  });
-});
-
-describe('localeFromLanguage', () => {
-  it('arranca en español con cualquier variante de español, y si no en inglés', () => {
-    expect(localeFromLanguage('es')).toBe('es');
-    expect(localeFromLanguage('es-419')).toBe('es');
-    expect(localeFromLanguage('ES-es')).toBe('es');
-    expect(localeFromLanguage('en-US')).toBe('en');
-    expect(localeFromLanguage('pt-BR')).toBe('en');
-    expect(localeFromLanguage(undefined)).toBe('en');
   });
 });
