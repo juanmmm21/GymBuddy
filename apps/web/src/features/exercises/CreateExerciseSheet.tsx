@@ -15,9 +15,10 @@ import {
   UNSELECTED,
   type CustomExerciseDraft,
 } from './custom-exercise';
-import { UNILATERAL_HINT } from './labels';
+import { unilateralHint } from './labels';
 import { trackedExercisePath } from './paths';
 import styles from './CreateExerciseSheet.module.css';
+import { t } from '../../i18n/index';
 
 export interface CreateExerciseSheetProps {
   readonly open: boolean;
@@ -33,7 +34,11 @@ export interface CreateExerciseSheetProps {
  */
 export function CreateExerciseSheet({ open, onClose, initialName = '' }: CreateExerciseSheetProps) {
   return (
-    <Sheet open={open} onClose={onClose} title="Nuevo ejercicio propio">
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title={t('Nuevo ejercicio propio', 'New exercise of your own')}
+    >
       <CreateExerciseForm initialName={initialName} />
     </Sheet>
   );
@@ -76,52 +81,64 @@ function CreateExerciseForm({ initialName }: { readonly initialName: string }) {
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
       <TextField
-        label="Nombre"
+        label={t('Nombre', 'Name')}
         value={draft.name}
         onChange={(name) => {
           setDraft((current) => ({ ...current, name }));
         }}
         maxLength={MAX_EXERCISE_NAME_LENGTH}
-        placeholder="Hip thrust en máquina, step up en polea…"
-        hint="Como aparece en la máquina o como lo llamas tú."
+        placeholder={t(
+          'Hip thrust en máquina, step up en polea…',
+          'Machine hip thrust, cable step-up…',
+        )}
+        hint={t(
+          'Como aparece en la máquina o como lo llamas tú.',
+          'As it says on the machine, or what you call it.',
+        )}
       />
 
       <Select
-        label="Parte del cuerpo"
+        label={t('Parte del cuerpo', 'Body part')}
         value={draft.bodyPart}
         onChange={changeBodyPart}
         options={bodyPartSelectOptions()}
-        hint="Decide en qué grupo sale y cómo cuenta en tu semana."
+        hint={t(
+          'Decide en qué grupo sale y cómo cuenta en tu semana.',
+          'Decides which group it shows in and how it counts in your week.',
+        )}
       />
 
       <Select
-        label="Músculo"
+        label={t('Músculo', 'Muscle')}
         value={draft.muscle}
         onChange={(muscle) => {
           setDraft((current) => ({ ...current, muscle }));
         }}
         options={muscleSelectOptions(bodyPart)}
         disabled={bodyPart === null}
-        hint="Opcional."
+        hint={t('Opcional.', 'Optional.')}
       />
 
       {offersUnilateral(bodyPart) && (
         <Switch
-          label="A un brazo"
+          label={t('A un brazo', 'One arm')}
           checked={draft.unilateral}
           onChange={(unilateral) => {
             setDraft((current) => ({ ...current, unilateral }));
           }}
-          hint={UNILATERAL_HINT}
+          hint={unilateralHint()}
         />
       )}
 
       <p className={styles.note}>
-        Un ejercicio propio no lleva animación; sus series, marcas y gráfica funcionan igual.
+        {t(
+          'Un ejercicio propio no lleva animación; sus series, marcas y gráfica funcionan igual.',
+          'Your own exercise has no animation; its sets, records and chart work the same.',
+        )}
       </p>
 
       {create.isError && (
-        <Notice tone="danger" title="No se pudo crear">
+        <Notice tone="danger" title={t('No se pudo crear', 'Couldn’t create it')}>
           {describeError(create.error)}
         </Notice>
       )}
@@ -133,7 +150,7 @@ function CreateExerciseForm({ initialName }: { readonly initialName: string }) {
         loading={create.isPending}
         disabled={request === null}
       >
-        Crear ejercicio
+        {t('Crear ejercicio', 'Create exercise')}
       </Button>
     </form>
   );

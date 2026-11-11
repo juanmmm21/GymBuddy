@@ -1,6 +1,7 @@
 import type { BodyPart, TrackedExercise } from '@gymbuddy/shared';
 import type { SelectOption } from '../../components/index';
-import { BODY_PART_LABELS, BODY_PART_ORDER } from '../catalog/labels';
+import { bodyPartLabel, BODY_PART_ORDER } from '../catalog/labels';
+import { t } from '../../i18n/index';
 
 export interface ExerciseGroup {
   /** `null` es el grupo de los ejercicios propios sin parte del cuerpo asignada. */
@@ -9,7 +10,9 @@ export interface ExerciseGroup {
   readonly items: readonly TrackedExercise[];
 }
 
-export const UNGROUPED_LABEL = 'Sin clasificar';
+export function ungroupedLabel(): string {
+  return t('Sin clasificar', 'Uncategorised');
+}
 
 /**
  * "Mis ejercicios" por parte del cuerpo, en el orden en que se navega el catálogo y sin
@@ -39,11 +42,11 @@ export function groupExercisesByBodyPart(
   for (const bodyPart of BODY_PART_ORDER) {
     const items = byBodyPart.get(bodyPart);
     if (items !== undefined) {
-      groups.push({ bodyPart, label: BODY_PART_LABELS[bodyPart], items });
+      groups.push({ bodyPart, label: bodyPartLabel(bodyPart), items });
     }
   }
   if (ungrouped.length > 0) {
-    groups.push({ bodyPart: null, label: UNGROUPED_LABEL, items: ungrouped });
+    groups.push({ bodyPart: null, label: ungroupedLabel(), items: ungrouped });
   }
   return groups;
 }
@@ -57,7 +60,10 @@ export function exerciseSelectOptions(exercises: readonly TrackedExercise[]): Se
   return groupExercisesByBodyPart(exercises).flatMap((group) =>
     group.items.map((exercise) => ({
       value: exercise.id,
-      label: exercise.archivedAt === null ? exercise.name : `${exercise.name} (archivado)`,
+      label:
+        exercise.archivedAt === null
+          ? exercise.name
+          : t(`${exercise.name} (archivado)`, `${exercise.name} (archived)`),
       group: group.label,
     })),
   );

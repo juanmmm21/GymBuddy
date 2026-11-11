@@ -12,6 +12,7 @@ import { newResourceId } from '../../lib/ids';
 import { normalizeNotes } from '../../lib/notes';
 import { routinePath } from './paths';
 import styles from './CreateRoutineSheet.module.css';
+import { t } from '../../i18n/index';
 
 export interface CreateRoutineSheetProps {
   readonly open: boolean;
@@ -24,7 +25,7 @@ export interface CreateRoutineSheetProps {
  */
 export function CreateRoutineSheet({ open, onClose }: CreateRoutineSheetProps) {
   return (
-    <Sheet open={open} onClose={onClose} title="Nueva rutina">
+    <Sheet open={open} onClose={onClose} title={t('Nueva rutina', 'New routine')}>
       <CreateRoutineForm />
     </Sheet>
   );
@@ -58,30 +59,33 @@ function CreateRoutineForm() {
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
       <TextField
-        label="Nombre"
+        label={t('Nombre', 'Name')}
         value={name}
         onChange={setName}
         maxLength={MAX_ROUTINE_NAME_LENGTH}
-        placeholder="Empuje, Pierna, Torso…"
+        placeholder={t('Empuje, Pierna, Torso…', 'Push, Legs, Upper body…')}
       />
 
       <TextArea
-        label="Descripción"
+        label={t('Descripción', 'Description')}
         value={description}
         onChange={setDescription}
         maxLength={MAX_ROUTINE_DESCRIPTION_LENGTH}
         rows={3}
-        placeholder="Qué días la haces o en qué te fijas. Opcional."
+        placeholder={t(
+          'Qué días la haces o en qué te fijas. Opcional.',
+          'Which days you do it or what you focus on. Optional.',
+        )}
       />
 
       {create.isError && (
-        <Notice tone="danger" title="No se pudo crear">
+        <Notice tone="danger" title={t('No se pudo crear', 'Couldn’t create it')}>
           {describeError(create.error)}
         </Notice>
       )}
 
       <Button type="submit" size="lg" fullWidth loading={create.isPending} disabled={!validName}>
-        Crear rutina
+        {t('Crear rutina', 'Create routine')}
       </Button>
     </form>
   );

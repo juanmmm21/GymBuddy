@@ -5,6 +5,7 @@ import { Button } from '../button/Button';
 import { Notice } from '../notice/Notice';
 import { Spinner } from '../spinner/Spinner';
 import styles from './AsyncContent.module.css';
+import { t } from '../../i18n/index';
 
 export interface AsyncContentProps<T> {
   readonly query: UseQueryResult<T>;
@@ -43,7 +44,10 @@ export function AsyncContent<T>({
           <div className={styles.stale}>
             <Notice
               tone="warning"
-              title="Sin actualizar: ves lo último que se cargó"
+              title={t(
+                'Sin actualizar: ves lo último que se cargó',
+                'Not updated: you’re seeing the last data loaded',
+              )}
               action={<RetryButton query={query} />}
             >
               {describeError(query.error)}
@@ -66,7 +70,11 @@ export function AsyncContent<T>({
 
   if (query.isError) {
     return (
-      <Notice tone="danger" title="No se pudo cargar" action={<RetryButton query={query} />}>
+      <Notice
+        tone="danger"
+        title={t('No se pudo cargar', 'Couldn’t load')}
+        action={<RetryButton query={query} />}
+      >
         {describeError(query.error)}
       </Notice>
     );
@@ -84,7 +92,7 @@ function RetryButton<T>({ query }: { readonly query: UseQueryResult<T> }) {
         void query.refetch();
       }}
     >
-      Reintentar
+      {t('Reintentar', 'Retry')}
     </Button>
   );
 }

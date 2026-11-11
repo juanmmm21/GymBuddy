@@ -31,6 +31,7 @@ import {
   type ItemValues,
 } from './items';
 import styles from './RoutineItemSheet.module.css';
+import { t } from '../../i18n/index';
 
 export interface RoutineItemSheetProps {
   readonly routineId: ResourceId;
@@ -70,14 +71,21 @@ export function RoutineItemSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title={item === null ? 'Añadir ejercicio' : 'Editar ejercicio'}
+      title={
+        item === null
+          ? t('Añadir ejercicio', 'Add exercise')
+          : t('Editar ejercicio', 'Edit exercise')
+      }
     >
       {initialExerciseId === undefined ? (
         <Notice
-          title="Todavía no sigues ningún ejercicio"
-          action={<Link to={CATALOG_PATH}>Abrir el catálogo</Link>}
+          title={t('Todavía no sigues ningún ejercicio', 'You’re not tracking any exercise yet')}
+          action={<Link to={CATALOG_PATH}>{t('Abrir el catálogo', 'Open the catalogue')}</Link>}
         >
-          Sigue uno desde el catálogo y podrás añadirlo a tus rutinas.
+          {t(
+            'Sigue uno desde el catálogo y podrás añadirlo a tus rutinas.',
+            'Track one from the catalogue and you can add it to your routines.',
+          )}
         </Notice>
       ) : (
         <RoutineItemForm
@@ -146,14 +154,14 @@ function RoutineItemForm({
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
       <Select
-        label="Ejercicio"
+        label={t('Ejercicio', 'Exercise')}
         value={values.trackedExerciseId}
         onChange={selectExercise}
         options={options}
       />
 
       <NumberField
-        label="Series"
+        label={t('Series', 'Sets')}
         value={values.targetSets}
         onChange={(targetSets) => {
           setValues({ ...values, targetSets });
@@ -163,7 +171,7 @@ function RoutineItemForm({
       />
 
       <NumberField
-        label="Repeticiones mínimas"
+        label={t('Repeticiones mínimas', 'Minimum reps')}
         value={values.targetRepsMin}
         onChange={(targetRepsMin) => {
           setValues({ ...values, targetRepsMin });
@@ -173,7 +181,7 @@ function RoutineItemForm({
       />
 
       <NumberField
-        label="Repeticiones máximas"
+        label={t('Repeticiones máximas', 'Maximum reps')}
         value={values.targetRepsMax}
         onChange={(targetRepsMax) => {
           setValues({ ...values, targetRepsMax });
@@ -182,13 +190,19 @@ function RoutineItemForm({
         max={MAX_ROUTINE_TARGET_REPS}
         hint={
           hasInvertedRange(values)
-            ? 'Tiene que ser igual o mayor que el mínimo.'
-            : 'Si siempre haces las mismas, pon el mismo número en las dos.'
+            ? t(
+                'Tiene que ser igual o mayor que el mínimo.',
+                'It must be equal to or greater than the minimum.',
+              )
+            : t(
+                'Si siempre haces las mismas, pon el mismo número en las dos.',
+                'If you always do the same, put the same number in both.',
+              )
         }
       />
 
       {update.isError && (
-        <Notice tone="danger" title="No se pudo guardar">
+        <Notice tone="danger" title={t('No se pudo guardar', 'Couldn’t save')}>
           {describeError(update.error)}
         </Notice>
       )}
@@ -200,16 +214,19 @@ function RoutineItemForm({
         loading={update.isPending}
         disabled={ready === null}
       >
-        {item === null ? 'Añadir a la rutina' : 'Guardar'}
+        {item === null ? t('Añadir a la rutina', 'Add to routine') : t('Guardar', 'Save')}
       </Button>
 
       {item !== null && (
         <div className={styles.remove}>
           <Button variant="danger" fullWidth disabled={update.isPending} onClick={handleRemove}>
-            Quitar de la rutina
+            {t('Quitar de la rutina', 'Remove from routine')}
           </Button>
           <p className={styles.removeHint}>
-            Solo sale de esta rutina: el ejercicio y su historial siguen en tu lista.
+            {t(
+              'Solo sale de esta rutina: el ejercicio y su historial siguen en tu lista.',
+              'It only leaves this routine: the exercise and its history stay in your list.',
+            )}
           </p>
         </div>
       )}

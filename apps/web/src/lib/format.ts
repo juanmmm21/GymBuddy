@@ -9,6 +9,7 @@ import {
   type WeightUnit,
 } from '@gymbuddy/shared';
 import { formatWeightForInput } from '../components/weight-field/weight-math';
+import { t } from '../i18n/index';
 
 const INTL_LOCALE: Readonly<Record<Locale, string>> = { es: 'es-ES', en: 'en-GB' };
 
@@ -21,10 +22,14 @@ export function formatWeightLabel(weight: WeightKilograms, locale: Locale): stri
 }
 
 /** Lo que se añade al peso de un ejercicio a un brazo: el peso es el de uno solo. */
-export const PER_ARM = 'por brazo';
+export function perArm(): string {
+  return t('por brazo', 'per arm');
+}
 
 /** Lo que se añade al volumen de un ejercicio a un brazo: cuenta los dos. */
-export const BOTH_SIDES = 'los dos lados';
+export function bothSides(): string {
+  return t('los dos lados', 'both sides');
+}
 
 /**
  * El peso de un ejercicio concreto: "20 kg por brazo" si es a un brazo y "82,5 kg" si no. Pide la
@@ -37,7 +42,7 @@ export function formatExerciseWeightLabel(
   unilateral: boolean,
 ): string {
   const label = formatWeightLabel(weight, locale);
-  return unilateral ? `${label} ${PER_ARM}` : label;
+  return unilateral ? `${label} ${perArm()}` : label;
 }
 
 /**
@@ -69,7 +74,7 @@ export function formatRecordValueLabel(
 ): string {
   const value = formatVolumeLabel(parseVolumeKilogramsToGrams(record.value), locale);
   if (!unilateral) return value;
-  return record.kind === 'max_volume' ? `${value}, ${BOTH_SIDES}` : `${value} ${PER_ARM}`;
+  return record.kind === 'max_volume' ? `${value}, ${bothSides()}` : `${value} ${perArm()}`;
 }
 
 /**
@@ -119,9 +124,9 @@ export function formatRpe(rpe: number, locale: Locale): string {
 
 /** "hoy", "ayer", "hace 3 días": lo que responde a "¿cuándo entrené por última vez?". */
 export function formatDaysAgo(days: number): string {
-  if (days === 0) return 'hoy';
-  if (days === 1) return 'ayer';
-  return `hace ${String(days)} días`;
+  if (days === 0) return t('hoy', 'today');
+  if (days === 1) return t('ayer', 'yesterday');
+  return t(`hace ${String(days)} días`, `${String(days)} days ago`);
 }
 
 const SECONDS_PER_MINUTE = 60;
@@ -147,7 +152,7 @@ export function formatStopwatch(totalSeconds: number): string {
  */
 export function formatDuration(totalSeconds: number): string {
   const seconds = Math.max(0, Math.floor(totalSeconds));
-  if (seconds < SECONDS_PER_MINUTE) return 'menos de 1 min';
+  if (seconds < SECONDS_PER_MINUTE) return t('menos de 1 min', 'under 1 min');
 
   const hours = Math.floor(seconds / SECONDS_PER_HOUR);
   const minutes = Math.floor((seconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE);

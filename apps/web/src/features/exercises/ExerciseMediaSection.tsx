@@ -10,6 +10,7 @@ import { usePhotoCodec } from './PhotoCodecProvider';
 import { holdScreenAwake, type ReleaseScreen } from './screen-wake';
 import { convertVideo, VideoConversionError } from './video-conversion';
 import { useVideoConverter } from './VideoConverterProvider';
+import { t, intlLocale } from '../../i18n/index';
 
 export interface ExerciseMediaSectionProps {
   readonly exercise: TrackedExercise;
@@ -19,7 +20,17 @@ export interface ExerciseMediaSectionProps {
 type Preparing =
   { readonly kind: 'photo' } | { readonly kind: 'video'; readonly progress: number | null };
 
-const KIND_NOUN: Record<ExerciseMediaKind, string> = { photo: 'la foto', video: 'el vídeo' };
+function couldNotSave(kind: ExerciseMediaKind): string {
+  return kind === 'photo'
+    ? t('No se pudo guardar la foto', 'The photo couldn’t be saved')
+    : t('No se pudo guardar el vídeo', 'The video couldn’t be saved');
+}
+
+function couldNotRemove(kind: ExerciseMediaKind): string {
+  return kind === 'photo'
+    ? t('No se pudo quitar la foto', 'The photo couldn’t be removed')
+    : t('No se pudo quitar el vídeo', 'The video couldn’t be removed');
+}
 
 /**
  * La foto o el vídeo de la técnica de un ejercicio propio: los del catálogo ya traen su animación.
@@ -118,13 +129,16 @@ export function ExerciseMediaSection({ exercise }: ExerciseMediaSectionProps) {
   const canChoose = codec !== null || converter !== null;
 
   return (
-    <Surface as="section" aria-label="Foto o vídeo de la técnica">
-      <h2 className={styles.title}>Técnica</h2>
+    <Surface as="section" aria-label={t('Foto o vídeo de la técnica', 'Technique photo or video')}>
+      <h2 className={styles.title}>{t('Técnica', 'Technique')}</h2>
 
       <div className={styles.stack}>
         {media === null ? (
           <p className={styles.hint}>
-            Pon una foto o un vídeo de cómo se hace para acordarte la próxima vez.
+            {t(
+              'Pon una foto o un vídeo de cómo se hace para acordarte la próxima vez.',
+              'Add a photo or video of how it’s done so you remember next time.',
+            )}
           </p>
         ) : media.kind === 'video' ? (
           <ExerciseVideo exerciseId={exercise.id} mediaId={media.id} name={exercise.name} />
@@ -134,37 +148,49 @@ export function ExerciseMediaSection({ exercise }: ExerciseMediaSectionProps) {
 
         {preparing?.kind === 'photo' && (
           <p className={styles.status} role="status">
-            Preparando la foto…
+            {t('Preparando la foto…', 'Preparing the photo…')}
           </p>
         )}
         {preparing?.kind === 'video' && (
           <Notice tone="warning" title={describeVideoProgress(preparing.progress)}>
-            No salgas de la app ni bloquees el móvil hasta que termine: el vídeo se convierte aquí y
-            tarda más o menos el doble de lo que dura.
+            {t(
+              'No salgas de la app ni bloquees el móvil hasta que termine: el vídeo se convierte aquí y tarda más o menos el doble de lo que dura.',
+              'Don’t leave the app or lock your phone until it finishes: the video is converted here and takes about twice its length.',
+            )}
           </Notice>
         )}
         {upload.isPending && uploadingKind === 'video' && (
           <p className={styles.status} role="status">
-            Subiendo el vídeo…
+            {t('Subiendo el vídeo…', 'Uploading the video…')}
           </p>
         )}
 
         {error !== null && (
-          <Notice tone="danger" title={`No se pudo guardar ${KIND_NOUN[uploadingKind]}`}>
+          <Notice tone="danger" title={couldNotSave(uploadingKind)}>
             {error}
           </Notice>
         )}
         {remove.isError && media !== null && (
-          <Notice tone="danger" title={`No se pudo quitar ${KIND_NOUN[media.kind]}`}>
+          <Notice tone="danger" title={couldNotRemove(media.kind)}>
             {describeError(remove.error)}
           </Notice>
         )}
 
         {codec === null && (
-          <p className={styles.hint}>Este navegador no puede preparar fotos para subirlas.</p>
+          <p className={styles.hint}>
+            {t(
+              'Este navegador no puede preparar fotos para subirlas.',
+              'This browser can’t prepare photos for upload.',
+            )}
+          </p>
         )}
         {converter === null && (
-          <p className={styles.hint}>Este navegador no puede convertir vídeos para subirlos.</p>
+          <p className={styles.hint}>
+            {t(
+              'Este navegador no puede convertir vídeos para subirlos.',
+              'This browser can’t convert videos for upload.',
+            )}
+          </p>
         )}
 
         {codec !== null && (
@@ -174,7 +200,7 @@ export function ExerciseMediaSection({ exercise }: ExerciseMediaSectionProps) {
             // Con `image/*` Safari de iOS ofrece la cámara y la fototeca, y entrega el HEIC ya en JPEG.
             accept="image/*"
             className={styles.fileInput}
-            aria-label="Elegir foto de la técnica"
+            aria-label={t('Elegir foto de la técnica', 'Choose technique photo')}
             tabIndex={-1}
             onChange={(event) => {
               void handlePhoto(event);
@@ -187,7 +213,7 @@ export function ExerciseMediaSection({ exercise }: ExerciseMediaSectionProps) {
             type="file"
             accept="video/*"
             className={styles.fileInput}
-            aria-label="Elegir vídeo de la técnica"
+            aria-label={t('Elegir vídeo de la técnica', 'Choose technique video')}
             tabIndex={-1}
             onChange={(event) => {
               void handleVideo(event);
@@ -198,7 +224,11 @@ export function ExerciseMediaSection({ exercise }: ExerciseMediaSectionProps) {
         {confirmingRemoval && media !== null ? (
           <Notice
             tone="warning"
-            title={media.kind === 'video' ? '¿Quitar el vídeo?' : '¿Quitar la foto?'}
+            title={
+              media.kind === 'video'
+                ? t('¿Quitar el vídeo?', 'Remove the video?')
+                : t('¿Quitar la foto?', 'Remove the photo?')
+            }
             action={
               <div className={styles.actions}>
                 <Button
@@ -216,7 +246,9 @@ export function ExerciseMediaSection({ exercise }: ExerciseMediaSectionProps) {
                     );
                   }}
                 >
-                  {media.kind === 'video' ? 'Sí, quitarlo' : 'Sí, quitarla'}
+                  {media.kind === 'video'
+                    ? t('Sí, quitarlo', 'Yes, remove it')
+                    : t('Sí, quitarla', 'Yes, remove it')}
                 </Button>
                 <Button
                   variant="ghost"
@@ -225,12 +257,15 @@ export function ExerciseMediaSection({ exercise }: ExerciseMediaSectionProps) {
                     setConfirmingRemoval(false);
                   }}
                 >
-                  Cancelar
+                  {t('Cancelar', 'Cancel')}
                 </Button>
               </div>
             }
           >
-            Se borra del todo. No se puede deshacer.
+            {t(
+              'Se borra del todo. No se puede deshacer.',
+              'It’s deleted for good. This can’t be undone.',
+            )}
           </Notice>
         ) : (
           (canChoose || media !== null) && (
@@ -246,7 +281,9 @@ export function ExerciseMediaSection({ exercise }: ExerciseMediaSectionProps) {
                     photoInputRef.current?.click();
                   }}
                 >
-                  {media?.kind === 'photo' ? 'Cambiar foto' : 'Añadir foto'}
+                  {media?.kind === 'photo'
+                    ? t('Cambiar foto', 'Change photo')
+                    : t('Añadir foto', 'Add photo')}
                 </Button>
               )}
               {converter !== null && (
@@ -260,7 +297,9 @@ export function ExerciseMediaSection({ exercise }: ExerciseMediaSectionProps) {
                     videoInputRef.current?.click();
                   }}
                 >
-                  {media?.kind === 'video' ? 'Cambiar vídeo' : 'Añadir vídeo'}
+                  {media?.kind === 'video'
+                    ? t('Cambiar vídeo', 'Change video')
+                    : t('Añadir vídeo', 'Add video')}
                 </Button>
               )}
               {media !== null && canChoose && (
@@ -271,7 +310,9 @@ export function ExerciseMediaSection({ exercise }: ExerciseMediaSectionProps) {
                     setConfirmingRemoval(true);
                   }}
                 >
-                  {media.kind === 'video' ? 'Quitar vídeo' : 'Quitar foto'}
+                  {media.kind === 'video'
+                    ? t('Quitar vídeo', 'Remove video')
+                    : t('Quitar foto', 'Remove photo')}
                 </Button>
               )}
             </div>
@@ -317,17 +358,25 @@ function ExercisePhoto({ exerciseId, mediaId, name }: ExerciseMediaFileProps) {
   const attachPhoto = useBlobSource<HTMLImageElement>(file.data);
 
   if (file.isError) {
-    return <Notice title="La foto no se pudo cargar">{describeError(file.error)}</Notice>;
+    return (
+      <Notice title={t('La foto no se pudo cargar', 'The photo couldn’t load')}>
+        {describeError(file.error)}
+      </Notice>
+    );
   }
 
   return (
     <figure className={styles.frame}>
       {file.data === undefined ? (
         <span className={styles.placeholder}>
-          <Spinner label="Cargando foto" />
+          <Spinner label={t('Cargando foto', 'Loading photo')} />
         </span>
       ) : (
-        <img ref={attachPhoto} alt={`Foto de la técnica de ${name}`} className={styles.image} />
+        <img
+          ref={attachPhoto}
+          alt={t(`Foto de la técnica de ${name}`, `Technique photo for ${name}`)}
+          className={styles.image}
+        />
       )}
     </figure>
   );
@@ -343,19 +392,23 @@ function ExerciseVideo({ exerciseId, mediaId, name }: ExerciseMediaFileProps) {
   const attachVideo = useBlobSource<HTMLVideoElement>(file.data);
 
   if (file.isError) {
-    return <Notice title="El vídeo no se pudo cargar">{describeError(file.error)}</Notice>;
+    return (
+      <Notice title={t('El vídeo no se pudo cargar', 'The video couldn’t load')}>
+        {describeError(file.error)}
+      </Notice>
+    );
   }
 
   return (
     <figure className={styles.frame}>
       {file.data === undefined ? (
         <span className={styles.placeholder}>
-          <Spinner label="Cargando vídeo" />
+          <Spinner label={t('Cargando vídeo', 'Loading video')} />
         </span>
       ) : (
         <video
           ref={attachVideo}
-          aria-label={`Vídeo de la técnica de ${name}`}
+          aria-label={t(`Vídeo de la técnica de ${name}`, `Technique video for ${name}`)}
           className={styles.image}
           controls
           muted
@@ -367,19 +420,26 @@ function ExerciseVideo({ exerciseId, mediaId, name }: ExerciseMediaFileProps) {
   );
 }
 
-const percent = new Intl.NumberFormat('es-ES', { style: 'percent', maximumFractionDigits: 0 });
-
 function describeVideoProgress(progress: number | null): string {
-  return progress === null
-    ? 'Leyendo el vídeo…'
-    : `Convirtiendo el vídeo… ${percent.format(progress)}`;
+  if (progress === null) return t('Leyendo el vídeo…', 'Reading the video…');
+  const percent = new Intl.NumberFormat(intlLocale(), {
+    style: 'percent',
+    maximumFractionDigits: 0,
+  }).format(progress);
+  return t(`Convirtiendo el vídeo… ${percent}`, `Converting the video… ${percent}`);
 }
 
 function describePhotoError(error: unknown): string {
   if (error instanceof PhotoCompressionError) {
     return error.reason === 'too_large'
-      ? 'Incluso reducida, la foto pesa demasiado. Prueba con otra.'
-      : 'El móvil no pudo leer esa foto. Prueba con otra o hazla de nuevo.';
+      ? t(
+          'Incluso reducida, la foto pesa demasiado. Prueba con otra.',
+          'Even reduced, the photo is too large. Try another one.',
+        )
+      : t(
+          'El móvil no pudo leer esa foto. Prueba con otra o hazla de nuevo.',
+          'Your phone couldn’t read that photo. Try another or take it again.',
+        );
   }
 
   return describeError(error);
@@ -390,14 +450,26 @@ function describeVideoError(error: unknown): string {
 
   switch (error.reason) {
     case 'too_long':
-      return 'El vídeo pasa del minuto. Recórtalo en Fotos o elige uno más corto.';
+      return t(
+        'El vídeo pasa del minuto. Recórtalo en Fotos o elige uno más corto.',
+        'The video is over a minute. Trim it in Photos or choose a shorter one.',
+      );
     case 'too_large':
-      return 'Incluso convertido, el vídeo pesa demasiado. Recórtalo y prueba otra vez.';
+      return t(
+        'Incluso convertido, el vídeo pesa demasiado. Recórtalo y prueba otra vez.',
+        'Even converted, the video is too large. Trim it and try again.',
+      );
     case 'no_video':
-      return 'Ese fichero no lleva vídeo.';
+      return t('Ese fichero no lleva vídeo.', 'That file has no video.');
     case 'unreadable':
-      return 'El móvil no pudo leer ese vídeo. Prueba con otro.';
+      return t(
+        'El móvil no pudo leer ese vídeo. Prueba con otro.',
+        'Your phone couldn’t read that video. Try another one.',
+      );
     case 'failed':
-      return 'El móvil empezó a convertir el vídeo pero no pudo terminar. Prueba otra vez sin salir de la app.';
+      return t(
+        'El móvil empezó a convertir el vídeo pero no pudo terminar. Prueba otra vez sin salir de la app.',
+        'Your phone started converting the video but couldn’t finish. Try again without leaving the app.',
+      );
   }
 }

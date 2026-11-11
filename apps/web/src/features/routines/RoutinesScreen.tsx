@@ -17,8 +17,11 @@ import { CreateRoutineSheet } from './CreateRoutineSheet';
 import { describeRoutineSize } from './items';
 import { routinePath } from './paths';
 import styles from './RoutinesScreen.module.css';
+import { t } from '../../i18n/index';
 
-const BACK_TO_EXERCISES: BackLink = { to: EXERCISES_PATH, label: 'Mis ejercicios' };
+function backToExercises(): BackLink {
+  return { to: EXERCISES_PATH, label: t('Mis ejercicios', 'My exercises') };
+}
 
 /** Las rutinas del usuario: las que hace, y al final las que dejó de hacer. */
 export function RoutinesScreen() {
@@ -34,12 +37,15 @@ export function RoutinesScreen() {
   return (
     <>
       <ScreenHeader
-        title="Rutinas"
-        subtitle="Tus entrenamientos, con los ejercicios en orden"
-        backTo={BACK_TO_EXERCISES}
+        title={t('Rutinas', 'Routines')}
+        subtitle={t(
+          'Tus entrenamientos, con los ejercicios en orden',
+          'Your workouts, with the exercises in order',
+        )}
+        backTo={backToExercises()}
         action={
           <Button variant="ghost" onClick={openCreate}>
-            Nueva
+            {t('Nueva', 'New')}
           </Button>
         }
       />
@@ -52,18 +58,20 @@ export function RoutinesScreen() {
             <div className={styles.stack}>
               {active.length === 0 ? (
                 <Notice
-                  title="Todavía no tienes ninguna rutina"
+                  title={t('Todavía no tienes ninguna rutina', 'You don’t have any routines yet')}
                   action={
                     <Button variant="secondary" onClick={openCreate}>
-                      Crear una rutina
+                      {t('Crear una rutina', 'Create a routine')}
                     </Button>
                   }
                 >
-                  Una rutina es la lista de ejercicios de un día de entrenamiento, en el orden en
-                  que los haces.
+                  {t(
+                    'Una rutina es la lista de ejercicios de un día de entrenamiento, en el orden en que los haces.',
+                    'A routine is the list of exercises for a training day, in the order you do them.',
+                  )}
                 </Notice>
               ) : (
-                <ul className={styles.list} aria-label="Tus rutinas">
+                <ul className={styles.list} aria-label={t('Tus rutinas', 'Your routines')}>
                   {active.map((routine, index) => (
                     <RoutineRow key={routine.id} routine={routine} index={index} />
                   ))}
@@ -92,7 +100,7 @@ function ArchivedSection({ routines }: { readonly routines: readonly Routine[] }
   return (
     <section className={styles.section} aria-labelledby={titleId}>
       <h2 id={titleId} className={styles.sectionTitle}>
-        Archivadas
+        {t('Archivadas', 'Archived')}
       </h2>
       <ul className={styles.list}>
         {routines.map((routine, index) => (
@@ -119,7 +127,7 @@ function RoutineRow({
           <span className={styles.name}>{routine.name}</span>
           <span className={styles.meta}>{describeRoutineSize(routine.items)}</span>
         </span>
-        {routine.archivedAt !== null && <Badge>Archivada</Badge>}
+        {routine.archivedAt !== null && <Badge>{t('Archivada', 'Archived')}</Badge>}
       </Link>
     </Surface>
   );

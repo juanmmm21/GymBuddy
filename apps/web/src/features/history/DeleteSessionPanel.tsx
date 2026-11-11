@@ -4,11 +4,11 @@ import { useNavigate } from 'react-router';
 import { useDeleteSession } from '../../api/mutations';
 import { Button, Notice } from '../../components/index';
 import { describeError } from '../../lib/errors';
-import { pluralize } from '../../lib/format';
 import { hasPendingWritesForSession } from '../../offline/overlay';
 import { useUserWriteQueue } from '../../offline/WriteQueueProvider';
 import styles from './DeleteSessionPanel.module.css';
 import { HISTORY_PATH } from './paths';
+import { t, plural } from '../../i18n/index';
 
 export interface DeleteSessionPanelProps {
   readonly sessionId: ResourceId;
@@ -46,18 +46,21 @@ export function DeleteSessionPanel({ sessionId, workingSetCount }: DeleteSession
 
   if (waitingToSync) {
     return (
-      <section className={styles.panel} aria-label="Borrar entrenamiento">
+      <section className={styles.panel} aria-label={t('Borrar entrenamiento', 'Delete workout')}>
         <p className={styles.hint}>
-          Hay cambios de este entrenamiento sin sincronizar. Podrás borrarlo cuando lleguen.
+          {t(
+            'Hay cambios de este entrenamiento sin sincronizar. Podrás borrarlo cuando lleguen.',
+            'This workout has unsynced changes. You can delete it once they arrive.',
+          )}
         </p>
       </section>
     );
   }
 
   return (
-    <section className={styles.panel} aria-label="Borrar entrenamiento">
+    <section className={styles.panel} aria-label={t('Borrar entrenamiento', 'Delete workout')}>
       {remove.isError && (
-        <Notice tone="danger" title="No se pudo borrar">
+        <Notice tone="danger" title={t('No se pudo borrar', 'Couldn’t delete')}>
           {describeError(remove.error)}
         </Notice>
       )}
@@ -65,11 +68,11 @@ export function DeleteSessionPanel({ sessionId, workingSetCount }: DeleteSession
       {confirming ? (
         <Notice
           tone="warning"
-          title="¿Borrar este entrenamiento?"
+          title={t('¿Borrar este entrenamiento?', 'Delete this workout?')}
           action={
             <div className={styles.actions}>
               <Button variant="danger" loading={remove.isPending} onClick={handleDelete}>
-                Sí, borrarlo
+                {t('Sí, borrarlo', 'Yes, delete it')}
               </Button>
               <Button
                 variant="ghost"
@@ -78,14 +81,20 @@ export function DeleteSessionPanel({ sessionId, workingSetCount }: DeleteSession
                   setConfirming(false);
                 }}
               >
-                Cancelar
+                {t('Cancelar', 'Cancel')}
               </Button>
             </div>
           }
         >
           {workingSetCount === 0
-            ? 'Desaparece de tu historial. No se puede deshacer.'
-            : `Desaparece de tu historial, y con él ${pluralize(workingSetCount, 'serie', 'series')}. Si alguna tenía un récord, pasa a la mejor serie que viniera después. No se puede deshacer.`}
+            ? t(
+                'Desaparece de tu historial. No se puede deshacer.',
+                'It disappears from your history. This can’t be undone.',
+              )
+            : t(
+                `Desaparece de tu historial, y con él ${plural(workingSetCount, ['serie', 'series'], ['set', 'sets'])}. Si alguna tenía un récord, pasa a la mejor serie que viniera después. No se puede deshacer.`,
+                `It disappears from your history, along with ${plural(workingSetCount, ['serie', 'series'], ['set', 'sets'])}. If any held a record, it passes to the best set that came after. This can’t be undone.`,
+              )}
         </Notice>
       ) : (
         <Button
@@ -95,7 +104,7 @@ export function DeleteSessionPanel({ sessionId, workingSetCount }: DeleteSession
             setConfirming(true);
           }}
         >
-          Borrar entrenamiento
+          {t('Borrar entrenamiento', 'Delete workout')}
         </Button>
       )}
     </section>

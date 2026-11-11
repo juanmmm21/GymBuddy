@@ -9,11 +9,12 @@ import { useWeeklyCalendar } from '../../api/queries';
 import { AsyncContent } from '../../components/async-content/AsyncContent';
 import { Surface } from '../../components/index';
 import { cx } from '../../lib/cx';
-import { formatVolumeLabel, pluralize } from '../../lib/format';
+import { formatVolumeLabel } from '../../lib/format';
 import { BodyMap } from './BodyMap';
 import { bodyPartBreakdown, bodyPartNames } from './body-map';
 import styles from './WeekCalendar.module.css';
-import { UNCLASSIFIED_DAY_LABEL, WEEKDAY_INITIALS, WEEKDAY_NAMES } from './labels';
+import { unclassifiedDayLabel, weekdayInitial, weekdayName } from './labels';
+import { t, plural } from '../../i18n/index';
 
 export interface WeekCalendarProps {
   readonly locale: Locale;
@@ -29,8 +30,8 @@ export function WeekCalendar({ locale }: WeekCalendarProps) {
   const week = useWeeklyCalendar();
 
   return (
-    <Surface as="section" aria-label="Esta semana">
-      <p className={styles.sectionLabel}>Esta semana</p>
+    <Surface as="section" aria-label={t('Esta semana', 'This week')}>
+      <p className={styles.sectionLabel}>{t('Esta semana', 'This week')}</p>
       <AsyncContent query={week}>{(data) => <WeekRow week={data} locale={locale} />}</AsyncContent>
     </Surface>
   );
@@ -66,7 +67,7 @@ function WeekRow({ week, locale }: WeekRowProps) {
       {selectedDay !== undefined && (
         <p className={styles.detail} aria-live="polite">
           <span className={styles.detailDay}>
-            {selectedDay.date === today ? 'Hoy' : (WEEKDAY_NAMES[selectedDay.dayIndex] ?? '')}
+            {selectedDay.date === today ? t('Hoy', 'Today') : weekdayName(selectedDay.dayIndex)}
           </span>{' '}
           · {describeDay(selectedDay, locale)}
         </p>
@@ -83,8 +84,8 @@ interface DayCellProps {
 }
 
 function DayCell({ day, isToday, isSelected, onSelect }: DayCellProps) {
-  const name = WEEKDAY_NAMES[day.dayIndex] ?? '';
-  const initial = WEEKDAY_INITIALS[day.dayIndex] ?? '';
+  const name = weekdayName(day.dayIndex);
+  const initial = weekdayInitial(day.dayIndex);
 
   return (
     <li className={styles.day} aria-current={isToday ? 'date' : undefined}>
@@ -115,9 +116,9 @@ function DayCell({ day, isToday, isSelected, onSelect }: DayCellProps) {
 
 /** Las partes entrenadas, o que fue descanso. */
 function dayLabel(day: WeeklyCalendarDay): string {
-  if (!day.trained) return 'descanso';
+  if (!day.trained) return t('descanso', 'rest');
 
-  return day.bodyParts.length === 0 ? UNCLASSIFIED_DAY_LABEL : bodyPartNames(day.bodyParts);
+  return day.bodyParts.length === 0 ? unclassifiedDayLabel() : bodyPartNames(day.bodyParts);
 }
 
 /**
@@ -125,15 +126,15 @@ function dayLabel(day: WeeklyCalendarDay): string {
  * silueta dice con lo oscuro—, el total y el volumen.
  */
 export function describeDay(day: WeeklyCalendarDay, locale: Locale): string {
-  if (!day.trained) return 'Descanso';
+  if (!day.trained) return t('Descanso', 'Rest');
 
   const parts =
-    day.bodyParts.length === 0 ? UNCLASSIFIED_DAY_LABEL : bodyPartBreakdown(day.bodyParts);
+    day.bodyParts.length === 0 ? unclassifiedDayLabel() : bodyPartBreakdown(day.bodyParts);
   const volume = formatVolumeLabel(parseVolumeKilogramsToGrams(day.volume), locale);
 
   // Con una sola parte clasificada y nada más, su cuenta ya es el total: no se repite.
   const onlyPart = day.bodyParts.length === 1 && day.bodyParts[0]?.setCount === day.setCount;
-  const total = onlyPart ? '' : ` · ${pluralize(day.setCount, 'serie', 'series')}`;
+  const total = onlyPart ? '' : ` · ${plural(day.setCount, ['serie', 'series'], ['set', 'sets'])}`;
 
   return `${parts}${total} · ${volume}`;
 }

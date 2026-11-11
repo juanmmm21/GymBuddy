@@ -1,7 +1,7 @@
 import { muscleSchema } from '@gymbuddy/shared';
 import { describe, expect, it } from 'vitest';
 import {
-  MUSCLE_LABELS,
+  muscleLabel,
   categoryLabel,
   equipmentLabel,
   humanize,
@@ -62,7 +62,7 @@ describe('rutas del catálogo', () => {
 describe('etiquetas del catálogo', () => {
   it('cada músculo del contrato tiene nombre', () => {
     for (const muscle of muscleSchema.options) {
-      expect(MUSCLE_LABELS[muscle]).not.toBe('');
+      expect(muscleLabel(muscle)).not.toBe('');
     }
   });
 

@@ -7,6 +7,7 @@ import { Surface } from '../../components/index';
 import { describeRoutineSize } from '../routines/items';
 import { sessionPathForRoutine } from '../session/paths';
 import styles from './RoutineShortcuts.module.css';
+import { t } from '../../i18n/index';
 
 /**
  * Las rutinas como accesos de un toque junto a «Empezar a entrenar». Llevan su propia
@@ -35,7 +36,7 @@ function ShortcutList({ routines }: { readonly routines: readonly Routine[] }) {
   return (
     <section className={styles.section} aria-labelledby={titleId}>
       <h2 id={titleId} className={styles.title}>
-        O empieza una rutina
+        {t('O empieza una rutina', 'Or start a routine')}
       </h2>
       <ul className={styles.list}>
         {routines.map((routine) => (

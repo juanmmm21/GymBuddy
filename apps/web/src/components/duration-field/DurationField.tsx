@@ -7,6 +7,7 @@ import {
   parseDurationInput,
   stepDuration,
 } from './duration-math';
+import { t } from '../../i18n/index';
 
 export interface DurationFieldProps {
   readonly label: string;
@@ -85,7 +86,7 @@ export function DurationField({
             nudge(-1);
           }}
           disabled={disabled || valueSeconds === null || valueSeconds <= DURATION_STEP_SECONDS}
-          aria-label="Restar un minuto"
+          aria-label={t('Restar un minuto', 'Subtract one minute')}
         >
           −
         </button>
@@ -116,7 +117,7 @@ export function DurationField({
             nudge(1);
           }}
           disabled={disabled}
-          aria-label="Sumar un minuto"
+          aria-label={t('Sumar un minuto', 'Add one minute')}
         >
           +
         </button>

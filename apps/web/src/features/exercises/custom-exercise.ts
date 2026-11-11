@@ -9,7 +9,8 @@ import {
   type ResourceId,
 } from '@gymbuddy/shared';
 import type { SelectOption } from '../../components/index';
-import { BODY_PART_LABELS, BODY_PART_ORDER, MUSCLE_LABELS } from '../catalog/labels';
+import { bodyPartLabel, BODY_PART_ORDER, muscleLabel } from '../catalog/labels';
+import { t } from '../../i18n/index';
 
 export type CreateCustomExerciseRequest = Extract<
   CreateTrackedExerciseRequest,
@@ -38,8 +39,8 @@ export const UNSELECTED = '';
  */
 export function bodyPartSelectOptions(): SelectOption[] {
   return [
-    { value: UNSELECTED, label: 'Elige una' },
-    ...BODY_PART_ORDER.map((bodyPart) => ({ value: bodyPart, label: BODY_PART_LABELS[bodyPart] })),
+    { value: UNSELECTED, label: t('Elige una', 'Choose one') },
+    ...BODY_PART_ORDER.map((bodyPart) => ({ value: bodyPart, label: bodyPartLabel(bodyPart) })),
   ];
 }
 
@@ -47,8 +48,8 @@ export function bodyPartSelectOptions(): SelectOption[] {
 export function muscleSelectOptions(bodyPart: BodyPart | null): SelectOption[] {
   const muscles = bodyPart === null ? [] : musclesOfBodyPart(bodyPart);
   return [
-    { value: UNSELECTED, label: 'Sin concretar' },
-    ...muscles.map((muscle) => ({ value: muscle, label: MUSCLE_LABELS[muscle] })),
+    { value: UNSELECTED, label: t('Sin concretar', 'Not specified') },
+    ...muscles.map((muscle) => ({ value: muscle, label: muscleLabel(muscle) })),
   ];
 }
 

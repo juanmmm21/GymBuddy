@@ -5,8 +5,8 @@ import {
   formatWeightInUnit,
   PER_ARM,
 } from '../../lib/format';
-import { BODY_PART_LABELS, BODY_PART_ORDER } from '../catalog/labels';
-import { groupExercisesByBodyPart, UNGROUPED_LABEL } from '../exercises/grouping';
+import { bodyPartLabel, BODY_PART_ORDER } from '../catalog/labels';
+import { groupExercisesByBodyPart, ungroupedLabel } from '../exercises/grouping';
 import type { RoutineProgress } from './routine-progress';
 import { proposeCardioSet, proposeSet, setKindFor } from './set-proposal';
 
@@ -117,7 +117,7 @@ function sameBodyPartSection(
 }
 
 export function sameBodyPartTitle(bodyPart: BodyPart): string {
-  return `Mismo grupo: ${BODY_PART_LABELS[bodyPart]}`;
+  return `Mismo grupo: ${bodyPartLabel(bodyPart)}`;
 }
 
 /**
@@ -169,7 +169,7 @@ export function pickerRowDetail(
   locale: Locale,
 ): string {
   const parts = [
-    exercise.bodyPart === null ? UNGROUPED_LABEL : BODY_PART_LABELS[exercise.bodyPart],
+    exercise.bodyPart === null ? ungroupedLabel() : bodyPartLabel(exercise.bodyPart),
     lastSetLabel(exercise, sessionSets, locale),
   ];
   if (exercise.archivedAt !== null) parts.push('archivado');

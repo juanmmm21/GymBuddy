@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import styles from './SearchField.module.css';
+import { t } from '../../i18n/index';
 
 export interface SearchFieldProps {
   readonly value: string;
@@ -38,7 +39,7 @@ export function SearchField({ value, onChange, label, placeholder }: SearchField
         <button
           type="button"
           className={styles.clear}
-          aria-label="Borrar búsqueda"
+          aria-label={t('Borrar búsqueda', 'Clear search')}
           onClick={() => {
             onChange('');
           }}

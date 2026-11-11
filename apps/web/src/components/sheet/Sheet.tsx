@@ -12,6 +12,7 @@ import { useExitAnimation } from '../../hooks/use-exit-animation';
 import { afterNextPaint } from '../../lib/animations';
 import { sheetDragOffset, sheetDragOutcome } from './sheet-drag';
 import styles from './Sheet.module.css';
+import { t } from '../../i18n/index';
 
 export interface SheetProps {
   readonly open: boolean;
@@ -157,7 +158,12 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
               <h2 id={titleId} className={styles.title}>
                 {title}
               </h2>
-              <button type="button" className={styles.close} onClick={onClose} aria-label="Cerrar">
+              <button
+                type="button"
+                className={styles.close}
+                onClick={onClose}
+                aria-label={t('Cerrar', 'Close')}
+              >
                 ×
               </button>
             </header>

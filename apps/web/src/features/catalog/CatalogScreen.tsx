@@ -15,7 +15,6 @@ import {
   listEntranceProps,
 } from '../../components/index';
 import { useDebouncedValue } from '../../hooks/use-debounced-value';
-import { pluralize } from '../../lib/format';
 import { CreateExerciseSheet } from '../exercises/CreateExerciseSheet';
 import { suggestedExerciseName } from '../exercises/custom-exercise';
 import { CatalogExerciseList } from './CatalogExerciseList';
@@ -26,11 +25,11 @@ import {
   hasCatalogFilters,
   parseCatalogSearchFilters,
 } from './filters';
-import { BODY_PART_LABELS, BODY_PART_ORDER } from './labels';
+import { bodyPartLabel, BODY_PART_ORDER } from './labels';
 import { readSearchQuery, searchBackLink, withSearchQuery } from './navigation';
 import { bodyPartPath } from './paths';
 import styles from './CatalogScreen.module.css';
-import { useLocale } from '../../i18n/index';
+import { plural, t, useLocale } from '../../i18n/index';
 
 /** Lo que se espera desde la última tecla antes de buscar: una pausa, no una petición por letra. */
 const SEARCH_DEBOUNCE_MS = 250;
@@ -63,13 +62,19 @@ export function CatalogScreen() {
 
   return (
     <>
-      <ScreenHeader title="Catálogo" subtitle="Busca un ejercicio o elige una parte del cuerpo" />
+      <ScreenHeader
+        title={t('Catálogo', 'Catalogue')}
+        subtitle={t(
+          'Busca un ejercicio o elige una parte del cuerpo',
+          'Search for an exercise or pick a body part',
+        )}
+      />
       <div className={styles.search}>
         <SearchField
           value={query}
           onChange={changeQuery}
-          label="Buscar ejercicio"
-          placeholder="press banca, curl, sentadilla…"
+          label={t('Buscar ejercicio', 'Search exercise')}
+          placeholder={t('press banca, curl, sentadilla…', 'bench press, curl, squat…')}
         />
       </div>
       {searching ? (
@@ -109,7 +114,10 @@ function SearchResults({ term, locale, filters, onClearFilters }: SearchResultsP
   const openCreate = (): void => {
     setCreatingName(suggestedExerciseName(term));
   };
-  const createLabel = `Crear «${suggestedExerciseName(term)}»`;
+  const createLabel = t(
+    `Crear «${suggestedExerciseName(term)}»`,
+    `Create “${suggestedExerciseName(term)}”`,
+  );
 
   return (
     <>
@@ -117,11 +125,14 @@ function SearchResults({ term, locale, filters, onClearFilters }: SearchResultsP
         {(items) =>
           items.length === 0 && filtered ? (
             <Notice
-              title={`Nada que se llame «${term}» con «${describeCatalogFilters(filters)}»`}
+              title={t(
+                `Nada que se llame «${term}» con «${describeCatalogFilters(filters)}»`,
+                `Nothing called “${term}” with “${describeCatalogFilters(filters)}”`,
+              )}
               action={
                 <div className={styles.noticeActions}>
                   <Button variant="secondary" onClick={onClearFilters}>
-                    Quitar filtros
+                    {t('Quitar filtros', 'Clear filters')}
                   </Button>
                   <Button variant="ghost" onClick={openCreate}>
                     {createLabel}
@@ -129,26 +140,32 @@ function SearchResults({ term, locale, filters, onClearFilters }: SearchResultsP
                 </div>
               }
             >
-              Los filtros dejan fuera todo lo que casa con la búsqueda. Quítalos para ver el resto,
-              o créalo como ejercicio propio.
+              {t(
+                'Los filtros dejan fuera todo lo que casa con la búsqueda. Quítalos para ver el resto, o créalo como ejercicio propio.',
+                'The filters leave out everything that matches the search. Clear them to see the rest, or create it as your own exercise.',
+              )}
             </Notice>
           ) : items.length === 0 ? (
             <Notice
-              title={`Nada que se llame «${term}»`}
+              title={t(`Nada que se llame «${term}»`, `Nothing called “${term}”`)}
               action={
                 <Button variant="secondary" onClick={openCreate}>
                   {createLabel}
                 </Button>
               }
             >
-              La búsqueda ignora los acentos y exige todas las palabras. Prueba con menos, o créalo
-              como ejercicio propio si tu gimnasio tiene algo que el catálogo no.
+              {t(
+                'La búsqueda ignora los acentos y exige todas las palabras. Prueba con menos, o créalo como ejercicio propio si tu gimnasio tiene algo que el catálogo no.',
+                'Search ignores accents and needs every word to match. Try fewer words, or create it as your own exercise if your gym has something the catalogue doesn’t.',
+              )}
             </Notice>
           ) : (
             <div className={styles.results}>
               <CatalogExerciseList items={items} backTo={searchBackLink(term, filters)} />
               <div className={styles.createOwn}>
-                <p className={styles.createOwnText}>¿No es ninguno de estos?</p>
+                <p className={styles.createOwnText}>
+                  {t('¿No es ninguno de estos?', 'None of these?')}
+                </p>
                 <Button variant="ghost" onClick={openCreate}>
                   {createLabel}
                 </Button>
@@ -176,8 +193,16 @@ function BodyPartList({ locale }: { readonly locale: Locale | undefined }) {
     <AsyncContent query={bodyParts} skeleton={<SkeletonList rows={BODY_PART_ORDER.length} />}>
       {(items) =>
         items.length === 0 ? (
-          <Notice title="El catálogo todavía se está preparando">
-            Se sincroniza por partes en segundo plano. Vuelve en unos minutos.
+          <Notice
+            title={t(
+              'El catálogo todavía se está preparando',
+              'The catalogue is still being prepared',
+            )}
+          >
+            {t(
+              'Se sincroniza por partes en segundo plano. Vuelve en unos minutos.',
+              'It syncs in parts in the background. Come back in a few minutes.',
+            )}
           </Notice>
         ) : (
           // El crédito va al pie de la entrada al catálogo, que es la pantalla desde la que se
@@ -187,8 +212,14 @@ function BodyPartList({ locale }: { readonly locale: Locale | undefined }) {
               {sortByBodyPart(items).map((item, index) => (
                 <Surface as="li" key={item.bodyPart} padding="none" {...listEntranceProps(index)}>
                   <Link to={bodyPartPath(item.bodyPart)} className={styles.row}>
-                    <span className={styles.name}>{BODY_PART_LABELS[item.bodyPart]}</span>
-                    <Badge>{pluralize(item.exerciseCount, 'ejercicio', 'ejercicios')}</Badge>
+                    <span className={styles.name}>{bodyPartLabel(item.bodyPart)}</span>
+                    <Badge>
+                      {plural(
+                        item.exerciseCount,
+                        ['ejercicio', 'ejercicios'],
+                        ['exercise', 'exercises'],
+                      )}
+                    </Badge>
                   </Link>
                 </Surface>
               ))}

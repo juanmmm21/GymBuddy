@@ -9,7 +9,8 @@ import {
   type CatalogSearchFilters,
 } from '@gymbuddy/shared';
 import type { SelectOption } from '../../components/index';
-import { BODY_PART_LABELS, BODY_PART_ORDER, MUSCLE_LABELS, equipmentLabel } from './labels';
+import { bodyPartLabel, BODY_PART_ORDER, muscleLabel, equipmentLabel } from './labels';
+import { t } from '../../i18n/index';
 
 /** El valor de «sin filtro» en un desplegable: un `select` nativo no admite `undefined`. */
 export const NO_FILTER = '';
@@ -50,7 +51,7 @@ export const EQUIPMENT_FILTER_ORDER: readonly string[] = [
 
 export function equipmentFilterOptions(): SelectOption[] {
   return [
-    { value: NO_FILTER, label: 'Todo' },
+    { value: NO_FILTER, label: t('Todo', 'All') },
     ...EQUIPMENT_FILTER_ORDER.map((equipment) => ({
       value: equipment,
       label: equipmentLabel(equipment),
@@ -61,8 +62,8 @@ export function equipmentFilterOptions(): SelectOption[] {
 /** Las siete partes del cuerpo en el orden del catálogo: solo se ofrecen en la búsqueda. */
 export function bodyPartFilterOptions(): SelectOption[] {
   return [
-    { value: NO_FILTER, label: 'Todas' },
-    ...BODY_PART_ORDER.map((part) => ({ value: part, label: BODY_PART_LABELS[part] })),
+    { value: NO_FILTER, label: t('Todas', 'All') },
+    ...BODY_PART_ORDER.map((part) => ({ value: part, label: bodyPartLabel(part) })),
   ];
 }
 
@@ -71,13 +72,13 @@ export function bodyPartFilterOptions(): SelectOption[] {
  * rechaza uno de otra); en la búsqueda, los diecinueve agrupados por parte, que es como se piensan.
  */
 export function muscleFilterOptions(bodyPart: BodyPart | null): SelectOption[] {
-  const all: SelectOption = { value: NO_FILTER, label: 'Todos' };
+  const all: SelectOption = { value: NO_FILTER, label: t('Todos', 'All') };
   if (bodyPart !== null) {
     return [
       all,
       ...musclesOfBodyPart(bodyPart).map((muscle) => ({
         value: muscle,
-        label: MUSCLE_LABELS[muscle],
+        label: muscleLabel(muscle),
       })),
     ];
   }
@@ -87,8 +88,8 @@ export function muscleFilterOptions(bodyPart: BodyPart | null): SelectOption[] {
     ...BODY_PART_ORDER.flatMap((part) =>
       musclesOfBodyPart(part).map((muscle) => ({
         value: muscle,
-        label: MUSCLE_LABELS[muscle],
-        group: BODY_PART_LABELS[part],
+        label: muscleLabel(muscle),
+        group: bodyPartLabel(part),
       })),
     ),
   ];
@@ -199,7 +200,7 @@ export function hasCatalogFilters(filters: CatalogSearchFilters): boolean {
 export function describeCatalogFilters(filters: CatalogSearchFilters): string {
   const parts: string[] = [];
   if (filters.equipment !== undefined) parts.push(equipmentLabel(filters.equipment));
-  if (filters.muscle !== undefined) parts.push(MUSCLE_LABELS[filters.muscle]);
-  else if (filters.bodyPart !== undefined) parts.push(BODY_PART_LABELS[filters.bodyPart]);
+  if (filters.muscle !== undefined) parts.push(muscleLabel(filters.muscle));
+  else if (filters.bodyPart !== undefined) parts.push(bodyPartLabel(filters.bodyPart));
   return parts.join(' · ');
 }

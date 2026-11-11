@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import type { BackLink } from '../../app/ScreenHeader';
 import { Surface, listEntranceProps } from '../../components/index';
 import { ExerciseThumb } from './ExerciseThumb';
-import { MUSCLE_LABELS, equipmentLabel } from './labels';
+import { muscleLabel, equipmentLabel } from './labels';
 import { catalogBackState } from './navigation';
 import { catalogExercisePath, catalogExerciseRef } from './paths';
 import styles from './CatalogExerciseList.module.css';
@@ -38,7 +38,7 @@ export function CatalogExerciseList({ items, backTo }: CatalogExerciseListProps)
             <span className={styles.text}>
               <span className={styles.name}>{item.name}</span>
               <span className={styles.meta}>
-                {MUSCLE_LABELS[item.muscle]} · {equipmentLabel(item.equipment)}
+                {muscleLabel(item.muscle)} · {equipmentLabel(item.equipment)}
               </span>
             </span>
             <span className={styles.chevron} aria-hidden="true">

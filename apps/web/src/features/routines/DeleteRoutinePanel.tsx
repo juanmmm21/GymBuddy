@@ -4,9 +4,9 @@ import { useNavigate } from 'react-router';
 import { useDeleteRoutine } from '../../api/mutations';
 import { Button, Notice } from '../../components/index';
 import { describeError } from '../../lib/errors';
-import { pluralize } from '../../lib/format';
 import styles from './DeleteRoutinePanel.module.css';
 import { ROUTINES_PATH } from './paths';
+import { t, plural } from '../../i18n/index';
 
 export interface DeleteRoutinePanelProps {
   readonly routine: Routine;
@@ -33,13 +33,16 @@ export function DeleteRoutinePanel({ routine }: DeleteRoutinePanelProps) {
 
   const whatGoes =
     routine.items.length === 0
-      ? 'Desaparece del todo.'
-      : `Desaparece del todo, con ${pluralize(routine.items.length, 'ejercicio', 'ejercicios')} en su orden.`;
+      ? t('Desaparece del todo.', 'It disappears completely.')
+      : t(
+          `Desaparece del todo, con ${plural(routine.items.length, ['ejercicio', 'ejercicios'], ['exercise', 'exercises'])} en su orden.`,
+          `It disappears completely, with its ${plural(routine.items.length, ['ejercicio', 'ejercicios'], ['exercise', 'exercises'])} in order.`,
+        );
 
   return (
-    <section className={styles.panel} aria-label="Borrar rutina">
+    <section className={styles.panel} aria-label={t('Borrar rutina', 'Delete routine')}>
       {remove.isError && (
-        <Notice tone="danger" title="No se pudo borrar">
+        <Notice tone="danger" title={t('No se pudo borrar', 'Couldn’t delete')}>
           {describeError(remove.error)}
         </Notice>
       )}
@@ -47,11 +50,11 @@ export function DeleteRoutinePanel({ routine }: DeleteRoutinePanelProps) {
       {confirming ? (
         <Notice
           tone="warning"
-          title="¿Borrar esta rutina?"
+          title={t('¿Borrar esta rutina?', 'Delete this routine?')}
           action={
             <div className={styles.actions}>
               <Button variant="danger" loading={remove.isPending} onClick={handleDelete}>
-                Sí, borrarla
+                {t('Sí, borrarla', 'Yes, delete it')}
               </Button>
               <Button
                 variant="ghost"
@@ -60,12 +63,15 @@ export function DeleteRoutinePanel({ routine }: DeleteRoutinePanelProps) {
                   setConfirming(false);
                 }}
               >
-                Cancelar
+                {t('Cancelar', 'Cancel')}
               </Button>
             </div>
           }
         >
-          {`${whatGoes} Tus ejercicios y tus entrenamientos no se tocan, y si guía la sesión abierta, la sesión sigue sin guion. No se puede deshacer.`}
+          {`${whatGoes} ${t(
+            'Tus ejercicios y tus entrenamientos no se tocan, y si guía la sesión abierta, la sesión sigue sin guion. No se puede deshacer.',
+            'Your exercises and workouts aren’t touched, and if it guides the open session, the session continues without a plan. This can’t be undone.',
+          )}`}
         </Notice>
       ) : (
         <>
@@ -76,9 +82,14 @@ export function DeleteRoutinePanel({ routine }: DeleteRoutinePanelProps) {
               setConfirming(true);
             }}
           >
-            Borrar rutina
+            {t('Borrar rutina', 'Delete routine')}
           </Button>
-          <p className={styles.hint}>Si solo quieres quitarla de la lista, archívala.</p>
+          <p className={styles.hint}>
+            {t(
+              'Si solo quieres quitarla de la lista, archívala.',
+              'If you just want it off the list, archive it.',
+            )}
+          </p>
         </>
       )}
     </section>

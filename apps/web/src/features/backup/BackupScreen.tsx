@@ -1,14 +1,16 @@
 import { ScreenHeader, type BackLink } from '../../app/ScreenHeader';
 import { Button, Notice, Surface } from '../../components/index';
 import { describeError } from '../../lib/errors';
-import { pluralize } from '../../lib/format';
 import { ExportIntegrityError, type ExportProgress } from './collect-export';
 import { ExportSaveError, useExportDownload, type ExportSummary } from './use-export-download';
 import { ImportSection } from './ImportSection';
 import styles from './BackupScreen.module.css';
 import { SETTINGS_PATH } from '../settings/paths';
+import { t, plural } from '../../i18n/index';
 
-const BACK_TO_SETTINGS: BackLink = { to: SETTINGS_PATH, label: 'Ajustes' };
+function backToSettings(): BackLink {
+  return { to: SETTINGS_PATH, label: t('Ajustes', 'Settings') };
+}
 
 /**
  * La copia de seguridad de todo lo del usuario. Las llaves de acceso viven en los móviles y no
@@ -20,35 +22,50 @@ export function BackupScreen() {
   return (
     <>
       <ScreenHeader
-        title="Copia de seguridad"
-        subtitle="Todo tu entrenamiento en un fichero"
-        backTo={BACK_TO_SETTINGS}
+        title={t('Copia de seguridad', 'Backup')}
+        subtitle={t('Todo tu entrenamiento en un fichero', 'All your training in one file')}
+        backTo={backToSettings()}
       />
       <div className={styles.stack}>
         <Surface as="section">
           <ol className={styles.steps}>
-            <li>Pulsa «Descargar mis datos» y espera a que termine.</li>
-            <li>Tu móvil guardará un fichero que se llama gymbuddy y la fecha de hoy.</li>
             <li>
-              Guárdalo también fuera de este móvil: en tu nube, en tu correo o en el ordenador.
+              {t(
+                'Pulsa «Descargar mis datos» y espera a que termine.',
+                'Tap “Download my data” and wait for it to finish.',
+              )}
+            </li>
+            <li>
+              {t(
+                'Tu móvil guardará un fichero que se llama gymbuddy y la fecha de hoy.',
+                'Your phone will save a file named gymbuddy plus today’s date.',
+              )}
+            </li>
+            <li>
+              {t(
+                'Guárdalo también fuera de este móvil: en tu nube, en tu correo o en el ordenador.',
+                'Keep a copy off this phone too: in your cloud, your email or your computer.',
+              )}
             </li>
           </ol>
         </Surface>
 
         <Surface as="section">
           <p className={styles.contents}>
-            Lleva tus ejercicios, todas tus sesiones con sus series, tus marcas y tus rutinas. No
-            lleva tus llaves de acceso ni tus invitaciones: esas se quedan en tus móviles.
+            {t(
+              'Lleva tus ejercicios, todas tus sesiones con sus series, tus marcas y tus rutinas. No lleva tus llaves de acceso ni tus invitaciones: esas se quedan en tus móviles.',
+              'It contains your exercises, all your sessions with their sets, your records and your routines. It doesn’t contain your passkeys or invitations: those stay on your phones.',
+            )}
           </p>
         </Surface>
 
         {download.isError && (
           <Notice
             tone="danger"
-            title="No se ha podido descargar la copia"
+            title={t('No se ha podido descargar la copia', 'The backup couldn’t be downloaded')}
             action={
               <Button variant="secondary" onClick={start}>
-                Reintentar
+                {t('Reintentar', 'Retry')}
               </Button>
             }
           >
@@ -67,7 +84,9 @@ export function BackupScreen() {
           variant={download.isSuccess ? 'secondary' : 'primary'}
           onClick={start}
         >
-          {download.isSuccess ? 'Descargar otra vez' : 'Descargar mis datos'}
+          {download.isSuccess
+            ? t('Descargar otra vez', 'Download again')
+            : t('Descargar mis datos', 'Download my data')}
         </Button>
 
         <ImportSection />
@@ -80,29 +99,42 @@ function ExportProgressLine({ progress }: { readonly progress: ExportProgress })
   return (
     <p className={styles.progress} role="status">
       {progress.totalSessions === 0
-        ? 'Preparando tus datos…'
-        : `Preparando sesiones: ${String(progress.loadedSessions)} de ${String(progress.totalSessions)}`}
+        ? t('Preparando tus datos…', 'Preparing your data…')
+        : t(
+            `Preparando sesiones: ${String(progress.loadedSessions)} de ${String(progress.totalSessions)}`,
+            `Preparing sessions: ${String(progress.loadedSessions)} of ${String(progress.totalSessions)}`,
+          )}
     </p>
   );
 }
 
 function ExportDone({ summary }: { readonly summary: ExportSummary }) {
   return (
-    <Notice tone="success" title="Copia descargada">
-      {summary.fileName}: {pluralize(summary.sessions, 'sesión', 'sesiones')},{' '}
-      {pluralize(summary.exercises, 'ejercicio', 'ejercicios')} y{' '}
-      {pluralize(summary.routines, 'rutina', 'rutinas')}. Si no lo encuentras, mira en la carpeta de
-      descargas o en la app Archivos.
+    <Notice tone="success" title={t('Copia descargada', 'Backup downloaded')}>
+      {summary.fileName}:{' '}
+      {plural(summary.sessions, ['sesión', 'sesiones'], ['session', 'sessions'])},{' '}
+      {plural(summary.exercises, ['ejercicio', 'ejercicios'], ['exercise', 'exercises'])}{' '}
+      {t('y', 'and')} {plural(summary.routines, ['rutina', 'rutinas'], ['routine', 'routines'])}.{' '}
+      {t(
+        'Si no lo encuentras, mira en la carpeta de descargas o en la app Archivos.',
+        'If you can’t find it, look in your downloads folder or the Files app.',
+      )}
     </Notice>
   );
 }
 
 function describeExportError(error: Error): string {
   if (error instanceof ExportSaveError) {
-    return 'Este navegador no deja guardar ficheros desde aquí. Abre GymBuddy en Safari o en Chrome y vuelve a intentarlo.';
+    return t(
+      'Este navegador no deja guardar ficheros desde aquí. Abre GymBuddy en Safari o en Chrome y vuelve a intentarlo.',
+      'This browser doesn’t allow saving files from here. Open GymBuddy in Safari or Chrome and try again.',
+    );
   }
   if (error instanceof ExportIntegrityError) {
-    return 'Tus datos han cambiado mientras se preparaba la copia. Vuelve a intentarlo.';
+    return t(
+      'Tus datos han cambiado mientras se preparaba la copia. Vuelve a intentarlo.',
+      'Your data changed while the backup was being prepared. Try again.',
+    );
   }
   return describeError(error);
 }

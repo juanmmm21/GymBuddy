@@ -5,6 +5,7 @@ import {
   type Competitor,
   type RivalCandidate,
 } from '@gymbuddy/shared';
+import { currentLocale } from '../../i18n/index';
 
 /** Un ejercicio visto contra un rival concreto: tu peso máximo y el suyo, en gramos. */
 export interface RivalDuel {
@@ -49,7 +50,7 @@ export function boardAgainst(competition: Competition, rival: Competitor): Rival
   duels.sort(
     (a, b) =>
       marginGrams(a) - marginGrams(b) ||
-      a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }),
+      a.name.localeCompare(b.name, currentLocale(), { sensitivity: 'base' }),
   );
 
   return {

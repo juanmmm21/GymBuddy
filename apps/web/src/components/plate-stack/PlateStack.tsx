@@ -9,6 +9,7 @@ import {
 import { cx } from '../../lib/cx';
 import { formatWeightLabel } from '../../lib/format';
 import styles from './PlateStack.module.css';
+import { t } from '../../i18n/index';
 
 export interface PlateStackProps {
   /** El peso total de la serie, barra incluida, como lo trae el contrato. */
@@ -75,14 +76,20 @@ export function describeLoad(
   const plates = load.perSide.map((plate) =>
     formatWeightLabel(formatGramsAsKilograms(plate), locale),
   );
-  const base = plates.length === 0 ? 'Barra sola, sin discos' : `Por lado: ${joinSpanish(plates)}`;
+  const base =
+    plates.length === 0
+      ? t('Barra sola, sin discos', 'Empty bar, no plates')
+      : t(`Por lado: ${joinList(plates)}`, `Per side: ${joinList(plates)}`);
 
   return load.remainderGrams > 0
-    ? `${base}; faltan ${formatWeightLabel(formatGramsAsKilograms(load.remainderGrams), locale)} que no se pueden cargar con discos`
+    ? t(
+        `${base}; faltan ${formatWeightLabel(formatGramsAsKilograms(load.remainderGrams), locale)} que no se pueden cargar con discos`,
+        `${base}; ${formatWeightLabel(formatGramsAsKilograms(load.remainderGrams), locale)} can’t be loaded with plates`,
+      )
     : base;
 }
 
-function joinSpanish(items: readonly string[]): string {
+function joinList(items: readonly string[]): string {
   if (items.length <= 1) return items.join('');
-  return `${items.slice(0, -1).join(', ')} y ${items[items.length - 1] ?? ''}`;
+  return `${items.slice(0, -1).join(', ')} ${t('y', 'and')} ${items[items.length - 1] ?? ''}`;
 }

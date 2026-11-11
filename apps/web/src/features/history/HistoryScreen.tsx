@@ -11,10 +11,10 @@ import {
   Surface,
   listEntranceProps,
 } from '../../components/index';
-import { formatSessionDate, formatTime, pluralize } from '../../lib/format';
+import { formatSessionDate, formatTime } from '../../lib/format';
 import { sessionDetailPath } from './paths';
 import styles from './HistoryScreen.module.css';
-import { useLocale } from '../../i18n/index';
+import { plural, t, useLocale } from '../../i18n/index';
 
 /** Un mes largo de entrenamiento entra de un tirón; lo anterior se pide al bajar. */
 const PAGE_SIZE = 20;
@@ -28,16 +28,23 @@ export function HistoryScreen() {
   return (
     <>
       <ScreenHeader
-        title="Historial"
-        subtitle={total === undefined ? undefined : pluralize(total, 'sesión', 'sesiones')}
+        title={t('Historial', 'History')}
+        subtitle={
+          total === undefined
+            ? undefined
+            : plural(total, ['sesión', 'sesiones'], ['session', 'sessions'])
+        }
       />
       <AsyncContent query={history} skeleton={<SkeletonList rows={6} />}>
         {(data) => {
           const items = data.pages.flatMap((page) => page.items);
           if (items.length === 0) {
             return (
-              <Notice title="Aún no hay sesiones">
-                Tu primera sesión aparecerá aquí en cuanto la cierres.
+              <Notice title={t('Aún no hay sesiones', 'No sessions yet')}>
+                {t(
+                  'Tu primera sesión aparecerá aquí en cuanto la cierres.',
+                  'Your first session will appear here as soon as you finish it.',
+                )}
               </Notice>
             );
           }
@@ -58,7 +65,7 @@ export function HistoryScreen() {
                     void history.fetchNextPage();
                   }}
                 >
-                  Cargar más
+                  {t('Cargar más', 'Load more')}
                 </Button>
               )}
             </div>
@@ -89,9 +96,9 @@ function SessionRow({ session, locale, index }: SessionRowProps) {
           </span>
         </span>
         {session.endedAt === null ? (
-          <Badge tone="accent">En curso</Badge>
+          <Badge tone="accent">{t('En curso', 'In progress')}</Badge>
         ) : (
-          <Badge>{pluralize(session.setCount, 'serie', 'series')}</Badge>
+          <Badge>{plural(session.setCount, ['serie', 'series'], ['set', 'sets'])}</Badge>
         )}
       </Link>
     </Surface>
