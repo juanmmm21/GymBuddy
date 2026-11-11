@@ -137,3 +137,25 @@ apuntarlo, y una petición que ya iba en camino con él tiene que seguir valiend
 alarga la sesión, no corta la anterior. Y al desplegar (Fase 14), con la PWA y el Worker en orígenes
 distintos, el navegador solo deja leer esas dos cabeceras si van en `Access-Control-Expose-Headers`:
 sin eso la renovación se pierde en silencio y la sesión vuelve a caducar al mes.
+
+## Tope de invitaciones por cuenta — 2026-11-11
+
+Hasta ahora cualquier cuenta podía pedir tantas invitaciones como quisiera desde la app. Un
+desconocido pidió un código, y eso dejaba ver el hueco: una sola cuenta mal dada podía repartir
+altas sin límite, que es justo lo que la invitación tenía que impedir.
+
+*   **Las cuentas normales tienen un cupo de tres invitaciones cada treinta días**
+    (`INVITATION_LIMIT` e `INVITATION_LIMIT_WINDOW_DAYS`). La cuenta de administración
+    (`user.is_admin`, la misma marca del ADR [`0011`](0011-competir-con-amigos.md)) no tiene tope, y
+    `POST /api/v1/admin/invitations` tampoco.
+*   **Cuentan las creadas, usadas o no, en una ventana móvil.** Si contaran solo las pendientes,
+    gastar una con una cuenta de paja liberaría el hueco al momento.
+*   **El cupo se comprueba dentro del propio `INSERT`** (`INSERT … SELECT … WHERE count(*) < tope`).
+    Con una lectura previa, varias peticiones simultáneas verían hueco y se colarían todas.
+*   Pasarse es **`invitation_limit_reached`, con 429**, y el `detail` lleva `renewsAt`: cuándo podrá
+    crear la siguiente. `GET /auth/invitations` trae además `quota` (nulo para administración), y la
+    pantalla de invitar enseña cuántas quedan y desactiva el botón al agotarlas.
+
+Lo que **no** cierra: cada cuenta nueva trae su propio cupo, así que una invitación mal dada sigue
+pudiendo crecer en cadena, solo que despacio. Si hiciera falta cortarlo del todo, el paso siguiente
+es que solo la cuenta de administración pueda invitar.
