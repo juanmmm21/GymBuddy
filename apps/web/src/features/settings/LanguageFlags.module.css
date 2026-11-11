@@ -40,6 +40,5 @@
   block-size: 1rem;
   overflow: hidden;
   border-radius: var(--gb-space-xxs);
-  box-shadow: 0 0 0 1px var(--gb-color-border);
+  box-shadow: 0 0 0 var(--gb-size-border-width) var(--gb-color-border);
 }
-
