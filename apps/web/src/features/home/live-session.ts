@@ -1,5 +1,5 @@
 import type { SetEntry, TrackedExercise, WorkoutSessionDetail } from '@gymbuddy/shared';
-import { UNKNOWN_EXERCISE_NAME, summarizeSession } from '../session/summary';
+import { unknownExerciseName, summarizeSession } from '../session/summary';
 
 /** La última serie de la sesión, con lo que hace falta para pintarla en Hoy. */
 export interface LiveLastSet {
@@ -50,7 +50,7 @@ export function summarizeLiveSession(
       latest === null
         ? null
         : {
-            exerciseName: exercise?.name ?? UNKNOWN_EXERCISE_NAME,
+            exerciseName: exercise?.name ?? unknownExerciseName(),
             equipment: exercise?.equipment ?? null,
             unilateral: exercise?.unilateral ?? false,
             set: latest,

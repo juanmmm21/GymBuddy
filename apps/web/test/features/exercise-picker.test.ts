@@ -5,10 +5,10 @@ import {
   exercisePickerSections,
   matchesPickerFilter,
   NO_PICKER_FILTER,
-  NO_SETS_LABEL,
+  noSetsLabel,
   pickerBodyParts,
   pickerRowDetail,
-  ROUTINE_SECTION_TITLE,
+  routineSectionTitle,
   sameBodyPartTitle,
 } from '../../src/features/session/exercise-picker';
 import { routineProgress } from '../../src/features/session/routine-progress';
@@ -116,7 +116,7 @@ describe('exercisePickerSections', () => {
 
     expect(namesBySection(sections)).toEqual([
       [
-        ROUTINE_SECTION_TITLE,
+        routineSectionTitle(),
         ['Press de banca', 'Press inclinado con mancuernas', 'Sentadilla con barra'],
       ],
       ['Brazos', ['Curl con la barra rara']],
@@ -223,13 +223,13 @@ describe('pickerRowDetail', () => {
   it('dice «por brazo» en uno a un brazo, el tiempo en cardio y si no hay series', () => {
     expect(pickerRowDetail(inclinePress, [], 'es')).toBe('Pecho · 26 kg por brazo × 10');
     expect(pickerRowDetail(treadmill, [], 'es')).toBe('Cardio · 25 min · 5,2 km');
-    expect(pickerRowDetail(customCurl, [], 'es')).toBe(`Brazos · ${NO_SETS_LABEL}`);
+    expect(pickerRowDetail(customCurl, [], 'es')).toBe(`Brazos · ${noSetsLabel()}`);
   });
 
   it('marca un archivado y un propio sin clasificar', () => {
     const archived = { ...squat, archivedAt: '2026-09-10T10:00:00.000Z' };
     expect(pickerRowDetail(archived, [], 'es')).toBe('Piernas · 100 kg × 5 · archivado');
-    expect(pickerRowDetail(unclassified, [], 'es')).toBe(`Sin clasificar · ${NO_SETS_LABEL}`);
+    expect(pickerRowDetail(unclassified, [], 'es')).toBe(`Sin clasificar · ${noSetsLabel()}`);
   });
 });
 

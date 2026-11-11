@@ -24,6 +24,7 @@ It does the things you actually do between sets:
 - **Attach your own photo or video** of the technique to an exercise you created, re-encoded on the phone before it ever leaves it.
 - **Get a rest notification** on the lock screen when the app is closed, over Web Push from the Worker.
 - **Work offline.** Sets logged without coverage queue up in IndexedDB and drain, in order, when the network returns.
+- **Speak your language**: English or Spanish, following the phone's system language until you pick one in Settings (or on the sign-in screen). Catalogue names and instructions switch with it.
 
 The whole thing runs inside Cloudflare's free plan and is expected to stay there.
 
@@ -48,6 +49,7 @@ A few other decisions worth a look, each written up as an ADR in [`docs/decision
 - Restoring a backup rewrites every id as a **UUID derived from the destination account** (SHA-256 → UUID v8), so a restore into a second account neither collides with the first nor duplicates on a retry ([ADR 0006](docs/decisions/0006-importar-copias-con-ids-derivados.md)).
 - Offline writes go through a **queue in IndexedDB**, drained strictly in order, with rejections surfaced rather than swallowed ([ADR 0007](docs/decisions/0007-cola-offline-de-escrituras.md)).
 - The end-of-rest notification is scheduled by a **Durable Object alarm** that sends a payload-less Web Push signed with VAPID, using WebCrypto rather than a push library ([ADR 0009](docs/decisions/0009-aviso-de-descanso-por-push.md)).
+- Every interface string is written **in both languages at the place it is used** (`t('Hoy', 'Today')`), with no separate dictionary to fall out of step; the language is a per-device preference that defaults to the system's ([ADR 0012](docs/decisions/0012-idioma-elegible.md)).
 
 > The ADRs and the runbooks in [`docs/operations/`](docs/operations) are written in Spanish; the code, the commit history and this README are in English.
 

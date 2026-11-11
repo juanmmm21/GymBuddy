@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Button } from '../../components/index';
 import { cx } from '../../lib/cx';
-import { TUTORIAL_STEPS, type TutorialIcon } from './tutorial';
+import { tutorialSteps, type TutorialIcon } from './tutorial';
 import styles from './TutorialOverlay.module.css';
+import { t } from '../../i18n/index';
 
 export interface TutorialOverlayProps {
   readonly open: boolean;
@@ -47,19 +48,27 @@ export function TutorialOverlay({ open, onClose }: TutorialOverlayProps) {
     };
   }, [onClose]);
 
-  const step = TUTORIAL_STEPS[index];
-  const isLast = index === TUTORIAL_STEPS.length - 1;
+  const steps = tutorialSteps();
+  const step = steps[index];
+  const isLast = index === steps.length - 1;
 
   return (
-    <dialog ref={dialogRef} className={styles.dialog} aria-label="Cómo se usa GymBuddy">
+    <dialog
+      ref={dialogRef}
+      className={styles.dialog}
+      aria-label={t('Cómo se usa GymBuddy', 'How to use GymBuddy')}
+    >
       {open && step !== undefined && (
         <div className={styles.panel}>
           <header className={styles.header}>
             <p className={styles.counter}>
-              Paso {index + 1} de {TUTORIAL_STEPS.length}
+              {t(
+                `Paso ${String(index + 1)} de ${String(steps.length)}`,
+                `Step ${String(index + 1)} of ${String(steps.length)}`,
+              )}
             </p>
             <button type="button" className={styles.skip} onClick={onClose}>
-              Saltar
+              {t('Saltar', 'Skip')}
             </button>
           </header>
           <div className={styles.body}>
@@ -70,7 +79,7 @@ export function TutorialOverlay({ open, onClose }: TutorialOverlayProps) {
             <p className={styles.text}>{step.body}</p>
           </div>
           <div className={styles.dots} aria-hidden="true">
-            {TUTORIAL_STEPS.map((other, position) => (
+            {steps.map((other, position) => (
               <span
                 key={other.id}
                 className={cx(styles.dot, position === index && styles.dotCurrent)}
@@ -80,14 +89,14 @@ export function TutorialOverlay({ open, onClose }: TutorialOverlayProps) {
           <footer className={styles.footer}>
             {index > 0 && (
               <Button variant="ghost" onClick={() => setIndex(index - 1)}>
-                Atrás
+                {t('Atrás', 'Back')}
               </Button>
             )}
             <Button
               className={styles.next}
               onClick={() => (isLast ? onClose() : setIndex(index + 1))}
             >
-              {isLast ? 'Empezar' : 'Siguiente'}
+              {isLast ? t('Empezar', 'Get started') : t('Siguiente', 'Next')}
             </Button>
           </footer>
         </div>

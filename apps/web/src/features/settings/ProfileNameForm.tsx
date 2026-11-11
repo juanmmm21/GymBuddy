@@ -5,6 +5,7 @@ import { Button, Notice, TextField } from '../../components/index';
 import { describeError } from '../../lib/errors';
 import { displayNameToSave } from './profile-name';
 import styles from './ProfileNameForm.module.css';
+import { t } from '../../i18n/index';
 
 export interface ProfileNameFormProps {
   /** El nombre guardado en la sesión; el campo arranca con él. */
@@ -34,7 +35,7 @@ export function ProfileNameForm({ currentName }: ProfileNameFormProps) {
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
       <TextField
-        label="Nombre"
+        label={t('Nombre', 'Name')}
         value={draft}
         onChange={(value) => {
           setDraft(value);
@@ -42,22 +43,28 @@ export function ProfileNameForm({ currentName }: ProfileNameFormProps) {
           if (!update.isIdle) update.reset();
         }}
         maxLength={MAX_DISPLAY_NAME_LENGTH}
-        hint="Con él te saluda la app. La llave de acceso del móvil conserva el nombre con el que la creaste."
+        hint={t(
+          'Con él te saluda la app. La llave de acceso del móvil conserva el nombre con el que la creaste.',
+          'The app greets you with it. Your phone’s passkey keeps the name it was created with.',
+        )}
       />
 
       {update.isSuccess && (
-        <Notice tone="success" title="Nombre guardado">
-          Ya te saluda como {update.data.displayName}.
+        <Notice tone="success" title={t('Nombre guardado', 'Name saved')}>
+          {t(
+            `Ya te saluda como ${update.data.displayName}.`,
+            `It now greets you as ${update.data.displayName}.`,
+          )}
         </Notice>
       )}
       {update.isError && (
-        <Notice tone="danger" title="No se pudo guardar">
+        <Notice tone="danger" title={t('No se pudo guardar', 'Couldn’t save')}>
           {describeError(update.error)}
         </Notice>
       )}
 
       <Button type="submit" fullWidth loading={update.isPending} disabled={nameToSave === null}>
-        Guardar nombre
+        {t('Guardar nombre', 'Save name')}
       </Button>
     </form>
   );

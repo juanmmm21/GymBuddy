@@ -8,6 +8,7 @@ import {
   type WeightKilograms,
 } from '@gymbuddy/shared';
 import type { CardioSetValues, SetValues } from './SetFields';
+import { t } from '../../i18n/index';
 
 /** De dónde sale lo que se propone, para decirlo bajo el peso. */
 export type SetProposalSource = 'session' | 'last_time' | 'none';
@@ -97,11 +98,20 @@ export function setKindFor(exercise: TrackedExercise): SetKind {
 export function describeCardioProposal(source: SetProposalSource): string {
   switch (source) {
     case 'session':
-      return 'Lo mismo que tu último cardio de hoy en este ejercicio.';
+      return t(
+        'Lo mismo que tu último cardio de hoy en este ejercicio.',
+        'Same as your last cardio today on this exercise.',
+      );
     case 'last_time':
-      return 'Lo mismo que la última vez. En minutos, o minutos y segundos: 25:30.';
+      return t(
+        'Lo mismo que la última vez. En minutos, o minutos y segundos: 25:30.',
+        'Same as last time. In minutes, or minutes and seconds: 25:30.',
+      );
     case 'none':
-      return 'En minutos, o minutos y segundos: 25:30.';
+      return t(
+        'En minutos, o minutos y segundos: 25:30.',
+        'In minutes, or minutes and seconds: 25:30.',
+      );
   }
 }
 
@@ -109,11 +119,17 @@ export function describeCardioProposal(source: SetProposalSource): string {
 export function describeProposal(source: SetProposalSource): string {
   switch (source) {
     case 'session':
-      return 'Lo mismo que tu última serie de hoy. Cámbialo si subes.';
+      return t(
+        'Lo mismo que tu última serie de hoy. Cámbialo si subes.',
+        'Same as your last set today. Change it if you go up.',
+      );
     case 'last_time':
-      return 'Lo mismo que tu última serie de este ejercicio. Cámbialo si subes.';
+      return t(
+        'Lo mismo que tu última serie de este ejercicio. Cámbialo si subes.',
+        'Same as your last set on this exercise. Change it if you go up.',
+      );
     case 'none':
-      return 'Es tu primera serie de este ejercicio.';
+      return t('Es tu primera serie de este ejercicio.', 'It’s your first set on this exercise.');
   }
 }
 

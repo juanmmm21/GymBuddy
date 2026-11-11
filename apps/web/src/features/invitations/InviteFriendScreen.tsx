@@ -13,12 +13,14 @@ import { AsyncContent } from '../../components/async-content/AsyncContent';
 import { AccessCode, Button, Notice, Surface } from '../../components/index';
 import { copyToClipboard } from '../../lib/clipboard';
 import { describeError } from '../../lib/errors';
-import { formatShortDate, pluralize } from '../../lib/format';
+import { formatShortDate } from '../../lib/format';
 import styles from './InviteFriendScreen.module.css';
 import { SETTINGS_PATH } from '../settings/paths';
-import { useLocale } from '../../i18n/index';
+import { plural, t, useLocale } from '../../i18n/index';
 
-const BACK_TO_SETTINGS: BackLink = { to: SETTINGS_PATH, label: 'Ajustes' };
+function backToSettings(): BackLink {
+  return { to: SETTINGS_PATH, label: t('Ajustes', 'Settings') };
+}
 
 /**
  * El código con el que un amigo se crea su cuenta. El alta va por invitación a propósito (no
@@ -31,9 +33,12 @@ export function InviteFriendScreen() {
   return (
     <>
       <ScreenHeader
-        title="Invitar a un amigo"
-        subtitle="Un código para que se cree su cuenta"
-        backTo={BACK_TO_SETTINGS}
+        title={t('Invitar a un amigo', 'Invite a friend')}
+        subtitle={t(
+          'Un código para que se cree su cuenta',
+          'A code so they can create their account',
+        )}
+        backTo={backToSettings()}
       />
       <AsyncContent query={status}>{(data) => <Invitations status={data} />}</AsyncContent>
     </>
@@ -58,23 +63,33 @@ function Invitations({ status }: InvitationsProps) {
     <div className={styles.stack}>
       <Surface as="section">
         <ol className={styles.steps}>
-          <li>Pide aquí un código y mándaselo.</li>
-          <li>Que abra GymBuddy en su móvil y pulse «Tengo una invitación».</li>
-          <li>Con el código y su nombre, creará su llave de acceso y ya estará dentro.</li>
+          <li>{t('Pide aquí un código y mándaselo.', 'Get a code here and send it to them.')}</li>
+          <li>
+            {t(
+              'Que abra GymBuddy en su móvil y pulse «Tengo una invitación».',
+              'They open GymBuddy on their phone and tap “I have an invitation”.',
+            )}
+          </li>
+          <li>
+            {t(
+              'Con el código y su nombre, creará su llave de acceso y ya estará dentro.',
+              'With the code and their name, they’ll create their passkey and be in.',
+            )}
+          </li>
         </ol>
       </Surface>
 
       {invite.isError && (
         <Notice
           tone="danger"
-          title="No se ha podido crear la invitación"
+          title={t('No se ha podido crear la invitación', 'The invitation couldn’t be created')}
           // Con el cupo agotado, reintentar solo repetiría el mismo 429.
           {...(exhausted
             ? {}
             : {
                 action: (
                   <Button variant="secondary" onClick={ask}>
-                    Reintentar
+                    {t('Reintentar', 'Retry')}
                   </Button>
                 ),
               })}
@@ -97,7 +112,9 @@ function Invitations({ status }: InvitationsProps) {
         variant={invite.data === undefined ? 'primary' : 'secondary'}
         onClick={ask}
       >
-        {invite.data === undefined ? 'Crear una invitación' : 'Crear otra invitación'}
+        {invite.data === undefined
+          ? t('Crear una invitación', 'Create an invitation')
+          : t('Crear otra invitación', 'Create another invitation')}
       </Button>
     </div>
   );
@@ -119,19 +136,28 @@ function FreshInvitation({ invitation, locale }: FreshInvitationProps) {
   return (
     <>
       <AccessCode code={invitation.code}>
-        <p className={styles.expiry}>Caduca el {formatShortDate(invitation.expiresAt, locale)}</p>
+        <p className={styles.expiry}>
+          {t('Caduca el', 'Expires on')} {formatShortDate(invitation.expiresAt, locale)}
+        </p>
       </AccessCode>
       <Button variant="secondary" fullWidth onClick={copy}>
-        {copied === true ? 'Código copiado' : 'Copiar el código'}
+        {copied === true
+          ? t('Código copiado', 'Code copied')
+          : t('Copiar el código', 'Copy the code')}
       </Button>
       {copied === false && (
-        <Notice tone="warning" title="No se ha podido copiar">
-          Cópialo a mano de la pantalla: tu navegador no deja copiar desde aquí.
+        <Notice tone="warning" title={t('No se ha podido copiar', 'Couldn’t copy')}>
+          {t(
+            'Cópialo a mano de la pantalla: tu navegador no deja copiar desde aquí.',
+            'Copy it by hand from the screen: your browser doesn’t allow copying from here.',
+          )}
         </Notice>
       )}
-      <Notice title="Apúntalo antes de salir">
-        El código no se vuelve a enseñar: aquí solo se guarda su huella. Si lo pierdes, crea otra
-        invitación.
+      <Notice title={t('Apúntalo antes de salir', 'Note it down before leaving')}>
+        {t(
+          'El código no se vuelve a enseñar: aquí solo se guarda su huella. Si lo pierdes, crea otra invitación.',
+          'The code won’t be shown again: only its fingerprint is stored here. If you lose it, create another invitation.',
+        )}
       </Notice>
     </>
   );
@@ -145,19 +171,31 @@ interface PendingSummaryProps {
 /** Cuántas siguen esperando a que alguien las use, y hasta cuándo valen. */
 function PendingSummary({ status, locale }: PendingSummaryProps) {
   if (status.pending.length === 0) {
-    return <p className={styles.summary}>No tienes ninguna invitación sin usar.</p>;
+    return (
+      <p className={styles.summary}>
+        {t('No tienes ninguna invitación sin usar.', 'You have no unused invitations.')}
+      </p>
+    );
   }
 
   return (
     <section className={styles.summary}>
       <p>
-        Tienes {pluralize(status.pending.length, 'invitación sin usar', 'invitaciones sin usar')}.
+        {t('Tienes', 'You have')}{' '}
+        {plural(
+          status.pending.length,
+          ['invitación sin usar', 'invitaciones sin usar'],
+          ['unused invitation', 'unused invitations'],
+        )}
+        .
       </p>
       <ul className={styles.pending}>
         {status.pending.map((pending) => (
           <li key={pending.createdAt}>
-            Creada el {formatShortDate(pending.createdAt, locale)} · caduca el{' '}
-            {formatShortDate(pending.expiresAt, locale)}
+            {t(
+              `Creada el ${formatShortDate(pending.createdAt, locale)} · caduca el ${formatShortDate(pending.expiresAt, locale)}`,
+              `Created on ${formatShortDate(pending.createdAt, locale)} · expires on ${formatShortDate(pending.expiresAt, locale)}`,
+            )}
           </li>
         ))}
       </ul>
@@ -174,20 +212,29 @@ interface QuotaSummaryProps {
 function QuotaSummary({ quota, locale }: QuotaSummaryProps) {
   if (quota.remaining === 0) {
     return (
-      <Notice tone="warning" title="Has creado todas tus invitaciones">
-        Puedes crear {pluralize(quota.limit, 'invitación', 'invitaciones')} cada{' '}
-        {String(quota.windowDays)} días.
+      <Notice
+        tone="warning"
+        title={t('Has creado todas tus invitaciones', 'You’ve created all your invitations')}
+      >
+        {t(
+          `Puedes crear ${plural(quota.limit, ['invitación', 'invitaciones'], ['invitation', 'invitations'])} cada ${String(quota.windowDays)} días.`,
+          `You can create ${plural(quota.limit, ['invitación', 'invitaciones'], ['invitation', 'invitations'])} every ${String(quota.windowDays)} days.`,
+        )}
         {quota.renewsAt !== null &&
-          ` Podrás crear otra el ${formatShortDate(quota.renewsAt, locale)}.`}
+          t(
+            ` Podrás crear otra el ${formatShortDate(quota.renewsAt, locale)}.`,
+            ` You can create another on ${formatShortDate(quota.renewsAt, locale)}.`,
+          )}
       </Notice>
     );
   }
 
   return (
     <p className={styles.summary}>
-      Te {quota.remaining === 1 ? 'queda' : 'quedan'}{' '}
-      {pluralize(quota.remaining, 'invitación', 'invitaciones')} de {String(quota.limit)} en estos{' '}
-      {String(quota.windowDays)} días.
+      {t(
+        `Te ${quota.remaining === 1 ? 'queda' : 'quedan'} ${plural(quota.remaining, ['invitación', 'invitaciones'], ['invitation', 'invitations'])} de ${String(quota.limit)} en estos ${String(quota.windowDays)} días.`,
+        `You have ${plural(quota.remaining, ['invitación', 'invitaciones'], ['invitation', 'invitations'])} left out of ${String(quota.limit)} in these ${String(quota.windowDays)} days.`,
+      )}
     </p>
   );
 }

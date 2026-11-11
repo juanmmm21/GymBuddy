@@ -14,6 +14,7 @@ import {
 import { ExerciseMedia } from './ExerciseMedia';
 import type { RoutineProgress } from './routine-progress';
 import styles from './ExercisePicker.module.css';
+import { t } from '../../i18n/index';
 
 export interface ExercisePickerProps {
   readonly exercises: readonly TrackedExercise[];
@@ -53,15 +54,15 @@ export function ExercisePicker({
     <section className={styles.picker} aria-labelledby={headingId}>
       <div className={styles.header}>
         <button type="button" className={styles.back} onClick={onBack}>
-          ‹ Volver
+          ‹ {t('Volver', 'Back')}
         </button>
         <h3 id={headingId} className={styles.heading}>
-          Elegir ejercicio
+          {t('Elegir ejercicio', 'Choose exercise')}
         </h3>
       </div>
 
       <SearchField
-        label="Buscar en tus ejercicios"
+        label={t('Buscar en tus ejercicios', 'Search your exercises')}
         value={filter.text}
         onChange={(text) => {
           setFilter((current) => ({ ...current, text }));
@@ -69,9 +70,9 @@ export function ExercisePicker({
       />
 
       {bodyParts.length > 1 && (
-        <div className={styles.chips} role="group" aria-label="Parte del cuerpo">
+        <div className={styles.chips} role="group" aria-label={t('Parte del cuerpo', 'Body part')}>
           <Chip
-            label="Todos"
+            label={t('Todos', 'All')}
             pressed={filter.bodyPart === null}
             onPress={() => chooseBodyPart(null)}
           />
@@ -87,8 +88,11 @@ export function ExercisePicker({
       )}
 
       {sections.length === 0 ? (
-        <Notice title="Ningún ejercicio coincide">
-          Prueba con otra palabra o quita el filtro de parte del cuerpo.
+        <Notice title={t('Ningún ejercicio coincide', 'No exercise matches')}>
+          {t(
+            'Prueba con otra palabra o quita el filtro de parte del cuerpo.',
+            'Try another word or remove the body part filter.',
+          )}
         </Notice>
       ) : (
         sections.map((section) => (
@@ -196,8 +200,8 @@ function PickerRow({ row, selected, detail, onPick }: PickerRowProps) {
           {detail}
         </span>
       </span>
-      {status === 'current' && <Badge tone="accent">Toca</Badge>}
-      {status === 'done' && <Badge tone="success">Hecho</Badge>}
+      {status === 'current' && <Badge tone="accent">{t('Toca', 'Up next')}</Badge>}
+      {status === 'done' && <Badge tone="success">{t('Hecho', 'Done')}</Badge>}
     </button>
   );
 }

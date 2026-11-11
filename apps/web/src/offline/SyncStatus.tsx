@@ -3,6 +3,7 @@ import { Button, Notice } from '../components/index';
 import { describePendingWrites, droppedWriteReason, droppedWriteTitle } from './labels';
 import styles from './SyncStatus.module.css';
 import { useUserWriteQueue, useWriteQueue } from './WriteQueueProvider';
+import { t } from '../i18n/index';
 
 /**
  * Lo que la cola offline tiene que contar, encima de cualquier pantalla: cuánto espera a que
@@ -31,11 +32,14 @@ export function SyncStatus() {
           title={describePendingWrites(pending.length)}
           action={
             <Button variant="secondary" loading={retrying} onClick={retry}>
-              Reintentar ahora
+              {t('Reintentar ahora', 'Retry now')}
             </Button>
           }
         >
-          Está guardado en este móvil y se enviará solo en cuanto haya conexión.
+          {t(
+            'Está guardado en este móvil y se enviará solo en cuanto haya conexión.',
+            'It’s saved on this phone and will be sent on its own as soon as there’s a connection.',
+          )}
         </Notice>
       )}
 
@@ -51,7 +55,7 @@ export function SyncStatus() {
                 queue.dismiss(rejected.sequence);
               }}
             >
-              Entendido
+              {t('Entendido', 'Got it')}
             </Button>
           }
         >

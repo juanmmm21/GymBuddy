@@ -21,6 +21,7 @@ import {
   type CardioSetValues,
   type SetValues,
 } from './SetFields';
+import { t } from '../../i18n/index';
 
 export interface EditSetSheetProps {
   readonly sessionId: ResourceId;
@@ -57,7 +58,11 @@ export function EditSetSheet({
   const shownUnilateral = useLastPresent(set === null ? null : unilateral) ?? false;
 
   return (
-    <Sheet open={set !== null} onClose={onClose} title={`Corregir serie · ${shownName}`}>
+    <Sheet
+      open={set !== null}
+      onClose={onClose}
+      title={t(`Corregir serie · ${shownName}`, `Edit set · ${shownName}`)}
+    >
       {shownSet !== null && (
         <EditSetForm
           sessionId={sessionId}
@@ -147,25 +152,31 @@ function EditSetForm({
           onChange={setValues}
           locale={locale}
           unilateral={unilateral}
-          weightHint="Lo que registraste. Cámbialo y se recalculan tus marcas."
+          weightHint={t(
+            'Lo que registraste. Cámbialo y se recalculan tus marcas.',
+            'What you logged. Change it and your records are recalculated.',
+          )}
         />
       ) : (
         <CardioSetFields
           values={cardioValues}
           onChange={setCardioValues}
           locale={locale}
-          durationHint="Lo que registraste. En minutos, o minutos y segundos: 25:30."
+          durationHint={t(
+            'Lo que registraste. En minutos, o minutos y segundos: 25:30.',
+            'What you logged. In minutes, or minutes and seconds: 25:30.',
+          )}
         />
       )}
 
       {update.isError && (
-        <Notice tone="danger" title="No se pudo corregir">
+        <Notice tone="danger" title={t('No se pudo corregir', 'Couldn’t edit it')}>
           {describeError(update.error)}
         </Notice>
       )}
 
       {remove.isError && (
-        <Notice tone="danger" title="No se pudo borrar">
+        <Notice tone="danger" title={t('No se pudo borrar', 'Couldn’t delete')}>
           {describeError(remove.error)}
         </Notice>
       )}
@@ -177,7 +188,7 @@ function EditSetForm({
         loading={update.isPending}
         disabled={!complete || busy}
       >
-        Guardar cambios
+        {t('Guardar cambios', 'Save changes')}
       </Button>
 
       <div className={styles.remove}>
@@ -188,10 +199,13 @@ function EditSetForm({
           disabled={busy}
           onClick={handleRemove}
         >
-          Borrar serie
+          {t('Borrar serie', 'Delete set')}
         </Button>
         <p className={styles.removeHint}>
-          Desaparece de la sesión y de tu historial, con las marcas que hubiera puesto.
+          {t(
+            'Desaparece de la sesión y de tu historial, con las marcas que hubiera puesto.',
+            'It disappears from the session and your history, along with any records it set.',
+          )}
         </p>
       </div>
     </form>

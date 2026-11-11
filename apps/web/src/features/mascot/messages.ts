@@ -5,7 +5,8 @@ import type {
   TrackedExercise,
   WeightKilograms,
 } from '@gymbuddy/shared';
-import { formatDaysAgo, formatStopwatch, formatWeightLabel, pluralize } from '../../lib/format';
+import { formatDaysAgo, formatStopwatch, formatWeightLabel } from '../../lib/format';
+import { t, plural } from '../../i18n/index';
 
 /** Lo que dice la mascota: una frase corta que se lee de un vistazo y su explicación. */
 export interface MascotMessage {
@@ -45,35 +46,62 @@ export function mascotMessage(state: MascotState, context: MascotMessageContext)
   switch (state.mood) {
     case 'celebrating':
       return {
-        title: '¡Récord!',
-        body: 'Acabas de superarte. Esto se celebra… después de la siguiente serie.',
+        title: t('¡Récord!', 'Record!'),
+        body: t(
+          'Acabas de superarte. Esto se celebra… después de la siguiente serie.',
+          'You just beat yourself. Time to celebrate… after the next set.',
+        ),
       };
     case 'resting':
       return {
-        title: 'Respira, que te lo has ganado',
-        body: `Quedan ${formatStopwatch(state.remainingSeconds)} de descanso. Un trago de agua y a por otra.`,
+        title: t('Respira, que te lo has ganado', 'Breathe, you’ve earned it'),
+        body: t(
+          `Quedan ${formatStopwatch(state.remainingSeconds)} de descanso. Un trago de agua y a por otra.`,
+          `${formatStopwatch(state.remainingSeconds)} of rest left. A sip of water and go again.`,
+        ),
       };
     case 'cheering':
       return state.reason === 'session_started'
         ? {
-            title: '¡Al lío!',
-            body: 'Registra la primera serie cuando quieras, que yo no me muevo de aquí.',
+            title: t('¡Al lío!', 'Let’s go!'),
+            body: t(
+              'Registra la primera serie cuando quieras, que yo no me muevo de aquí.',
+              'Log the first set whenever you like, I’m not going anywhere.',
+            ),
           }
-        : { title: '¿Seguimos?', body: 'Ya has descansado. La barra no se va a levantar sola.' };
+        : {
+            title: t('¿Seguimos?', 'Shall we carry on?'),
+            body: t(
+              'Ya has descansado. La barra no se va a levantar sola.',
+              'You’ve rested. The bar won’t lift itself.',
+            ),
+          };
     case 'sleepy':
       return {
-        title: 'Zzz… ¿sigues por ahí?',
-        body: `${pluralize(state.daysSinceLastSession, 'día', 'días')} sin vernos y me he quedado frito. Con una sesión suave me despiertas.`,
+        title: t('Zzz… ¿sigues por ahí?', 'Zzz… still there?'),
+        body: t(
+          `${plural(state.daysSinceLastSession, ['día', 'días'], ['day', 'days'])} sin vernos y me he quedado frito. Con una sesión suave me despiertas.`,
+          `${plural(state.daysSinceLastSession, ['día', 'días'], ['day', 'days'])} without seeing you and I dozed off. An easy session will wake me up.`,
+        ),
       };
     case 'nudging':
       return nudgingMessage(state, context);
     case 'idle':
       return state.reason === 'never_trained'
         ? {
-            title: '¡Buenas! Aquí estoy',
-            body: 'Cuando registres tu primera sesión, te voy contando cómo vas.',
+            title: t('¡Buenas! Aquí estoy', 'Hi! Here I am'),
+            body: t(
+              'Cuando registres tu primera sesión, te voy contando cómo vas.',
+              'Once you log your first session, I’ll keep you posted on how you’re doing.',
+            ),
           }
-        : { title: 'Todo en orden', body: 'Llevas buen ritmo. Cuando toque, aquí me tienes.' };
+        : {
+            title: t('Todo en orden', 'All good'),
+            body: t(
+              'Llevas buen ritmo. Cuando toque, aquí me tienes.',
+              'You’re keeping a good pace. When it’s time, I’m here.',
+            ),
+          };
   }
 }
 
@@ -83,8 +111,11 @@ function nudgingMessage(state: NudgingState, context: MascotMessageContext): Mas
   switch (state.reason) {
     case 'absence':
       return {
-        title: '¿Hoy toca?',
-        body: `La última fue ${formatDaysAgo(state.daysSinceLastSession)}. Aunque sea algo corto, que cuenta igual.`,
+        title: t('¿Hoy toca?', 'Training today?'),
+        body: t(
+          `La última fue ${formatDaysAgo(state.daysSinceLastSession)}. Aunque sea algo corto, que cuenta igual.`,
+          `Your last one was ${formatDaysAgo(state.daysSinceLastSession)}. Even something short counts.`,
+        ),
       };
     case 'stagnation':
       return stagnationMessage(state.stalledExerciseIds.length, context);
@@ -97,25 +128,34 @@ function stagnationMessage(stalledCount: number, context: MascotMessageContext):
 
   if (only === undefined) {
     return {
-      title: 'Toca subir peso',
-      body: 'Hay ejercicios que llevan unas sesiones igual sin perder repeticiones. Ponles un poco más.',
+      title: t('Toca subir peso', 'Time to add weight'),
+      body: t(
+        'Hay ejercicios que llevan unas sesiones igual sin perder repeticiones. Ponles un poco más.',
+        'Some exercises have stayed the same for a few sessions without losing reps. Add a bit more.',
+      ),
     };
   }
 
   if (stalledCount === 1) {
     return {
-      title: `Toca subir en ${only.name}`,
-      body: `Llevas unas sesiones con el mismo peso sin perder repeticiones. Prueba con ${incrementLabel(only, context.locale)}, que puedes.`,
+      title: t(`Toca subir en ${only.name}`, `Time to go up on ${only.name}`),
+      body: t(
+        `Llevas unas sesiones con el mismo peso sin perder repeticiones. Prueba con ${incrementLabel(only, context.locale)}, que puedes.`,
+        `You’ve done a few sessions at the same weight without losing reps. Try ${incrementLabel(only, context.locale)}, you can do it.`,
+      ),
     };
   }
 
   const mentions = named.map((entry) => `${entry.name} (${incrementLabel(entry, context.locale)})`);
   const unnamed = stalledCount - named.length;
-  if (unnamed > 0) mentions.push(`${String(unnamed)} más`);
+  if (unnamed > 0) mentions.push(t(`${String(unnamed)} más`, `${String(unnamed)} more`));
 
   return {
-    title: 'Toca subir peso',
-    body: `${joinWithAnd(mentions)} te lo están pidiendo: unas sesiones igual y sin perder repeticiones.`,
+    title: t('Toca subir peso', 'Time to add weight'),
+    body: t(
+      `${joinWithAnd(mentions)} te lo están pidiendo: unas sesiones igual y sin perder repeticiones.`,
+      `${joinWithAnd(mentions)} are asking for it: a few sessions the same without losing reps.`,
+    ),
   };
 }
 
@@ -152,5 +192,5 @@ function joinWithAnd(items: readonly string[]): string {
   if (last === undefined) return '';
   if (items.length === 1) return last;
 
-  return `${items.slice(0, -1).join(', ')} y ${last}`;
+  return `${items.slice(0, -1).join(', ')} ${t('y', 'and')} ${last}`;
 }

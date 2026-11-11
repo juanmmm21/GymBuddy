@@ -7,6 +7,7 @@ import {
   saveIphoneTimerEnabled,
 } from '../session/iphone-timer';
 import styles from './IphoneTimerSettings.module.css';
+import { t } from '../../i18n/index';
 
 /**
  * Encender el Temporizador del iPhone y, al hacerlo, cómo crear el Atajo que lo arranca. Los pasos
@@ -19,8 +20,11 @@ export function IphoneTimerSettings() {
   return (
     <div className={styles.body}>
       <Switch
-        label="Temporizador del iPhone"
-        hint="En el descanso sale un botón que lo pone con lo que queda. Suena con la app cerrada y sin cobertura."
+        label={t('Temporizador del iPhone', 'iPhone timer')}
+        hint={t(
+          'En el descanso sale un botón que lo pone con lo que queda. Suena con la app cerrada y sin cobertura.',
+          'During rest a button sets it to the time left. It rings with the app closed and no signal.',
+        )}
         checked={enabled}
         onChange={(next) => {
           setEnabled(next);
@@ -29,20 +33,31 @@ export function IphoneTimerSettings() {
       />
       {enabled && (
         <div className={styles.steps}>
-          <p className={styles.intro}>Hace falta un Atajo, y se crea una sola vez:</p>
+          <p className={styles.intro}>
+            {t(
+              'Hace falta un Atajo, y se crea una sola vez:',
+              'It needs a Shortcut, created just once:',
+            )}
+          </p>
           <ol className={styles.list}>
-            <li>Abre la app Atajos y toca «+».</li>
-            <li>Añade la acción «Iniciar temporizador».</li>
+            <li>{t('Abre la app Atajos y toca «+».', 'Open the Shortcuts app and tap “+”.')}</li>
+            <li>{t('Añade la acción «Iniciar temporizador».', 'Add the “Start Timer” action.')}</li>
             <li>
-              Toca la duración, elige la variable «Entrada del atajo» y deja la unidad en segundos.
+              {t(
+                'Toca la duración, elige la variable «Entrada del atajo» y deja la unidad en segundos.',
+                'Tap the duration, choose the “Shortcut Input” variable and leave the unit in seconds.',
+              )}
             </li>
             <li>
-              Ponle de nombre exactamente <strong>{IPHONE_TIMER_SHORTCUT_NAME}</strong>.
+              {t('Ponle de nombre exactamente', 'Name it exactly')}{' '}
+              <strong>{IPHONE_TIMER_SHORTCUT_NAME}</strong>.
             </li>
           </ol>
           <p className={styles.note}>
-            La primera vez el iPhone pregunta si puede abrir Atajos: di que sí. Para volver a
-            GymBuddy, desliza a la derecha por la barra de abajo.
+            {t(
+              'La primera vez el iPhone pregunta si puede abrir Atajos: di que sí. Para volver a GymBuddy, desliza a la derecha por la barra de abajo.',
+              'The first time, your iPhone asks whether it can open Shortcuts: say yes. To get back to GymBuddy, swipe right along the bottom bar.',
+            )}
           </p>
         </div>
       )}

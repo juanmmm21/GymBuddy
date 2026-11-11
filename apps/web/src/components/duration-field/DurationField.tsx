@@ -18,7 +18,12 @@ export interface DurationFieldProps {
   readonly hint?: string;
 }
 
-const INVALID_MESSAGE = 'Escribe los minutos, por ejemplo 30, o minutos y segundos: 25:30';
+function invalidMessage(): string {
+  return t(
+    'Escribe los minutos, por ejemplo 30, o minutos y segundos: 25:30',
+    'Enter the minutes, e.g. 30, or minutes and seconds: 25:30',
+  );
+}
 
 /**
  * La duración de un cardio, con botones de un minuto. Se teclea en minutos y, si hace falta, con
@@ -70,7 +75,7 @@ export function DurationField({
     }
   };
 
-  const message = invalid ? INVALID_MESSAGE : hint;
+  const message = invalid ? invalidMessage() : hint;
 
   return (
     <div className={styles.field}>

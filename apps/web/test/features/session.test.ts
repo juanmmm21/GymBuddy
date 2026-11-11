@@ -19,7 +19,7 @@ import {
   groupSetsByExercise,
   latestSetCompletedAt,
   summarizeSession,
-  UNKNOWN_EXERCISE_NAME,
+  unknownExerciseName,
 } from '../../src/features/session/summary';
 import { benchPress, customCurl, pushRoutine, squat } from '../fixtures';
 
@@ -71,7 +71,7 @@ describe('groupSetsByExercise', () => {
     const groups = groupSetsByExercise([firstBench], [customCurl]);
 
     expect(groups).toHaveLength(1);
-    expect(groups[0]?.name).toBe(UNKNOWN_EXERCISE_NAME);
+    expect(groups[0]?.name).toBe(unknownExerciseName());
     expect(groups[0]?.unilateral).toBe(false);
   });
 

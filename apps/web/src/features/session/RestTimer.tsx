@@ -5,6 +5,7 @@ import { formatStopwatch } from '../../lib/format';
 import { iphoneTimerShortcutUrl } from './iphone-timer';
 import { restStateAt, restTargetsFor, type RestKind } from './rest';
 import styles from './RestTimer.module.css';
+import { t } from '../../i18n/index';
 
 export interface RestTimerProps {
   /** Momento de la última serie: desde ahí se cuenta el descanso. */
@@ -40,11 +41,16 @@ export function RestTimer({
   const rest = restStateAt(lastSetAt, now, target);
 
   return (
-    <section className={cx(styles.timer, rest.done && styles.timerDone)} aria-label="Descanso">
+    <section
+      className={cx(styles.timer, rest.done && styles.timerDone)}
+      aria-label={t('Descanso', 'Rest')}
+    >
       {companion}
       <div className={styles.head}>
         <span className={styles.label}>
-          {kind === 'exercise' ? 'Cambio de ejercicio' : 'Descanso'}
+          {kind === 'exercise'
+            ? t('Cambio de ejercicio', 'Exercise change')
+            : t('Descanso', 'Rest')}
         </span>
         <span className={styles.value} role="timer">
           {formatStopwatch(rest.remainingSeconds)}
@@ -54,7 +60,7 @@ export function RestTimer({
       <div
         className={styles.track}
         role="progressbar"
-        aria-label="Descanso cumplido"
+        aria-label={t('Descanso cumplido', 'Rest completed')}
         aria-valuemin={0}
         aria-valuemax={target}
         aria-valuenow={Math.min(target, rest.elapsedSeconds)}
@@ -70,19 +76,28 @@ export function RestTimer({
 
       <p className={styles.status}>
         {rest.done
-          ? 'Descanso cumplido: a por la siguiente.'
-          : `De ${formatStopwatch(target)}${kind === 'exercise' ? ' para cambiar de máquina' : ''}`}
+          ? t('Descanso cumplido: a por la siguiente.', 'Rest over: on to the next one.')
+          : kind === 'exercise'
+            ? t(
+                `De ${formatStopwatch(target)} para cambiar de máquina`,
+                `Of ${formatStopwatch(target)} to switch machines`,
+              )
+            : t(`De ${formatStopwatch(target)}`, `Of ${formatStopwatch(target)}`)}
       </p>
 
       {offerIphoneTimer && !rest.done && (
         // Un enlace y no un botón que navegue por código: iOS solo abre otra app desde un toque, y
         // el enlace lleva ya lo que queda, no el objetivo entero, porque se toca tras la serie.
         <a className={styles.iphoneTimer} href={iphoneTimerShortcutUrl(rest.remainingSeconds)}>
-          Temporizador del iPhone · {formatStopwatch(rest.remainingSeconds)}
+          {t('Temporizador del iPhone', 'iPhone timer')} · {formatStopwatch(rest.remainingSeconds)}
         </a>
       )}
 
-      <div className={styles.targets} role="group" aria-label="Descanso objetivo">
+      <div
+        className={styles.targets}
+        role="group"
+        aria-label={t('Descanso objetivo', 'Target rest')}
+      >
         {restTargetsFor(kind).map((candidate) => (
           <button
             key={candidate}

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  TUTORIAL_STEPS,
+  tutorialSteps,
   TUTORIAL_STORAGE_KEY,
   isTutorialVisible,
   loadTutorialSeen,
@@ -22,7 +22,7 @@ function memoryStorage(initial: Record<string, string> = {}): StorageLike & {
 
 describe('pasos del tutorial', () => {
   it('cubre las cuatro pestañas y lo que se hace entrenando, sin ids repetidos', () => {
-    expect(TUTORIAL_STEPS.map((step) => step.id)).toEqual([
+    expect(tutorialSteps().map((step) => step.id)).toEqual([
       'home',
       'session',
       'routines',
@@ -32,7 +32,7 @@ describe('pasos del tutorial', () => {
   });
 
   it('cada paso tiene título y texto', () => {
-    for (const step of TUTORIAL_STEPS) {
+    for (const step of tutorialSteps()) {
       expect(step.title.length).toBeGreaterThan(0);
       expect(step.body.length).toBeGreaterThan(0);
     }

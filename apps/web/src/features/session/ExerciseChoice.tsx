@@ -3,6 +3,7 @@ import { bodyPartLabel } from '../catalog/labels';
 import { ungroupedLabel } from '../exercises/grouping';
 import { ExerciseMedia } from './ExerciseMedia';
 import styles from './ExerciseChoice.module.css';
+import { t } from '../../i18n/index';
 
 export interface ExerciseChoiceProps {
   readonly exercise: TrackedExercise;
@@ -26,14 +27,16 @@ export function ExerciseChoice({ exercise, onChange }: ExerciseChoiceProps) {
       <button
         type="button"
         className={styles.choice}
-        aria-label={`Cambiar ejercicio: ${exercise.name}`}
+        aria-label={t(`Cambiar ejercicio: ${exercise.name}`, `Change exercise: ${exercise.name}`)}
         onClick={onChange}
       >
         <ExerciseMedia exercise={exercise} />
         <span className={styles.text}>
           <span className={styles.name}>{exercise.name}</span>
           <span className={styles.detail}>
-            {exercise.archivedAt === null ? bodyPart : `${bodyPart} · archivado`}
+            {exercise.archivedAt === null
+              ? bodyPart
+              : `${bodyPart} · ${t('archivado', 'archived')}`}
           </span>
         </span>
         <span className={styles.action} aria-hidden="true">

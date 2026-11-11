@@ -6,7 +6,7 @@ import type {
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { MASCOT_MOOD_LABELS } from '../../src/features/mascot/labels';
+import { mascotMoodLabel } from '../../src/features/mascot/labels';
 import { jsonResponse, type FakeFetch } from '../fake-fetch';
 import {
   activeSession,
@@ -79,7 +79,7 @@ describe('la mascota en Hoy', () => {
 
     expect(await screen.findByText('Toca subir en Press de banca')).toBeInTheDocument();
     const card = mascotCard();
-    expect(card.getByRole('img', { name: MASCOT_MOOD_LABELS.nudging })).toBeInTheDocument();
+    expect(card.getByRole('img', { name: mascotMoodLabel('nudging') })).toBeInTheDocument();
     expect(card.getByText(/Prueba con \+2,5 kg/)).toBeInTheDocument();
     // Los nombres salen del listado con archivados, la misma clave que la ficha del ejercicio.
     expect(fake.requests.map((request) => request.path)).toContain(
@@ -115,7 +115,7 @@ describe('la mascota en Hoy', () => {
       },
     });
 
-    expect(await screen.findByRole('img', { name: MASCOT_MOOD_LABELS.sleepy })).toBeInTheDocument();
+    expect(await screen.findByRole('img', { name: mascotMoodLabel('sleepy') })).toBeInTheDocument();
     expect(mascotCard().getByText(/^8 días sin vernos/)).toBeInTheDocument();
   });
 
@@ -158,7 +158,7 @@ describe('la mascota en la sesión', () => {
 
     expect(await screen.findByText('¡Al lío!')).toBeInTheDocument();
     expect(
-      mascotCard().getByRole('img', { name: MASCOT_MOOD_LABELS.cheering }),
+      mascotCard().getByRole('img', { name: mascotMoodLabel('cheering') }),
     ).toBeInTheDocument();
   });
 
@@ -190,7 +190,7 @@ describe('la mascota en la sesión', () => {
     });
 
     expect(
-      await screen.findByRole('img', { name: MASCOT_MOOD_LABELS.resting }),
+      await screen.findByRole('img', { name: mascotMoodLabel('resting') }),
     ).toBeInTheDocument();
     expect(mascotCard().getByText(/Quedan \d:\d\d de descanso/)).toBeInTheDocument();
   });
@@ -233,7 +233,7 @@ describe('la mascota en la sesión', () => {
 
     expect(await screen.findByText('¡Récord!')).toBeInTheDocument();
     expect(
-      mascotCard().getByRole('img', { name: MASCOT_MOOD_LABELS.celebrating }),
+      mascotCard().getByRole('img', { name: mascotMoodLabel('celebrating') }),
     ).toBeInTheDocument();
   });
 });

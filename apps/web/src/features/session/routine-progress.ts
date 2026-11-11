@@ -8,6 +8,7 @@ import {
   type RoutineLineAdjustment,
 } from './routine-adjustments';
 import { latestSet } from './summary';
+import { t } from '../../i18n/index';
 
 /** Una línea de la rutina con las series de la sesión que le han tocado. */
 export interface RoutineLineProgress {
@@ -121,8 +122,14 @@ export function describeNextSet(line: RoutineLineProgress): string {
   const { targetSets } = line.item;
 
   return doneSets < targetSets
-    ? `Rutina: ${reps} · serie ${String(doneSets + 1)} de ${String(targetSets)}`
-    : `Rutina: ${reps} · ya llevas las ${String(targetSets)} series`;
+    ? t(
+        `Rutina: ${reps} · serie ${String(doneSets + 1)} de ${String(targetSets)}`,
+        `Routine: ${reps} · set ${String(doneSets + 1)} of ${String(targetSets)}`,
+      )
+    : t(
+        `Rutina: ${reps} · ya llevas las ${String(targetSets)} series`,
+        `Routine: ${reps} · you’ve done all ${String(targetSets)} sets`,
+      );
 }
 
 function blockIndexFor(
