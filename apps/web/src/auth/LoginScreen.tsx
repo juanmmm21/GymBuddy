@@ -10,7 +10,7 @@ import { Button, Notice, Surface, TextField, type NoticeTone } from '../componen
 import { useInstallGuide } from '../features/install/InstallProvider';
 import { inAppBrowserTitle, recommendedBrowser } from '../features/install/labels';
 import { INSTALL_PATH } from '../features/install/paths';
-import { LanguageSelect } from '../features/settings/LanguageSettings';
+import { LanguageFlags } from '../features/settings/LanguageFlags';
 import { t, useLocale } from '../i18n/index';
 import styles from './LoginScreen.module.css';
 import {
@@ -125,6 +125,9 @@ export function LoginScreen() {
 
   return (
     <main className={styles.screen}>
+      {/* Lo primero, arriba: quien ha caído en un idioma que no entiende no pasaría de aquí. */}
+      <LanguageFlags className={styles.language} />
+
       <div className={styles.brand}>
         <h1 className={styles.title}>GymBuddy</h1>
         <p className={styles.tagline}>
@@ -185,10 +188,6 @@ export function LoginScreen() {
           {t('Cómo instalarla en el móvil', 'How to install it on your phone')}
         </Link>
       )}
-
-      <div className={styles.language}>
-        <LanguageSelect />
-      </div>
     </main>
   );
 }

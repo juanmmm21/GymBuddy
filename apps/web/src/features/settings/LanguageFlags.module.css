@@ -1,0 +1,45 @@
+.group {
+  display: inline-flex;
+  gap: var(--gb-space-xxs);
+  padding: var(--gb-space-xxs);
+  border: var(--gb-size-border-width) solid var(--gb-color-border);
+  border-radius: var(--gb-radius-pill);
+  background: var(--gb-color-surface-sunken);
+}
+
+/* Cada idioma es un objetivo táctil entero: bandera y nombre juntos. */
+.option {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gb-space-sm);
+  min-height: var(--gb-size-touch-target);
+  padding: 0 var(--gb-space-md);
+  border: var(--gb-size-border-width) solid transparent;
+  border-radius: var(--gb-radius-pill);
+  background: transparent;
+  color: var(--gb-color-text-secondary);
+  font-size: var(--gb-type-body-strong-size);
+  font-weight: var(--gb-type-body-strong-weight);
+  line-height: var(--gb-type-body-strong-line);
+  cursor: pointer;
+  transition:
+    background-color var(--gb-duration-fast) var(--gb-ease-standard),
+    color var(--gb-duration-fast) var(--gb-ease-standard);
+}
+
+.active {
+  border-color: var(--gb-color-border-strong);
+  background: var(--gb-color-surface-raised);
+  color: var(--gb-color-text);
+}
+
+.flag {
+  display: block;
+  flex: none;
+  inline-size: 1.5rem;
+  block-size: 1rem;
+  overflow: hidden;
+  border-radius: var(--gb-space-xxs);
+  box-shadow: 0 0 0 1px var(--gb-color-border);
+}
+
