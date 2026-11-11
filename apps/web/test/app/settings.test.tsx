@@ -74,7 +74,7 @@ describe('ajustes', () => {
       path: '/settings',
       session,
       setup: (fake) => {
-        fake.on('GET', '/auth/invitations', () => jsonResponse({ pending: [] }));
+        fake.on('GET', '/auth/invitations', () => jsonResponse({ pending: [], quota: null }));
       },
     });
 

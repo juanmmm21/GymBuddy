@@ -1,6 +1,7 @@
 import {
   formatAccessCode,
   type Invitation,
+  type InvitationQuota,
   type InvitationStatus,
   type Locale,
 } from '@gymbuddy/shared';
@@ -48,6 +49,8 @@ function Invitations({ status }: InvitationsProps) {
   const locale = session?.user.locale ?? 'es';
   const invite = useCreateInvitation();
 
+  const exhausted = status.quota !== null && status.quota.remaining === 0;
+
   const ask = (): void => {
     invite.mutate();
   };
@@ -66,11 +69,16 @@ function Invitations({ status }: InvitationsProps) {
         <Notice
           tone="danger"
           title="No se ha podido crear la invitación"
-          action={
-            <Button variant="secondary" onClick={ask}>
-              Reintentar
-            </Button>
-          }
+          // Con el cupo agotado, reintentar solo repetiría el mismo 429.
+          {...(exhausted
+            ? {}
+            : {
+                action: (
+                  <Button variant="secondary" onClick={ask}>
+                    Reintentar
+                  </Button>
+                ),
+              })}
         >
           {describeError(invite.error)}
         </Notice>
@@ -80,9 +88,12 @@ function Invitations({ status }: InvitationsProps) {
 
       <PendingSummary status={status} locale={locale} />
 
+      {status.quota !== null && <QuotaSummary quota={status.quota} locale={locale} />}
+
       <Button
         size="lg"
         fullWidth
+        disabled={exhausted}
         loading={invite.isPending}
         variant={invite.data === undefined ? 'primary' : 'secondary'}
         onClick={ask}
@@ -152,5 +163,32 @@ function PendingSummary({ status, locale }: PendingSummaryProps) {
         ))}
       </ul>
     </section>
+  );
+}
+
+interface QuotaSummaryProps {
+  readonly quota: InvitationQuota;
+  readonly locale: Locale;
+}
+
+/** Cuántas quedan por crear en la ventana y, si no queda ninguna, cuándo vuelve a haber. */
+function QuotaSummary({ quota, locale }: QuotaSummaryProps) {
+  if (quota.remaining === 0) {
+    return (
+      <Notice tone="warning" title="Has creado todas tus invitaciones">
+        Puedes crear {pluralize(quota.limit, 'invitación', 'invitaciones')} cada{' '}
+        {String(quota.windowDays)} días.
+        {quota.renewsAt !== null &&
+          ` Podrás crear otra el ${formatShortDate(quota.renewsAt, locale)}.`}
+      </Notice>
+    );
+  }
+
+  return (
+    <p className={styles.summary}>
+      Te {quota.remaining === 1 ? 'queda' : 'quedan'}{' '}
+      {pluralize(quota.remaining, 'invitación', 'invitaciones')} de {String(quota.limit)} en estos{' '}
+      {String(quota.windowDays)} días.
+    </p>
   );
 }

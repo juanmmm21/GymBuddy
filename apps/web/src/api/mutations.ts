@@ -514,7 +514,8 @@ export function useCreateInvitation(): UseMutationResult<Invitation, Error, void
 
   return useMutation({
     mutationFn: () => createInvitation(client),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.invitations }),
+    // También al fallar: si el cupo se agotó desde otro dispositivo, la pantalla tiene que verlo.
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.invitations }),
   });
 }
 

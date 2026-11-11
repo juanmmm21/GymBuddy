@@ -14,6 +14,8 @@ export function describeError(error: unknown): string {
         return 'La sesión ha caducado. Entra de nuevo.';
       case 'catalog_unavailable':
         return 'El catálogo de ejercicios no está disponible ahora mismo.';
+      case 'invitation_limit_reached':
+        return 'Ya has creado todas las invitaciones que tocan por ahora.';
       case 'media_too_large':
         return 'El fichero pesa demasiado. Prueba con otro.';
       case 'media_quota_exceeded':

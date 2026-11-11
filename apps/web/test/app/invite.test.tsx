@@ -1,4 +1,4 @@
-import type { Invitation, InvitationStatus } from '@gymbuddy/shared';
+import type { Invitation, InvitationQuota, InvitationStatus } from '@gymbuddy/shared';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -13,11 +13,19 @@ const invitation = (code: string = CODE): Invitation => ({
   expiresAt: '2026-09-19T10:00:00.000Z',
 });
 
-const status = (pending: number): InvitationStatus => ({
+const status = (pending: number, quota: InvitationQuota | null = null): InvitationStatus => ({
   pending: Array.from({ length: pending }, (_unused, index) => ({
     createdAt: `2026-09-${String(index + 10)}T10:00:00.000Z`,
     expiresAt: `2026-09-${String(index + 17)}T10:00:00.000Z`,
   })),
+  quota,
+});
+
+const quota = (remaining: number): InvitationQuota => ({
+  limit: 3,
+  windowDays: 30,
+  remaining,
+  renewsAt: remaining === 0 ? '2026-10-10T10:00:00.000Z' : null,
 });
 
 /** El portapapeles no existe en jsdom: cada test dice si el navegador deja copiar y cómo. */
@@ -164,5 +172,61 @@ describe('invitar a un amigo', () => {
     await user.click(await screen.findByRole('button', { name: 'Copiar el código' }));
 
     expect(await screen.findByText('No se ha podido copiar')).toBeInTheDocument();
+  });
+
+  it('una cuenta normal ve cuántas le quedan', async () => {
+    renderApp({
+      path: '/invite',
+      session,
+      setup: (fake) => {
+        fake.on('GET', '/auth/invitations', () => jsonResponse(status(1, quota(2))));
+      },
+    });
+
+    expect(
+      await screen.findByText(/Te quedan 2 invitaciones de 3 en estos 30 días/),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Crear una invitación' })).toBeEnabled();
+  });
+
+  it('con el cupo agotado no deja pedir otra y dice cuándo podrá', async () => {
+    renderApp({
+      path: '/invite',
+      session,
+      setup: (fake) => {
+        fake.on('GET', '/auth/invitations', () => jsonResponse(status(3, quota(0))));
+      },
+    });
+
+    expect(await screen.findByText('Has creado todas tus invitaciones')).toBeInTheDocument();
+    expect(screen.getByText(/Podrás crear otra el/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Crear una invitación' })).toBeDisabled();
+  });
+
+  it('si el cupo se agota al pedirla, lo explica sin ofrecer reintentar', async () => {
+    const user = userEvent.setup();
+    let exhausted = false;
+
+    renderApp({
+      path: '/invite',
+      session,
+      setup: (fake) => {
+        fake.on('GET', '/auth/invitations', () =>
+          jsonResponse(status(0, quota(exhausted ? 0 : 1))),
+        );
+        fake.on('POST', '/auth/invitations', () => {
+          exhausted = true;
+          return errorResponse('invitation_limit_reached', 429, 'Cupo agotado');
+        });
+      },
+    });
+
+    await user.click(await screen.findByRole('button', { name: 'Crear una invitación' }));
+
+    expect(
+      await screen.findByText('Ya has creado todas las invitaciones que tocan por ahora.'),
+    ).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Crear una invitación' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument();
   });
 });
