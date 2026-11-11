@@ -10,13 +10,14 @@ import { Link } from 'react-router';
 import { useEndSession } from '../../api/mutations';
 import { Button, Notice, Sheet, TextArea } from '../../components/index';
 import { describeError } from '../../lib/errors';
-import { formatVolumeLabel, pluralize } from '../../lib/format';
+import { formatVolumeLabel } from '../../lib/format';
 import { MAX_SESSION_NOTES_LENGTH, normalizeNotes } from '../../lib/notes';
 import { bodyPartPath } from '../catalog/paths';
 import type { FinalCardioOffer } from './final-cardio';
 import { SessionRecordItems } from './SessionRecordItems';
 import { summarizeSession } from './summary';
 import styles from './EndSessionSheet.module.css';
+import { t, plural } from '../../i18n/index';
 
 export interface EndSessionSheetProps {
   readonly session: WorkoutSessionDetail;
@@ -50,7 +51,7 @@ export function EndSessionSheet({
   onEnded,
 }: EndSessionSheetProps) {
   return (
-    <Sheet open={open} onClose={onClose} title="Terminar sesión">
+    <Sheet open={open} onClose={onClose} title={t('Terminar sesión', 'End session')}>
       <EndSessionForm
         session={session}
         records={records}
@@ -108,19 +109,32 @@ function EndSessionForm({
       />
 
       <ul className={styles.totals}>
-        <Total label="Series" value={String(totals.setCount)} />
-        <Total label="Ejercicios" value={String(totals.exerciseCount)} />
-        <Total label="Volumen" value={formatVolumeLabel(totals.volumeGrams, locale)} />
+        <Total label={t('Series', 'Sets')} value={String(totals.setCount)} />
+        <Total label={t('Ejercicios', 'Exercises')} value={String(totals.exerciseCount)} />
+        <Total
+          label={t('Volumen', 'Volume')}
+          value={formatVolumeLabel(totals.volumeGrams, locale)}
+        />
       </ul>
 
       {totals.setCount === 0 && (
-        <Notice title="Sesión sin series">
-          Se cerrará vacía y no contará para tu peso habitual ni para tus marcas.
+        <Notice title={t('Sesión sin series', 'Session with no sets')}>
+          {t(
+            'Se cerrará vacía y no contará para tu peso habitual ni para tus marcas.',
+            'It will close empty and won’t count towards your usual weight or records.',
+          )}
         </Notice>
       )}
 
       {records.length > 0 && (
-        <Notice tone="success" title={pluralize(records.length, 'marca nueva', 'marcas nuevas')}>
+        <Notice
+          tone="success"
+          title={plural(
+            records.length,
+            ['marca nueva', 'marcas nuevas'],
+            ['new record', 'new records'],
+          )}
+        >
           <ul className={styles.records}>
             <SessionRecordItems records={records} exercises={exercises} locale={locale} />
           </ul>
@@ -128,21 +142,24 @@ function EndSessionForm({
       )}
 
       <TextArea
-        label="Notas de la sesión"
+        label={t('Notas de la sesión', 'Session notes')}
         value={notes}
         onChange={setNotes}
         maxLength={MAX_SESSION_NOTES_LENGTH}
-        placeholder="Cómo fue, cómo te encontraste, qué cambiar la próxima vez."
+        placeholder={t(
+          'Cómo fue, cómo te encontraste, qué cambiar la próxima vez.',
+          'How it went, how you felt, what to change next time.',
+        )}
       />
 
       {end.isError && (
-        <Notice tone="danger" title="No se pudo terminar">
+        <Notice tone="danger" title={t('No se pudo terminar', 'Couldn’t end it')}>
           {describeError(end.error)}
         </Notice>
       )}
 
       <Button type="submit" size="lg" fullWidth loading={end.isPending}>
-        Terminar sesión
+        {t('Terminar sesión', 'End session')}
       </Button>
     </form>
   );
@@ -171,10 +188,17 @@ function FinalCardioPrompt({
     case 'no_exercise':
       return (
         <Notice
-          title="¿Rematas con cardio?"
-          action={<Link to={bodyPartPath('cardio')}>Ver cardio en el catálogo</Link>}
+          title={t('¿Rematas con cardio?', 'Finish with cardio?')}
+          action={
+            <Link to={bodyPartPath('cardio')}>
+              {t('Ver cardio en el catálogo', 'See cardio in the catalogue')}
+            </Link>
+          }
         >
-          Es opcional. No sigues ningún ejercicio de cardio: sigue uno y podrás apuntarlo aquí.
+          {t(
+            'Es opcional. No sigues ningún ejercicio de cardio: sigue uno y podrás apuntarlo aquí.',
+            'It’s optional. You don’t track any cardio exercise: track one and you can log it here.',
+          )}
         </Notice>
       );
     case 'exercise': {
@@ -186,32 +210,40 @@ function FinalCardioPrompt({
             onLog(offer.exerciseId);
           }}
         >
-          Apuntar cardio
+          {t('Apuntar cardio', 'Log cardio')}
         </Button>
       );
 
       if (inProgress) {
         return (
-          <Notice title="Tu cardio sigue en marcha" action={log}>
-            Apúntalo con el tiempo que lleva y vuelves aquí a terminar.
+          <Notice
+            title={t('Tu cardio sigue en marcha', 'Your cardio is still running')}
+            action={log}
+          >
+            {t(
+              'Apúntalo con el tiempo que lleva y vuelves aquí a terminar.',
+              'Log it with the time so far and come back here to finish.',
+            )}
           </Notice>
         );
       }
 
       return (
         <Notice
-          title="¿Rematas con cardio?"
+          title={t('¿Rematas con cardio?', 'Finish with cardio?')}
           action={
             <div className={styles.cardioActions}>
               <Button fullWidth onClick={onStart}>
-                Empezar cardio ahora
+                {t('Empezar cardio ahora', 'Start cardio now')}
               </Button>
               {log}
             </div>
           }
         >
-          Es opcional, esté o no en tu rutina. Empiézalo y la sesión no se cerrará mientras dure; si
-          ya lo hiciste, apúntalo con su duración y vuelves aquí a terminar.
+          {t(
+            'Es opcional, esté o no en tu rutina. Empiézalo y la sesión no se cerrará mientras dure; si ya lo hiciste, apúntalo con su duración y vuelves aquí a terminar.',
+            'It’s optional, whether or not it’s in your routine. Start it and the session won’t close while it runs; if you already did it, log it with its duration and come back here to finish.',
+          )}
         </Notice>
       );
     }

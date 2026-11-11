@@ -1,7 +1,7 @@
 import type { MascotState } from '@gymbuddy/shared';
 import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { MASCOT_MOOD_LABELS } from '../../src/features/mascot/labels';
+import { mascotMoodLabel } from '../../src/features/mascot/labels';
 import { Mascot } from '../../src/features/mascot/Mascot';
 import { mascotMessage } from '../../src/features/mascot/messages';
 import { MASCOT_POSES } from '../../src/features/mascot/poses';
@@ -29,7 +29,7 @@ describe('Mascot', () => {
 
     const card = screen.getByRole('region', { name: 'Tu compañero' });
     expect(
-      within(card).getByRole('img', { name: MASCOT_MOOD_LABELS[state.mood] }),
+      within(card).getByRole('img', { name: mascotMoodLabel(state.mood) }),
     ).toBeInTheDocument();
     expect(within(card).getByText(message.title)).toBeInTheDocument();
     expect(within(card).getByText(message.body)).toBeInTheDocument();
@@ -59,7 +59,7 @@ describe('Mascot', () => {
       />,
     );
     expect(container.querySelector('g[transform^="rotate(0 "]')).not.toBeNull();
-    expect(screen.getByRole('img', { name: MASCOT_MOOD_LABELS.idle })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: mascotMoodLabel('idle') })).toBeInTheDocument();
   });
 
   it('el aviso de récord lleva dentro lo que se le pase, como las marcas batidas', () => {

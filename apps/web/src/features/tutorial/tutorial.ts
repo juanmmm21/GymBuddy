@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { t } from '../../i18n/index';
 import type { StorageLike } from '../../lib/storage';
 
 /**
@@ -20,38 +21,55 @@ export interface TutorialStep {
 }
 
 /** Las cuatro pestañas más lo que se hace entrenando, en el orden en que se usan. */
-export const TUTORIAL_STEPS: readonly TutorialStep[] = [
-  {
-    id: 'home',
-    title: 'Hoy',
-    body: 'Tu día de un vistazo: la sesión en curso, la semana entera dibujada sobre una silueta y cómo vienes entrenando. Se empieza a entrenar desde aquí.',
-    icon: 'home',
-  },
-  {
-    id: 'session',
-    title: 'Registrar una serie',
-    body: 'Con la sesión abierta, el botón azul del centro te lleva a ella desde cualquier pantalla. El peso viene puesto de tu última serie y el descanso arranca solo al apuntarla.',
-    icon: 'session',
-  },
-  {
-    id: 'routines',
-    title: 'Rutinas',
-    body: 'Arma tu guion de ejercicios y series, y la sesión te va llevando línea a línea. Si hoy la máquina está ocupada, cambias el ejercicio solo para hoy sin tocar la rutina.',
-    icon: 'routines',
-  },
-  {
-    id: 'catalog',
-    title: 'Catálogo',
-    body: 'Más de mil ejercicios con su animación, filtrados por parte del cuerpo, músculo o máquina. Lo que no esté, lo creas tú y le guardas una foto o un vídeo de tu técnica.',
-    icon: 'catalog',
-  },
-  {
-    id: 'settings',
-    title: 'Ajustes y sin cobertura',
-    body: 'El descanso, el aviso de cuando se cumple y tu copia de seguridad están en Ajustes. Y si en el gimnasio no hay cobertura, sigue apuntando: se manda solo en cuanto vuelva.',
-    icon: 'settings',
-  },
-];
+export function tutorialSteps(): readonly TutorialStep[] {
+  return [
+    {
+      id: 'home',
+      title: t('Hoy', 'Today'),
+      body: t(
+        'Tu día de un vistazo: la sesión en curso, la semana entera dibujada sobre una silueta y cómo vienes entrenando. Se empieza a entrenar desde aquí.',
+        'Your day at a glance: the session in progress, the whole week drawn on a silhouette and how your training is going. You start training from here.',
+      ),
+      icon: 'home',
+    },
+    {
+      id: 'session',
+      title: t('Registrar una serie', 'Log a set'),
+      body: t(
+        'Con la sesión abierta, el botón azul del centro te lleva a ella desde cualquier pantalla. El peso viene puesto de tu última serie y el descanso arranca solo al apuntarla.',
+        'With a session open, the blue button in the middle takes you to it from any screen. The weight is pre-filled from your last set and the rest timer starts on its own when you log it.',
+      ),
+      icon: 'session',
+    },
+    {
+      id: 'routines',
+      title: t('Rutinas', 'Routines'),
+      body: t(
+        'Arma tu guion de ejercicios y series, y la sesión te va llevando línea a línea. Si hoy la máquina está ocupada, cambias el ejercicio solo para hoy sin tocar la rutina.',
+        'Build your plan of exercises and sets, and the session walks you through it line by line. If the machine is taken today, swap the exercise for today only without touching the routine.',
+      ),
+      icon: 'routines',
+    },
+    {
+      id: 'catalog',
+      title: t('Catálogo', 'Catalogue'),
+      body: t(
+        'Más de mil ejercicios con su animación, filtrados por parte del cuerpo, músculo o máquina. Lo que no esté, lo creas tú y le guardas una foto o un vídeo de tu técnica.',
+        'Over a thousand exercises with animations, filtered by body part, muscle or machine. Whatever isn’t there, you create yourself and save a photo or video of your technique.',
+      ),
+      icon: 'catalog',
+    },
+    {
+      id: 'settings',
+      title: t('Ajustes y sin cobertura', 'Settings and no signal'),
+      body: t(
+        'El descanso, el aviso de cuando se cumple y tu copia de seguridad están en Ajustes. Y si en el gimnasio no hay cobertura, sigue apuntando: se manda solo en cuanto vuelva.',
+        'Rest, the notice when it’s over and your backup are in Settings. And if there’s no signal at the gym, keep logging: it’s sent on its own as soon as it’s back.',
+      ),
+      icon: 'settings',
+    },
+  ];
+}
 
 /**
  * Cómo está el tutorial en esta visita. `auto` es lo normal —lo decide la preferencia del

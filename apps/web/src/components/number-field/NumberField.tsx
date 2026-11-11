@@ -37,7 +37,10 @@ export function NumberField({
   const [invalid, setInvalid] = useState(false);
 
   const shownValue = draft ?? (value === null ? '' : String(value));
-  const invalidMessage = `Escribe un número entre ${String(min)} y ${String(max)}`;
+  const invalidMessage = t(
+    `Escribe un número entre ${String(min)} y ${String(max)}`,
+    `Enter a number between ${String(min)} and ${String(max)}`,
+  );
 
   const commit = (): void => {
     const text = (draft ?? shownValue).trim();

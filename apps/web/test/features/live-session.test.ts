@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { summarizeLiveSession } from '../../src/features/home/live-session';
-import { UNKNOWN_EXERCISE_NAME } from '../../src/features/session/summary';
+import { unknownExerciseName } from '../../src/features/session/summary';
 import { activeSession, benchPress, squat } from '../fixtures';
 
 describe('summarizeLiveSession', () => {
@@ -46,7 +46,7 @@ describe('summarizeLiveSession', () => {
   it('sin series no hay última, y un ejercicio desconocido no rompe la tarjeta', () => {
     expect(summarizeLiveSession({ ...activeSession, sets: [] }, []).lastSet).toBeNull();
     expect(summarizeLiveSession(activeSession, []).lastSet).toMatchObject({
-      exerciseName: UNKNOWN_EXERCISE_NAME,
+      exerciseName: unknownExerciseName(),
       equipment: null,
       unilateral: false,
     });

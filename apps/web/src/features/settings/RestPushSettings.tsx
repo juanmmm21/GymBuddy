@@ -10,10 +10,7 @@ import {
   usePushConfig,
   usePushNoticesEnabled,
 } from './use-push-notices';
-
-const SWITCH_LABEL = 'Aviso al acabar el descanso';
-const SWITCH_HINT =
-  'Una notificación aunque hayas cerrado la app. Necesita cobertura al empezar y al acabar el descanso.';
+import { t } from '../../i18n/index';
 
 /**
  * Encender en este dispositivo el aviso de fin de descanso por push (ADR 0009). Es del
@@ -39,8 +36,10 @@ export function RestPushSettings() {
       <div className={styles.body}>
         {/* Sin enlace propio: «Instalar la app» ya sale en esta misma pantalla, en la cuenta. */}
         <p className={styles.note}>
-          En el iPhone el aviso de fin de descanso solo llega con la app en la pantalla de inicio:
-          instálala desde «Instalar la app», más abajo.
+          {t(
+            'En el iPhone el aviso de fin de descanso solo llega con la app en la pantalla de inicio: instálala desde «Instalar la app», más abajo.',
+            'On iPhone the end-of-rest notice only arrives with the app on your home screen: install it from “Install the app”, below.',
+          )}
         </p>
       </div>
     );
@@ -49,7 +48,12 @@ export function RestPushSettings() {
   if (availability === 'unsupported') {
     return (
       <div className={styles.body}>
-        <p className={styles.note}>Este navegador no puede recibir el aviso de fin de descanso.</p>
+        <p className={styles.note}>
+          {t(
+            'Este navegador no puede recibir el aviso de fin de descanso.',
+            'This browser can’t receive the end-of-rest notice.',
+          )}
+        </p>
       </div>
     );
   }
@@ -57,8 +61,11 @@ export function RestPushSettings() {
   if (availability === 'blocked') {
     return (
       <div className={styles.body}>
-        <Notice tone="warning" title="Notificaciones bloqueadas">
-          Diste que no al permiso. Actívalas para GymBuddy en los ajustes del móvil y vuelve aquí.
+        <Notice tone="warning" title={t('Notificaciones bloqueadas', 'Notifications blocked')}>
+          {t(
+            'Diste que no al permiso. Actívalas para GymBuddy en los ajustes del móvil y vuelve aquí.',
+            'You denied the permission. Enable them for GymBuddy in your phone’s settings and come back here.',
+          )}
         </Notice>
       </div>
     );
@@ -71,8 +78,11 @@ export function RestPushSettings() {
   return (
     <div className={styles.body}>
       <Switch
-        label={SWITCH_LABEL}
-        hint={SWITCH_HINT}
+        label={t('Aviso al acabar el descanso', 'Notice when rest ends')}
+        hint={t(
+          'Una notificación aunque hayas cerrado la app. Necesita cobertura al empezar y al acabar el descanso.',
+          'A notification even if you’ve closed the app. Needs signal when the rest starts and ends.',
+        )}
         checked={enabled.data ?? false}
         disabled={publicKey === null || enabled.data === undefined || pending}
         onChange={(next) => {
@@ -88,16 +98,26 @@ export function RestPushSettings() {
         }}
       />
       {config.data?.publicKey === null && (
-        <p className={styles.note}>El servidor todavía no tiene las claves para mandar avisos.</p>
+        <p className={styles.note}>
+          {t(
+            'El servidor todavía no tiene las claves para mandar avisos.',
+            'The server doesn’t have the keys to send notices yet.',
+          )}
+        </p>
       )}
       {enabled.data === true && (
         <p className={styles.note}>
-          Encendido en este dispositivo: al registrar una serie, te avisa cuando se cumple el
-          descanso.
+          {t(
+            'Encendido en este dispositivo: al registrar una serie, te avisa cuando se cumple el descanso.',
+            'On for this device: after you log a set, it notifies you when the rest is over.',
+          )}
         </p>
       )}
       {failure !== null && (
-        <Notice tone="danger" title="No se pudo cambiar el aviso">
+        <Notice
+          tone="danger"
+          title={t('No se pudo cambiar el aviso', 'Couldn’t change the notice')}
+        >
           {describeError(failure)}
         </Notice>
       )}

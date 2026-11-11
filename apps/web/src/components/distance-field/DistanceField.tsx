@@ -3,6 +3,7 @@ import { useId, useState, type ChangeEvent, type KeyboardEvent } from 'react';
 import { cx } from '../../lib/cx';
 import styles from '../number-field/NumberField.module.css';
 import { formatDistanceForInput, parseDistanceInput } from './distance-math';
+import { t } from '../../i18n/index';
 
 export interface DistanceFieldProps {
   readonly label: string;
@@ -15,7 +16,9 @@ export interface DistanceFieldProps {
   readonly hint?: string;
 }
 
-const INVALID_MESSAGE = 'Escribe los kilómetros, por ejemplo 5,25';
+function invalidMessage(): string {
+  return t('Escribe los kilómetros, por ejemplo 5,25', 'Enter the kilometres, e.g. 5.25');
+}
 
 /**
  * La distancia de un cardio, en kilómetros. Es opcional —una elíptica no la marca—, así que vaciar
@@ -62,7 +65,7 @@ export function DistanceField({
     }
   };
 
-  const message = invalid ? INVALID_MESSAGE : hint;
+  const message = invalid ? invalidMessage() : hint;
 
   return (
     <div className={styles.field}>

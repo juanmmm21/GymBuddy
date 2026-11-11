@@ -33,6 +33,7 @@ import {
   type CardioSetValues,
   type SetValues,
 } from './SetFields';
+import { t } from '../../i18n/index';
 
 export interface LogSetSheetProps {
   readonly sessionId: ResourceId;
@@ -79,10 +80,15 @@ export function LogSetSheet({
   const initial = exercises.find((exercise) => exercise.id === defaultExerciseId) ?? exercises[0];
 
   return (
-    <Sheet open={open} onClose={onClose} title="Registrar serie">
+    <Sheet open={open} onClose={onClose} title={t('Registrar serie', 'Log set')}>
       {initial === undefined ? (
-        <Notice title="Todavía no sigues ningún ejercicio">
-          Sigue uno desde el catálogo y podrás registrar tus series aquí.
+        <Notice
+          title={t('Todavía no sigues ningún ejercicio', 'You’re not tracking any exercise yet')}
+        >
+          {t(
+            'Sigue uno desde el catálogo y podrás registrar tus series aquí.',
+            'Track one from the catalogue and you can log your sets here.',
+          )}
         </Notice>
       ) : (
         <LogSetForm
@@ -250,19 +256,22 @@ function LogSetForm({
             durationHint={
               cardioStartedAt === null
                 ? describeCardioProposal(cardioProposal.source)
-                : 'El tiempo desde que empezaste el cardio. Cámbialo si paraste antes.'
+                : t(
+                    'El tiempo desde que empezaste el cardio. Cámbialo si paraste antes.',
+                    'The time since you started cardio. Change it if you stopped earlier.',
+                  )
             }
           />
         )}
 
         {log.isError && (
-          <Notice tone="danger" title="No se pudo registrar">
+          <Notice tone="danger" title={t('No se pudo registrar', 'Couldn’t log it')}>
             {describeError(log.error)}
           </Notice>
         )}
 
         <Button type="submit" size="lg" fullWidth loading={log.isPending} disabled={!complete}>
-          Registrar serie
+          {t('Registrar serie', 'Log set')}
         </Button>
       </form>
     </>

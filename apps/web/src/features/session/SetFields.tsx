@@ -8,8 +8,9 @@ import {
   type SelectOption,
 } from '../../components/index';
 import { cx } from '../../lib/cx';
-import { formatRpe, PER_ARM } from '../../lib/format';
+import { formatRpe, perArm } from '../../lib/format';
 import styles from './SetFields.module.css';
+import { t } from '../../i18n/index';
 
 /** Los valores de RPE que se anotan de verdad: por debajo de 6 la serie no dice nada. */
 const RPE_OPTIONS: readonly number[] = [6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10];
@@ -79,7 +80,7 @@ export function SetFields({
   return (
     <>
       <WeightField
-        label={unilateral ? `Peso ${PER_ARM}` : 'Peso'}
+        label={unilateral ? t(`Peso ${perArm()}`, `Weight ${perArm()}`) : t('Peso', 'Weight')}
         valueGrams={values.weightGrams}
         onChange={(weightGrams) => {
           onChange({ ...values, weightGrams });
@@ -89,7 +90,7 @@ export function SetFields({
       />
 
       <NumberField
-        label="Repeticiones"
+        label={t('Repeticiones', 'Reps')}
         value={values.reps}
         onChange={(reps) => {
           onChange({ ...values, reps });
@@ -117,7 +118,7 @@ export function CardioSetFields({ values, onChange, locale, durationHint }: Card
   return (
     <>
       <DurationField
-        label="Duración"
+        label={t('Duración', 'Duration')}
         valueSeconds={values.durationSeconds}
         onChange={(durationSeconds) => {
           onChange({ ...values, durationSeconds });
@@ -126,13 +127,16 @@ export function CardioSetFields({ values, onChange, locale, durationHint }: Card
       />
 
       <DistanceField
-        label="Distancia (km)"
+        label={t('Distancia (km)', 'Distance (km)')}
         valueMeters={values.distanceMeters}
         onChange={(distanceMeters) => {
           onChange({ ...values, distanceMeters });
         }}
         locale={locale}
-        hint="Opcional. Déjala vacía si la máquina no la marca."
+        hint={t(
+          'Opcional. Déjala vacía si la máquina no la marca.',
+          'Optional. Leave it empty if the machine doesn’t show it.',
+        )}
       />
 
       <EffortFields values={values} onChange={onChange} locale={locale} />
@@ -169,7 +173,7 @@ function EffortFields<T extends EffortValues>({ values, onChange, locale }: Effo
           onChange({ ...values, isWarmup: !values.isWarmup });
         }}
       >
-        Calentamiento
+        {t('Calentamiento', 'Warm-up')}
       </button>
     </div>
   );
@@ -177,7 +181,7 @@ function EffortFields<T extends EffortValues>({ values, onChange, locale }: Effo
 
 function rpeOptions(locale: Locale): SelectOption[] {
   return [
-    { value: NO_RPE, label: 'Sin anotar' },
+    { value: NO_RPE, label: t('Sin anotar', 'Not noted') },
     ...RPE_OPTIONS.map((option) => ({ value: String(option), label: formatRpe(option, locale) })),
   ];
 }

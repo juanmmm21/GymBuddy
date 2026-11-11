@@ -33,7 +33,7 @@ export function CatalogFilterBar({ filters, bodyPart, onChange }: CatalogFilterB
   const showMuscle = offersMuscleFilter(muscleScope);
 
   return (
-    <section className={styles.bar} aria-label="Filtros del catálogo">
+    <section className={styles.bar} aria-label={t('Filtros del catálogo', 'Catalogue filters')}>
       <div className={styles.fields}>
         {offersBodyPart && (
           <Select

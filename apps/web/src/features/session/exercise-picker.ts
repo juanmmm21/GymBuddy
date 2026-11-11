@@ -3,12 +3,13 @@ import {
   formatCardioDuration,
   formatDistanceLabel,
   formatWeightInUnit,
-  PER_ARM,
+  perArm,
 } from '../../lib/format';
 import { bodyPartLabel, BODY_PART_ORDER } from '../catalog/labels';
 import { groupExercisesByBodyPart, ungroupedLabel } from '../exercises/grouping';
 import type { RoutineProgress } from './routine-progress';
 import { proposeCardioSet, proposeSet, setKindFor } from './set-proposal';
+import { t } from '../../i18n/index';
 
 /** Cómo va un ejercicio de la rutina en la sesión: el que toca, uno ya terminado o ninguno de los dos. */
 export type ExercisePickerRowStatus = 'current' | 'done' | 'pending';
@@ -43,7 +44,9 @@ export interface ExercisePickerContext {
 
 export const NO_PICKER_FILTER: ExercisePickerFilter = { text: '', bodyPart: null };
 
-export const ROUTINE_SECTION_TITLE = 'En la rutina';
+export function routineSectionTitle(): string {
+  return t('En la rutina', 'In the routine');
+}
 
 /**
  * Las secciones de la lista para elegir ejercicio al registrar (opción A que eligió Juan el
@@ -97,7 +100,7 @@ function routineSection(
     rows.push({ exercise, status });
   }
 
-  return { key: 'routine', title: ROUTINE_SECTION_TITLE, rows };
+  return { key: 'routine', title: routineSectionTitle(), rows };
 }
 
 function sameBodyPartSection(
@@ -117,7 +120,7 @@ function sameBodyPartSection(
 }
 
 export function sameBodyPartTitle(bodyPart: BodyPart): string {
-  return `Mismo grupo: ${bodyPartLabel(bodyPart)}`;
+  return t(`Mismo grupo: ${bodyPartLabel(bodyPart)}`, `Same group: ${bodyPartLabel(bodyPart)}`);
 }
 
 /**
@@ -176,7 +179,9 @@ export function pickerRowDetail(
   return parts.join(' · ');
 }
 
-export const NO_SETS_LABEL = 'Sin series';
+export function noSetsLabel(): string {
+  return t('Sin series', 'No sets');
+}
 
 function lastSetLabel(
   exercise: TrackedExercise,
@@ -185,7 +190,7 @@ function lastSetLabel(
 ): string {
   if (setKindFor(exercise) === 'cardio') {
     const { values, source } = proposeCardioSet(exercise, sessionSets);
-    if (source === 'none' || values.durationSeconds === null) return NO_SETS_LABEL;
+    if (source === 'none' || values.durationSeconds === null) return noSetsLabel();
     const duration = formatCardioDuration(values.durationSeconds);
     return values.distanceMeters === null
       ? duration
@@ -194,10 +199,10 @@ function lastSetLabel(
 
   const { values, source } = proposeSet(exercise, sessionSets);
   if (source === 'none' || values.weightGrams === null || values.reps === null) {
-    return NO_SETS_LABEL;
+    return noSetsLabel();
   }
   const weight = formatWeightInUnit(values.weightGrams, 'kg', locale);
-  return `${exercise.unilateral ? `${weight} ${PER_ARM}` : weight} × ${String(values.reps)}`;
+  return `${exercise.unilateral ? `${weight} ${perArm()}` : weight} × ${String(values.reps)}`;
 }
 
 /**

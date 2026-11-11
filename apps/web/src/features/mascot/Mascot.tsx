@@ -1,7 +1,7 @@
 import type { MascotMood, MascotState } from '@gymbuddy/shared';
 import type { ReactNode } from 'react';
 import { cx } from '../../lib/cx';
-import { MASCOT_MOOD_LABELS } from './labels';
+import { mascotMoodLabel } from './labels';
 import type { MascotMessage } from './messages';
 import {
   MASCOT_HEAD,
@@ -13,6 +13,7 @@ import {
   type MascotAccentTone,
 } from './poses';
 import styles from './Mascot.module.css';
+import { t } from '../../i18n/index';
 
 /**
  * Cómo se presenta: una línea de consejo (Hoy y el arranque de la sesión), el aviso rojo de un
@@ -35,7 +36,10 @@ export interface MascotProps {
  */
 export function Mascot({ state, message, layout, children }: MascotProps) {
   return (
-    <section className={cx(styles.mascot, LAYOUT_CLASS[layout])} aria-label="Tu compañero">
+    <section
+      className={cx(styles.mascot, LAYOUT_CLASS[layout])}
+      aria-label={t('Tu compañero', 'Your buddy')}
+    >
       <MascotFigure state={state} />
       <div className={styles.speech}>
         <p className={styles.title}>{message.title}</p>
@@ -61,7 +65,7 @@ function MascotFigure({ state }: { readonly state: MascotState }) {
       className={styles.figure}
       viewBox={`0 0 ${String(MASCOT_VIEWBOX.width)} ${String(MASCOT_VIEWBOX.height)}`}
       role="img"
-      aria-label={MASCOT_MOOD_LABELS[state.mood]}
+      aria-label={mascotMoodLabel(state.mood)}
     >
       {/* Con `key` la pose se vuelve a montar al cambiar de estado y su entrada se repite. */}
       <g key={state.mood} className={styles.pose}>

@@ -19,13 +19,7 @@ import { Badge, Button, Notice, PlateStack, Surface } from '../../components/ind
 import { useNow } from '../../hooks/use-now';
 import { cx } from '../../lib/cx';
 import { describeError } from '../../lib/errors';
-import {
-  formatRpe,
-  formatStopwatch,
-  formatTime,
-  formatSetValueLabel,
-  pluralize,
-} from '../../lib/format';
+import { formatRpe, formatStopwatch, formatTime, formatSetValueLabel } from '../../lib/format';
 import { newResourceId, parseResourceId } from '../../lib/ids';
 import { elapsedSecondsSince } from '../../lib/time';
 import { useOpenSession } from '../../offline/use-open-session';
@@ -64,9 +58,11 @@ import {
 import { groupSetsByExercise, latestSetCompletedAt, type SessionExerciseGroup } from './summary';
 import styles from './SessionScreen.module.css';
 import { drawsPlates } from '../exercises/equipment';
-import { useLocale } from '../../i18n/index';
+import { plural, t, useLocale } from '../../i18n/index';
 
-const BACK_TO_HOME: BackLink = { to: '/', label: 'Hoy' };
+function backToHome(): BackLink {
+  return { to: '/', label: t('Hoy', 'Today') };
+}
 
 /** Con qué se abre la hoja de registro. */
 interface LogSheetTarget {
@@ -120,7 +116,7 @@ export function SessionScreen() {
 
   return (
     <>
-      <ScreenHeader title="Sesión" backTo={BACK_TO_HOME} />
+      <ScreenHeader title={t('Sesión', 'Session')} backTo={backToHome()} />
       <AsyncContent query={active}>
         {(data) => {
           // En una constante y no en `data.session`: el estrechamiento a "no es null"
@@ -231,30 +227,44 @@ function StartSessionPanel({ routineId, routine }: StartSessionPanelProps) {
   return (
     <div className={styles.stack}>
       {routine === null ? (
-        <Notice title="No tienes ninguna sesión abierta">
-          Empieza una y ve registrando las series según las haces.
+        <Notice title={t('No tienes ninguna sesión abierta', 'You don’t have an open session')}>
+          {t(
+            'Empieza una y ve registrando las series según las haces.',
+            'Start one and log your sets as you do them.',
+          )}
         </Notice>
       ) : (
-        <Notice title={`Vas a empezar «${routine.name}»`}>
-          {describeRoutineSize(routine.items)}. Irás viendo qué ejercicio toca y cuántas series
-          llevas de cada uno.
+        <Notice
+          title={t(`Vas a empezar «${routine.name}»`, `You’re about to start “${routine.name}”`)}
+        >
+          {describeRoutineSize(routine.items)}.{' '}
+          {t(
+            'Irás viendo qué ejercicio toca y cuántas series llevas de cada uno.',
+            'You’ll see which exercise is next and how many sets you’ve done of each.',
+          )}
         </Notice>
       )}
 
       {routineId !== null && routine === null && (
-        <Notice tone="warning" title="No encontramos esa rutina">
-          No está entre tus rutinas. Puedes empezar igualmente y registrar lo que hagas.
+        <Notice
+          tone="warning"
+          title={t('No encontramos esa rutina', 'We couldn’t find that routine')}
+        >
+          {t(
+            'No está entre tus rutinas. Puedes empezar igualmente y registrar lo que hagas.',
+            'It isn’t among your routines. You can start anyway and log what you do.',
+          )}
         </Notice>
       )}
 
       {start.isError && (
-        <Notice tone="danger" title="No se pudo empezar">
+        <Notice tone="danger" title={t('No se pudo empezar', 'Couldn’t start')}>
           {describeError(start.error)}
         </Notice>
       )}
 
       <Button size="lg" fullWidth loading={start.isPending} onClick={handleStart}>
-        Empezar a entrenar
+        {t('Empezar a entrenar', 'Start training')}
       </Button>
     </div>
   );
@@ -392,7 +402,11 @@ function ActiveSession({
           // aparecer de golpe bajo la primera, que es cuando se mira este aviso.
           <div key={bestRecords.length} className={styles.records}>
             <p className={styles.recordsCount}>
-              {pluralize(bestRecords.length, 'marca nueva', 'marcas nuevas')}
+              {plural(
+                bestRecords.length,
+                ['marca nueva', 'marcas nuevas'],
+                ['new record', 'new records'],
+              )}
             </p>
             <ul className={styles.recordsList}>
               <SessionRecordItems records={bestRecords} exercises={exercises} locale={locale} />
@@ -441,7 +455,7 @@ function ActiveSession({
           openLog(logExerciseIdFor(progress, session.sets, requestedExerciseId));
         }}
       >
-        Registrar serie
+        {t('Registrar serie', 'Log set')}
       </Button>
 
       {cardioStartedAt === null && cardioExerciseId !== null && (
@@ -452,12 +466,12 @@ function ActiveSession({
           loading={startCardio.isPending}
           onClick={handleStartCardio}
         >
-          Empezar cardio
+          {t('Empezar cardio', 'Start cardio')}
         </Button>
       )}
 
       {startCardio.isError && (
-        <Notice tone="danger" title="No se pudo empezar el cardio">
+        <Notice tone="danger" title={t('No se pudo empezar el cardio', 'Couldn’t start cardio')}>
           {describeError(startCardio.error)}
         </Notice>
       )}
@@ -466,9 +480,17 @@ function ActiveSession({
         <AsyncContent query={routines} quietRefetchError>
           {() =>
             routine === null || progress === null ? (
-              <Notice tone="warning" title="No encontramos la rutina de esta sesión">
-                No está entre tus rutinas: quizá se borró desde otro móvil. La sesión sigue abierta:
-                registra lo que hagas como siempre.
+              <Notice
+                tone="warning"
+                title={t(
+                  'No encontramos la rutina de esta sesión',
+                  'We couldn’t find this session’s routine',
+                )}
+              >
+                {t(
+                  'No está entre tus rutinas: quizá se borró desde otro móvil. La sesión sigue abierta: registra lo que hagas como siempre.',
+                  'It isn’t among your routines: it may have been deleted from another phone. The session is still open: log what you do as usual.',
+                )}
               </Notice>
             ) : (
               <RoutineGuide
@@ -486,8 +508,13 @@ function ActiveSession({
       )}
 
       {groups.length === 0 ? (
-        <Notice title="Todavía no has registrado ninguna serie">
-          Registra la primera y aquí irá apareciendo lo que llevas hecho.
+        <Notice
+          title={t('Todavía no has registrado ninguna serie', 'You haven’t logged any sets yet')}
+        >
+          {t(
+            'Registra la primera y aquí irá apareciendo lo que llevas hecho.',
+            'Log the first one and what you’ve done will appear here.',
+          )}
         </Notice>
       ) : (
         <div className={styles.groups}>
@@ -515,7 +542,7 @@ function ActiveSession({
       )}
 
       <Button variant="secondary" size="lg" fullWidth onClick={onOpenEnd}>
-        Terminar sesión
+        {t('Terminar sesión', 'End session')}
       </Button>
 
       <LogSetSheet
@@ -594,8 +621,10 @@ function SessionClock({ session, locale }: SessionClockProps) {
   return (
     <Surface className={styles.clock}>
       <div className={styles.clockHead}>
-        <Badge tone="accent">En curso</Badge>
-        <span className={styles.clockStart}>Desde las {formatTime(session.startedAt, locale)}</span>
+        <Badge tone="accent">{t('En curso', 'In progress')}</Badge>
+        <span className={styles.clockStart}>
+          {t('Desde las', 'Since')} {formatTime(session.startedAt, locale)}
+        </span>
       </div>
       <p className={styles.clockValue} role="timer">
         {formatStopwatch(elapsed)}
@@ -643,8 +672,8 @@ function SetRow({
         {plates && set.kind === 'strength' && <PlateStack weight={set.weight} locale={locale} />}
         <span className={styles.setValue}>{formatSetValueLabel(set, locale, unilateral)}</span>
         <span className={styles.setMeta}>
-          {pending && <Badge tone="warning">Sin sincronizar</Badge>}
-          {set.isWarmup && <Badge>Calentamiento</Badge>}
+          {pending && <Badge tone="warning">{t('Sin sincronizar', 'Not synced')}</Badge>}
+          {set.isWarmup && <Badge>{t('Calentamiento', 'Warm-up')}</Badge>}
           {set.rpe !== null && <span>{formatRpe(set.rpe, locale)}</span>}
         </span>
       </button>

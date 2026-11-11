@@ -5,6 +5,7 @@ import {
   type SetEntry,
   type TrackedExercise,
 } from '@gymbuddy/shared';
+import { t } from '../../i18n/index';
 
 export interface SessionExerciseGroup {
   readonly trackedExerciseId: ResourceId;
@@ -21,7 +22,9 @@ export interface SessionExerciseGroup {
  * pide también los archivados—, pero una serie escrita desde otro móvil mientras la lista
  * está en caché llegaría antes que su ficha, y perderla de la pantalla sería peor que esto.
  */
-export const UNKNOWN_EXERCISE_NAME = 'Ejercicio';
+export function unknownExerciseName(): string {
+  return t('Ejercicio', 'Exercise');
+}
 
 /**
  * Las series de la sesión agrupadas por ejercicio, en el orden en que se tocó cada uno y
@@ -48,7 +51,7 @@ export function groupSetsByExercise(
 
   return order.map((trackedExerciseId) => ({
     trackedExerciseId,
-    name: byId.get(trackedExerciseId)?.name ?? UNKNOWN_EXERCISE_NAME,
+    name: byId.get(trackedExerciseId)?.name ?? unknownExerciseName(),
     equipment: byId.get(trackedExerciseId)?.equipment ?? null,
     unilateral: byId.get(trackedExerciseId)?.unilateral ?? false,
     sets: buckets.get(trackedExerciseId) ?? [],

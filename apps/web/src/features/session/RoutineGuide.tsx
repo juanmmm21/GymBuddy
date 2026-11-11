@@ -5,6 +5,7 @@ import { cx } from '../../lib/cx';
 import { formatTarget } from '../routines/items';
 import type { RoutineLineProgress, RoutineProgress } from './routine-progress';
 import styles from './RoutineGuide.module.css';
+import { t } from '../../i18n/index';
 
 export interface RoutineGuideProps {
   readonly routine: Routine;
@@ -40,17 +41,23 @@ export function RoutineGuide({
         </h2>
         {total > 0 && (
           <span className={styles.count}>
-            {progress.completedLines} de {total} hechos
+            {t(
+              `${String(progress.completedLines)} de ${String(total)} hechos`,
+              `${String(progress.completedLines)} of ${String(total)} done`,
+            )}
           </span>
         )}
       </div>
 
       {total === 0 ? (
         <p className={styles.empty}>
-          Esta rutina no tiene ejercicios: registra lo que hagas como siempre.
+          {t(
+            'Esta rutina no tiene ejercicios: registra lo que hagas como siempre.',
+            'This routine has no exercises: log what you do as usual.',
+          )}
         </p>
       ) : (
-        <ol className={styles.lines} aria-label="Guion de la rutina">
+        <ol className={styles.lines} aria-label={t('Guion de la rutina', 'Routine plan')}>
           {progress.lines.map((line, index) => (
             <GuideLine
               key={line.item.id}
@@ -70,8 +77,11 @@ export function RoutineGuide({
       )}
 
       {total > 0 && progress.current === null && (
-        <Notice tone="success" title="Rutina completada">
-          Has hecho todas las series. Termina la sesión cuando quieras.
+        <Notice tone="success" title={t('Rutina completada', 'Routine completed')}>
+          {t(
+            'Has hecho todas las series. Termina la sesión cuando quieras.',
+            'You’ve done all the sets. End the session whenever you like.',
+          )}
         </Notice>
       )}
     </section>
@@ -89,7 +99,7 @@ interface GuideLineProps {
 }
 
 function GuideLine({ line, position, exercise, current, onLog, onAdjust }: GuideLineProps) {
-  const name = exercise?.name ?? 'Ejercicio no disponible';
+  const name = exercise?.name ?? t('Ejercicio no disponible', 'Exercise not available');
   const { doneSets } = line;
   const { targetSets } = line.item;
 
@@ -101,7 +111,10 @@ function GuideLine({ line, position, exercise, current, onLog, onAdjust }: Guide
         onClick={onLog}
         disabled={exercise === null}
         aria-current={current ? 'step' : undefined}
-        aria-label={`Registrar ${name}, ${String(doneSets)} de ${String(targetSets)} series`}
+        aria-label={t(
+          `Registrar ${name}, ${String(doneSets)} de ${String(targetSets)} series`,
+          `Log ${name}, ${String(doneSets)} of ${String(targetSets)} sets`,
+        )}
       >
         <span className={styles.position}>{position}</span>
         <span className={styles.text}>
@@ -109,10 +122,10 @@ function GuideLine({ line, position, exercise, current, onLog, onAdjust }: Guide
           <span className={styles.target}>{formatTarget(line.item)}</span>
         </span>
         {exercise !== null && exercise.archivedAt !== null && (
-          <Badge tone="warning">Archivado</Badge>
+          <Badge tone="warning">{t('Archivado', 'Archived')}</Badge>
         )}
-        {line.adjusted && <Badge>Solo hoy</Badge>}
-        {current && <Badge tone="accent">Ahora</Badge>}
+        {line.adjusted && <Badge>{t('Solo hoy', 'Today only')}</Badge>}
+        {current && <Badge tone="accent">{t('Ahora', 'Now')}</Badge>}
         <span className={cx(styles.progress, line.complete && styles.done)}>
           {doneSets}/{targetSets}
         </span>
@@ -122,7 +135,7 @@ function GuideLine({ line, position, exercise, current, onLog, onAdjust }: Guide
         type="button"
         className={styles.adjust}
         onClick={onAdjust}
-        aria-label={`Cambiar ${name} solo para hoy`}
+        aria-label={t(`Cambiar ${name} solo para hoy`, `Change ${name} for today only`)}
       >
         Ajustar
       </button>

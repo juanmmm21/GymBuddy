@@ -6,7 +6,7 @@ import {
   type StalledExercise,
 } from '@gymbuddy/shared';
 import { describe, expect, it } from 'vitest';
-import { MASCOT_MOOD_LABELS } from '../../src/features/mascot/labels';
+import { mascotMoodLabel } from '../../src/features/mascot/labels';
 import {
   MAX_NAMED_STALLED_EXERCISES,
   mascotMessage,
@@ -202,7 +202,7 @@ describe('poses y etiquetas', () => {
 
     expect(pose.face.length).toBeGreaterThanOrEqual(3);
     expect(pose.limbs.length + (pose.wavingArm === null ? 0 : 1)).toBe(4);
-    expect(MASCOT_MOOD_LABELS[mood]).toMatch(/^Tu compañero, /);
+    expect(mascotMoodLabel(mood)).toMatch(/^Tu compañero, /);
   });
 
   it('cada pose es distinta de las demás', () => {

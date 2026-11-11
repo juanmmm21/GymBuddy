@@ -6,6 +6,7 @@ import { describeError } from '../../lib/errors';
 import { formatStopwatch, formatTime } from '../../lib/format';
 import { elapsedSecondsSince } from '../../lib/time';
 import styles from './CardioInProgressCard.module.css';
+import { t } from '../../i18n/index';
 
 export interface CardioInProgressCardProps {
   readonly sessionId: ResourceId;
@@ -31,27 +32,37 @@ export function CardioInProgressCard({
   const cancel = useCancelCardio();
 
   return (
-    <Surface as="section" className={styles.card} aria-label="Cardio en marcha">
+    <Surface
+      as="section"
+      className={styles.card}
+      aria-label={t('Cardio en marcha', 'Cardio running')}
+    >
       <div className={styles.head}>
-        <Badge tone="accent">Cardio en marcha</Badge>
+        <Badge tone="accent">{t('Cardio en marcha', 'Cardio running')}</Badge>
         <span className={styles.since}>Desde las {formatTime(startedAt, locale)}</span>
       </div>
       <p className={styles.value} role="timer">
         {formatStopwatch(elapsedSecondsSince(startedAt, now))}
       </p>
       <p className={styles.hint}>
-        La sesión no se cierra mientras dure. Al terminar, apúntalo y se guarda con este tiempo.
+        {t(
+          'La sesión no se cierra mientras dure. Al terminar, apúntalo y se guarda con este tiempo.',
+          'The session won’t close while it runs. When you finish, log it and it’s saved with this time.',
+        )}
       </p>
 
       {cancel.isError && (
-        <Notice tone="danger" title="No se pudo quitar el cardio">
+        <Notice
+          tone="danger"
+          title={t('No se pudo quitar el cardio', 'Couldn’t remove the cardio')}
+        >
           {describeError(cancel.error)}
         </Notice>
       )}
 
       <div className={styles.actions}>
         <Button size="lg" fullWidth disabled={!canLog} onClick={onLog}>
-          Apuntar cardio
+          {t('Apuntar cardio', 'Log cardio')}
         </Button>
         <Button
           variant="ghost"
@@ -61,7 +72,7 @@ export function CardioInProgressCard({
             cancel.mutate(sessionId);
           }}
         >
-          Quitar cardio
+          {t('Quitar cardio', 'Remove cardio')}
         </Button>
       </div>
     </Surface>
