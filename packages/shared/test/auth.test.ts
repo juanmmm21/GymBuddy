@@ -118,11 +118,25 @@ describe('primer paso del registro', () => {
 describe('invitaciones sin usar', () => {
   const status = {
     pending: [{ createdAt: '2026-09-12T10:00:00.000Z', expiresAt: '2026-09-19T10:00:00.000Z' }],
+    quota: { limit: 3, windowDays: 30, remaining: 2, renewsAt: null },
   };
 
   it('acepta el recuento con sus fechas y sin ninguna pendiente', () => {
     expect(invitationStatusSchema.parse(status)).toEqual(status);
-    expect(invitationStatusSchema.parse({ pending: [] }).pending).toEqual([]);
+    expect(invitationStatusSchema.parse({ pending: [], quota: null }).pending).toEqual([]);
+  });
+
+  it('el cupo es obligatorio en el contrato, aunque sea nulo para administración', () => {
+    expect(invitationStatusSchema.safeParse({ pending: [] }).success).toBe(false);
+  });
+
+  it('rechaza un cupo con lo que queda en negativo', () => {
+    expect(
+      invitationStatusSchema.safeParse({
+        ...status,
+        quota: { ...status.quota, remaining: -1 },
+      }).success,
+    ).toBe(false);
   });
 
   it('no lleva el código: lo que se guardó del pendiente es solo su digest', () => {
