@@ -80,7 +80,7 @@
   font-weight: var(--gb-type-body-strong-weight);
 }
 
-/* Antes de entrar ya se puede cambiar el idioma: quien no entiende el del sistema no pasaría de aquí. */
+/* El cambio de idioma, arriba y centrado sobre la marca. */
 .language {
-  width: 100%;
+  align-self: center;
 }

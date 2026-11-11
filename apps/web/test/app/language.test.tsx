@@ -1,5 +1,5 @@
 import type { UpdateUserRequest } from '@gymbuddy/shared';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { LANGUAGE_STORAGE_KEY } from '../../src/i18n/index';
@@ -109,16 +109,26 @@ describe('idioma de la app', () => {
     );
   });
 
-  it('antes de entrar también se puede cambiar', async () => {
+  it('antes de entrar se cambia con las banderas, arriba del todo', async () => {
     const user = userEvent.setup();
-    renderApp({ path: '/login' });
+    const { storage } = renderApp({ path: '/login' });
 
-    await user.selectOptions(
-      await screen.findByRole('combobox', { name: 'Idioma de la app' }),
-      'en',
-    );
+    const languages = await screen.findByRole('group', { name: 'Idioma · Language' });
+    const spanish = within(languages).getByRole('button', { name: 'Español' });
+    const english = within(languages).getByRole('button', { name: 'English' });
+    // El del sistema (español en los tests) sale marcado sin haber elegido nada.
+    expect(spanish).toHaveAttribute('aria-pressed', 'true');
+    expect(english).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+
+    await user.click(english);
 
     expect(await screen.findByRole('button', { name: 'Sign in' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'I have an invitation' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'English' })).toHaveAttribute('aria-pressed', 'true');
+    expect(storage.data.get(LANGUAGE_STORAGE_KEY)).toBe('en');
+
+    await user.click(screen.getByRole('button', { name: 'Español' }));
+    expect(await screen.findByRole('button', { name: 'Entrar' })).toBeInTheDocument();
   });
 });

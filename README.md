@@ -24,7 +24,7 @@ It does the things you actually do between sets:
 - **Attach your own photo or video** of the technique to an exercise you created, re-encoded on the phone before it ever leaves it.
 - **Get a rest notification** on the lock screen when the app is closed, over Web Push from the Worker.
 - **Work offline.** Sets logged without coverage queue up in IndexedDB and drain, in order, when the network returns.
-- **Speak your language**: English or Spanish, following the phone's system language until you pick one in Settings (or on the sign-in screen). Catalogue names and instructions switch with it.
+- **Speak your language**: English or Spanish, following the phone's system language until you pick one in Settings or with the flags at the top of the sign-in screen. Catalogue names and instructions switch with it.
 
 The whole thing runs inside Cloudflare's free plan and is expected to stay there.
 
